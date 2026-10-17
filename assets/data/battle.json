@@ -1,0 +1,3047 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "夜鸦 · 木桩训练场",
+    "engine": "Godot",
+    "description": "E盘角色素材，C盘战斗机制；统一修改器实时生效。"
+  },
+  "settings": {
+    "designWidth": 1280,
+    "designHeight": 720,
+    "characterSpeedMultiplier": 1,
+    "jumpSpeedMultiplier": 1,
+    "jumpGravityMultiplier": 1
+  },
+  "input": {
+    "left": [
+      "A",
+      "LEFT"
+    ],
+    "right": [
+      "D",
+      "RIGHT"
+    ],
+    "jump": [
+      "W",
+      "SPACE"
+    ],
+    "attack": [
+      "J"
+    ],
+    "skill": [
+      "K"
+    ],
+    "parry": [
+      "L"
+    ],
+    "reset": [
+      "R"
+    ]
+  },
+  "art": {
+    "background": "#20212c",
+    "ground": "#292b38",
+    "accent": "#b792f6",
+    "assets": {}
+  },
+  "camera": {
+    "followPlayer": false,
+    "followLerp": 0.12,
+    "shakeDecay": 7,
+    "shakePixelSnap": 1,
+    "minZoom": 1,
+    "maxZoom": 1,
+    "impactZoom": 0.98,
+    "maxShake": 42
+  },
+  "feedback": {
+    "effectsEnabled": true,
+    "hitstopMultiplier": 1,
+    "shakeMultiplier": 1.55,
+    "squashStrength": 0.35,
+    "parryHitstop": 0.05
+  },
+  "audio": {
+    "masterVolume": 0.9,
+    "musicVolume": 0.55,
+    "sfxVolume": 0.9,
+    "voiceVolume": 0.85,
+    "events": {
+      "blade_hit": "audio/combat_v2/blade_crisp.wav",
+      "parry": "audio/combat_v2/blade_crisp.wav",
+      "hit": "audio/street_fight/hit.wav",
+      "shuriken_hit": "audio/street_fight/launch.wav",
+      "launch": "audio/combat_v2/launch.wav",
+      "wall": "audio/combat_v2/wall.wav",
+      "swing": "audio/combat_v2/swing.wav",
+      "blade_swing": "audio/combat_v2/swing.wav",
+      "shuriken_throw": "audio/street_fight/swing.wav",
+      "jump": "audio/combat_v2/jump.wav",
+      "land": "audio/combat_v2/land.wav",
+      "charge_start": "audio/combat_v2/charge_start.wav",
+      "charge_release": "audio/combat_v2/charge_release.wav"
+    },
+    "enabled": true
+  },
+  "ui": {
+    "showMoveHints": true,
+    "showComboCounter": true,
+    "showDamageNumbers": true,
+    "showDebugText": true,
+    "hudScale": 1,
+    "font": "Fonts/MiSans-Regular.ttf"
+  },
+  "stage": {
+    "id": "training",
+    "name": "木桩训练场",
+    "bounds": {
+      "left": 24,
+      "right": 1256,
+      "floorY": 580
+    },
+    "spawn": {
+      "player": {
+        "x": 450,
+        "y": 580
+      },
+      "enemies": [
+        {
+          "x": 640,
+          "y": 580
+        }
+      ]
+    },
+    "decorations": [],
+    "hazards": []
+  },
+  "characters": [
+    {
+      "id": "player",
+      "name": "夜鸦剑士",
+      "role": "player",
+      "maxHp": 100,
+      "speed": 430,
+      "acceleration": 4800,
+      "airControl": 0.8,
+      "jumpSpeed": 928.571,
+      "maxJumps": 2,
+      "size": {
+        "width": 64,
+        "height": 168
+      },
+      "hurtbox": {
+        "x": 0,
+        "y": -84,
+        "width": 50,
+        "height": 156
+      },
+      "sprite": {
+        "mode": "sequence",
+        "idle": "image/cleaned/nightcrow/idle/frame_0001.png",
+        "animations": {
+          "idle": {
+            "fps": 12,
+            "loop": true,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0001.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0002.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0003.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0004.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0005.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0006.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0007.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0008.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0009.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0010.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0011.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0012.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0013.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0014.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0015.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0016.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0017.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0018.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0019.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0020.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0021.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0022.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0023.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0024.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0025.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0026.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0027.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0028.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0029.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0030.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0031.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0032.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0033.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0034.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/idle/frame_0035.png",
+                "width": 118,
+                "height": 169,
+                "pivotX": 44.837,
+                "pivotY": 169.661
+              }
+            ]
+          },
+          "run": {
+            "fps": 24,
+            "loop": true,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0001.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0002.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0003.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0004.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0005.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0006.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0007.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0008.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0009.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0010.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0011.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0012.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0013.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0014.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0015.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0016.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0017.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0018.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0019.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0020.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0021.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0022.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0023.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0024.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0025.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0026.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0027.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0028.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0029.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0030.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0031.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0032.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0033.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0034.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0035.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0036.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0037.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0038.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0039.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0040.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0041.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0042.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0043.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0044.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0045.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0046.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0047.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0048.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0049.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0050.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0051.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0052.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0053.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0054.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0055.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0056.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0057.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0058.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0059.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0060.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0061.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0062.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0063.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0064.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0065.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0066.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0067.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0068.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0069.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              },
+              {
+                "asset": "image/cleaned/nightcrow/run/frame_0070.png",
+                "width": 206,
+                "height": 173,
+                "pivotX": 131.466,
+                "pivotY": 169.661
+              }
+            ],
+            "loopFrame": 8
+          },
+          "jump": {
+            "fps": 85.714,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0001.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0002.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0003.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0004.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0005.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0006.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0007.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0008.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0009.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0010.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0011.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0012.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0013.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0014.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0015.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0016.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0017.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0018.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0019.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0020.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0021.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0022.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0023.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0024.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0025.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0026.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0027.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0028.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0029.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0030.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0031.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0032.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0033.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0034.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0035.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0036.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0037.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0038.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0039.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0040.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0041.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0042.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0043.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0044.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0045.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0046.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0047.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0048.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0049.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0050.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0051.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0052.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0053.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/jump/frame_0054.png",
+                "width": 213,
+                "height": 172,
+                "pivotX": 114.03,
+                "pivotY": 169.107
+              }
+            ]
+          },
+          "fall": {
+            "fps": 48,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0001.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0002.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0003.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0004.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0005.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0006.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0007.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0008.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0009.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0010.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0011.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0012.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0013.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0014.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0015.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0016.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0017.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0018.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0019.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0020.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0021.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0022.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0023.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0024.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0025.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0026.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0027.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0028.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0029.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0030.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0031.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0032.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0033.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0034.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0035.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0036.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              },
+              {
+                "asset": "image/cleaned/nightcrow/fall/frame_0037.png",
+                "width": 171,
+                "height": 170,
+                "pivotX": 114.03,
+                "pivotY": 168.0
+              }
+            ]
+          },
+          "land": {
+            "fps": 53.333,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0001.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0002.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0003.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0004.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0005.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0006.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0007.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              },
+              {
+                "asset": "image/cleaned/nightcrow/land/frame_0008.png",
+                "width": 132,
+                "height": 169,
+                "pivotX": 50.096,
+                "pivotY": 169.107
+              }
+            ]
+          },
+          "attack_1": {
+            "fps": 36,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0001.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0002.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0003.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0004.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0005.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0006.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0007.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0008.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0009.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0010.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0011.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0012.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_1/frame_0013.png",
+                "width": 318,
+                "height": 152,
+                "pivotX": 157.161,
+                "pivotY": 149.935
+              }
+            ]
+          },
+          "attack_2": {
+            "fps": 36,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0001.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0002.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0003.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0004.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0005.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0006.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0007.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0008.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0009.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0010.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0011.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0012.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0013.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0014.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0015.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0016.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0017.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0018.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0019.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0020.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0021.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0022.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0023.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0024.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0025.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0026.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0027.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0028.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0029.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0030.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0031.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0032.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0033.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0034.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0035.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0036.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_2/frame_0037.png",
+                "width": 271,
+                "height": 308,
+                "pivotX": 126.813,
+                "pivotY": 235.923
+              }
+            ]
+          },
+          "attack_3": {
+            "fps": 36,
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0001.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0002.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0003.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0004.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0005.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0006.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0007.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0008.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0009.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0010.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0011.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0012.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0013.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0014.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0015.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0016.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0017.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0018.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0019.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0020.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0021.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0022.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0023.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0024.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0025.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0026.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0027.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0028.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0029.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0030.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0031.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0032.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0033.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_3/frame_0034.png",
+                "width": 260,
+                "height": 314,
+                "pivotX": 116.335,
+                "pivotY": 240.981
+              }
+            ]
+          },
+          "attack_up": {
+            "loop": false,
+            "holdLast": true,
+            "frames": [
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0001.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0002.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0003.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0004.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0005.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0006.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0007.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0008.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0009.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0010.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              },
+              {
+                "asset": "image/cleaned/nightcrow/attack_up/frame_0011.png",
+                "width": 311,
+                "height": 219,
+                "pivotX": 149.574,
+                "pivotY": 216.413
+              }
+            ],
+            "fps": 36
+          }
+        },
+        "effects": {
+          "feather_slash": {
+            "fps": 90,
+            "loop": false,
+            "holdLast": false,
+            "frames": [
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0014.png",
+                "width": 130,
+                "height": 62,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0015.png",
+                "width": 278,
+                "height": 223,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0016.png",
+                "width": 278,
+                "height": 223,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0017.png",
+                "width": 278,
+                "height": 223,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0018.png",
+                "width": 278,
+                "height": 223,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0019.png",
+                "width": 278,
+                "height": 236,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0020.png",
+                "width": 278,
+                "height": 236,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0021.png",
+                "width": 278,
+                "height": 236,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0022.png",
+                "width": 278,
+                "height": 236,
+                "pivotX": 96.32,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0023.png",
+                "width": 277,
+                "height": 236,
+                "pivotX": 95.2,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0024.png",
+                "width": 255,
+                "height": 236,
+                "pivotX": 73.64,
+                "pivotY": 223.16
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0025.png",
+                "width": 255,
+                "height": 235,
+                "pivotX": 73.36,
+                "pivotY": 222.32
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0026.png",
+                "width": 255,
+                "height": 209,
+                "pivotX": 73.36,
+                "pivotY": 196.84
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0027.png",
+                "width": 254,
+                "height": 202,
+                "pivotX": 73.36,
+                "pivotY": 189
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0028.png",
+                "width": 247,
+                "height": 98,
+                "pivotX": 73.36,
+                "pivotY": 85.68
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0029.png",
+                "width": 198,
+                "height": 42,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0030.png",
+                "width": 127,
+                "height": 41,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0031.png",
+                "width": 58,
+                "height": 29,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0032.png",
+                "width": 44,
+                "height": 17,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0033.png",
+                "width": 39,
+                "height": 14,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0034.png",
+                "width": 38,
+                "height": 13,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0035.png",
+                "width": 36,
+                "height": 12,
+                "pivotX": 73.36,
+                "pivotY": 29.4
+              },
+              {
+                "asset": "image/vfx/nightcrow/slash/fx_0036.png",
+                "width": 1,
+                "height": 1,
+                "pivotX": 38.08,
+                "pivotY": 25.2
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              },
+              {
+                "blank": true
+              }
+            ],
+            "description": "沿挥剑方向产生，使用 E 盘原有腐蚀序列逐段消散。",
+            "erosionSpeed": 0.8
+          }
+        },
+        "filter": "nearest",
+        "displayScale": 1
+      },
+      "jumpTimeToPeak": 0.28,
+      "jumpTimeToDescent": 0.2
+    },
+    {
+      "id": "dummy",
+      "name": "训练木桩",
+      "role": "neutral",
+      "maxHp": 320,
+      "speed": 0,
+      "acceleration": 0,
+      "airControl": 0,
+      "jumpSpeed": 0,
+      "maxJumps": 1,
+      "size": {
+        "width": 74,
+        "height": 136
+      },
+      "hurtbox": {
+        "x": 0,
+        "y": -68,
+        "width": 74,
+        "height": 136
+      },
+      "sprite": {}
+    }
+  ],
+  "moves": [
+    {
+      "id": "light_1",
+      "name": "一段 · 旋斩",
+      "input": "J",
+      "duration": 0.3611111111111111,
+      "activeStart": 0.08333333333333333,
+      "activeEnd": 0.1111111111111111,
+      "chainOpen": 0.16666666666666666,
+      "animation": "attack_1",
+      "animationSpeed": 1,
+      "syncAnimation": true,
+      "activeFrameStart": 3,
+      "activeFrameEnd": 3,
+      "chainFrame": 6,
+      "damage": 8,
+      "knockbackX": 233.713,
+      "launchY": 24.564,
+      "forcesLaunch": false,
+      "hitstun": 0,
+      "hitstop": 0.1,
+      "victimHitstop": 0.11666666666666667,
+      "shakeAmount": 5.5,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 260,
+      "movementSpeedMultiplier": 1,
+      "wallDamageFactor": 0.5,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 1.42,
+      "squashY": 0.66
+    },
+    {
+      "id": "light_2",
+      "name": "二段 · 回斩",
+      "input": "J",
+      "duration": 1.4682539682539684,
+      "activeStart": 0.4761904761904762,
+      "activeEnd": 0.6349206349206349,
+      "chainOpen": 0.873015873015873,
+      "animation": "attack_2",
+      "animationSpeed": 0.7,
+      "syncAnimation": true,
+      "activeFrameStart": 12,
+      "activeFrameEnd": 15,
+      "chainFrame": 22,
+      "damage": 10,
+      "knockbackX": 258.576,
+      "launchY": 27.177,
+      "forcesLaunch": false,
+      "hitstun": 0,
+      "hitstop": 0.1,
+      "victimHitstop": 0.13333333333333333,
+      "shakeAmount": 6.5,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 280,
+      "movementSpeedMultiplier": 1,
+      "wallDamageFactor": 0.5,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 1.45,
+      "squashY": 0.64
+    },
+    {
+      "id": "light_3",
+      "name": "三段 · 羽刃",
+      "input": "J",
+      "duration": 1.3492063492063493,
+      "activeStart": 0.2777777777777778,
+      "activeEnd": 0.39682539682539686,
+      "chainOpen": 0.7142857142857143,
+      "animation": "attack_3",
+      "animationSpeed": 0.7,
+      "syncAnimation": true,
+      "activeFrameStart": 7,
+      "activeFrameEnd": 9,
+      "chainFrame": 18,
+      "damage": 18,
+      "knockbackX": 379.667,
+      "launchY": 380,
+      "forcesLaunch": true,
+      "hitstun": 0.36666666666666664,
+      "hitstop": 0.18333333333333332,
+      "victimHitstop": 0.25,
+      "shakeAmount": 12,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 380,
+      "movementSpeedMultiplier": 1,
+      "wallDamageFactor": 0.7,
+      "effect": "feather_slash",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 1.52,
+      "squashY": 0.55
+    },
+    {
+      "id": "charge_1",
+      "name": "蓄力羽刃",
+      "input": "J_HOLD",
+      "duration": 0.9444444444444444,
+      "activeStart": 0.19444444444444445,
+      "activeEnd": 0.2777777777777778,
+      "chainOpen": 0.3888888888888889,
+      "animation": "attack_3",
+      "animationSpeed": 1,
+      "syncAnimation": true,
+      "activeFrameStart": 7,
+      "activeFrameEnd": 9,
+      "chainFrame": 14,
+      "damage": 26,
+      "knockbackX": 589.655,
+      "launchY": 430,
+      "forcesLaunch": true,
+      "hitstun": 0.43333333333333335,
+      "hitstop": 0.21666666666666667,
+      "victimHitstop": 0.26666666666666666,
+      "shakeAmount": 15,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 520,
+      "movementSpeedMultiplier": 0.62,
+      "wallDamageFactor": 0.85,
+      "effect": "feather_slash",
+      "minHold": 0.35,
+      "maxHold": 1.2,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 1.55,
+      "squashY": 0.52,
+      "chargeHitstopBonus": 0.1
+    },
+    {
+      "id": "up_strike",
+      "name": "上挑",
+      "input": "W+J",
+      "duration": 0.3055555555555556,
+      "activeStart": 0.0,
+      "activeEnd": 0.08333333333333333,
+      "chainOpen": 0.16666666666666666,
+      "animation": "attack_up",
+      "animationSpeed": 1,
+      "syncAnimation": true,
+      "activeFrameStart": 0,
+      "activeFrameEnd": 2,
+      "chainFrame": 6,
+      "damage": 12,
+      "knockbackX": 87.323,
+      "launchY": 760,
+      "forcesLaunch": true,
+      "hitstun": 0.2,
+      "hitstop": 0.15,
+      "victimHitstop": 0.18333333333333332,
+      "shakeAmount": 10,
+      "hitbox": {
+        "x": 45,
+        "y": -122,
+        "width": 90,
+        "height": 136
+      },
+      "lunge": 90,
+      "movementSpeedMultiplier": 0.62,
+      "wallDamageFactor": 0.6,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 0.74,
+      "squashY": 1.45
+    },
+    {
+      "id": "air_up",
+      "name": "空中上挑",
+      "input": "AIR_J",
+      "duration": 0.3611111111111111,
+      "activeStart": 0.08333333333333333,
+      "activeEnd": 0.1111111111111111,
+      "chainOpen": 0.16666666666666666,
+      "animation": "attack_1",
+      "animationSpeed": 1,
+      "syncAnimation": true,
+      "activeFrameStart": 3,
+      "activeFrameEnd": 3,
+      "chainFrame": 6,
+      "damage": 9,
+      "knockbackX": 122.021,
+      "launchY": 470,
+      "forcesLaunch": true,
+      "hitstun": 0.13333333333333333,
+      "hitstop": 0.1,
+      "victimHitstop": 0.11666666666666667,
+      "shakeAmount": 6,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 60,
+      "movementSpeedMultiplier": 0.62,
+      "wallDamageFactor": 0.5,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 0.78,
+      "squashY": 1.38
+    },
+    {
+      "id": "ranged_1",
+      "name": "远射",
+      "input": "K",
+      "duration": 0.616667,
+      "activeStart": 0.216667,
+      "activeEnd": 0.4,
+      "chainOpen": 0.6166666666666667,
+      "animation": "idle",
+      "animationSpeed": 1,
+      "syncAnimation": false,
+      "activeFrameStart": 0,
+      "activeFrameEnd": 1,
+      "chainFrame": 0,
+      "damage": 9,
+      "knockbackX": 297.08,
+      "launchY": 41.752,
+      "forcesLaunch": false,
+      "hitstun": 0,
+      "hitstop": 0.05,
+      "victimHitstop": 0.08333333333333333,
+      "shakeAmount": 3.5,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 0,
+      "movementSpeedMultiplier": 0.62,
+      "wallDamageFactor": 0.5,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": true,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 0.8,
+      "squashY": 1.24
+    },
+    {
+      "id": "parry_1",
+      "name": "弹刀",
+      "input": "L",
+      "duration": 0.4166666666666667,
+      "activeStart": 0.03333333333333333,
+      "activeEnd": 0.21666666666666667,
+      "chainOpen": 0.23333333333333334,
+      "animation": "idle",
+      "animationSpeed": 1,
+      "syncAnimation": false,
+      "activeFrameStart": 0,
+      "activeFrameEnd": 1,
+      "chainFrame": 0,
+      "damage": 0,
+      "knockbackX": 0,
+      "launchY": 0,
+      "forcesLaunch": false,
+      "hitstun": 0,
+      "hitstop": 0.03333333333333333,
+      "victimHitstop": 0.1,
+      "shakeAmount": 3,
+      "hitbox": {
+        "x": 100,
+        "y": -90,
+        "width": 200,
+        "height": 136
+      },
+      "lunge": 0,
+      "movementSpeedMultiplier": 0.62,
+      "wallDamageFactor": 0,
+      "effect": "",
+      "minHold": 0.36666666666666664,
+      "maxHold": 0.8,
+      "chargeDamageBonus": 1.9,
+      "chargeKnockbackBonus": 1.7,
+      "projectile": {
+        "enabled": false,
+        "speed": 940,
+        "life": 1.5,
+        "spawnX": 54,
+        "spawnY": -90,
+        "width": 24,
+        "height": 12,
+        "hitWidth": 26,
+        "hitHeight": 12
+      },
+      "squashX": 0.88,
+      "squashY": 1.14
+    }
+  ],
+  "runtime": {
+    "version": 1,
+    "autoReload": true,
+    "attackBufferFrames": 36,
+    "holdToChargeFrames": 10,
+    "comboKeepFrames": 48,
+    "trainingAutoReset": true
+  }
+}

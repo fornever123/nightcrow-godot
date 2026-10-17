@@ -1,0 +1,1536 @@
+{
+  "method": "delete green-key edge pixels; despill remaining green excess; keep source files",
+  "dimensions_unchanged": true,
+  "character_alpha_unchanged": true,
+  "frames": 218,
+  "key_pixels_removed": 14087,
+  "spill_pixels_despilled": 39748,
+  "files": [
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0001.png",
+      "source_sha256": "b49826aecb92ee922ff5f08d2bfd8e8babda23dc159bf0a2b0f0878e3a2063a4",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0002.png",
+      "source_sha256": "94316ebcac353e601b8a6d6c76a85d19daafdf67f8668e9959a4c2664ef02d46",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0003.png",
+      "source_sha256": "b7cc2e22bb618c6f42fdfad21f4a7311e0b0fd467bdd1edba3388329029a220f",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0004.png",
+      "source_sha256": "b163a2e35e6a9eb282a8fb37895bfd84263352bab51a4645170238f10624f54a",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 6
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0005.png",
+      "source_sha256": "c6c532e3c03b1ce285931d391477bf2480093fe3c60d07a13dbb2f8fa44af8a0",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0006.png",
+      "source_sha256": "006e26a8f8ed189c359d4273df9165d506e1b5d32cda3bca28ce79717e9457a1",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0007.png",
+      "source_sha256": "974348f6d61e720bc569458db3f3df9907f5fd4ea102c5d4ae1ce9718d9bbbf9",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0008.png",
+      "source_sha256": "26e695af351791ee580cd6d2034f1ba4ff529513655b8f82aa6cbf996f98b30e",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0009.png",
+      "source_sha256": "4677bc1b28358abd9ce5b94595c64f1159fbfe2e1c027df9a2b036274863c4c2",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0010.png",
+      "source_sha256": "718e50eb4ce226d396e2e4922601f0703fcf0ab006875a6c07d87b5e28a7c678",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0011.png",
+      "source_sha256": "b9bbb64c4ce8145c3f33fb2a9105af3a404910926b0ba77ebdd29ef339470fc8",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0012.png",
+      "source_sha256": "4a1471fecd08cd52037da5fe6847280dc0ffc26a20db7570b5ec56e2ad9309e4",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0013.png",
+      "source_sha256": "cd055512fa5df3574c64326c202ba61facf456fbe374dc65b78c64986fea22d5",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0014.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0014.png",
+      "source_sha256": "42bd98763bfaee86c126ea4cfae861c6cdb848c6e414b80c620e1a027d38d2af",
+      "key_pixels_removed": 8,
+      "spill_pixels_despilled": 5
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0015.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0015.png",
+      "source_sha256": "e78505212eec66a75f71fa060c2977b3877b0594d1fc7e7dc442b2d2d9197a5c",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0016.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0016.png",
+      "source_sha256": "493cec037d77b8c31b3aca003ce746ada780f2d5264f0b6def9717f3e2065691",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0017.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0017.png",
+      "source_sha256": "62222c939fb4f0c1d57df95e9ee62399c9d08d4baad3279a5542f71afd2b61c6",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0018.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0018.png",
+      "source_sha256": "7f0060f986d272e4242988e8c5b1b2baa4a8cf3fdc517850abe3c64b1a64085f",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0019.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0019.png",
+      "source_sha256": "4c83028e53c60a8626a14e4974c5d51d377806d6670519a8ed6064555b2bbad2",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 5
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0020.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0020.png",
+      "source_sha256": "53c621935f14de92184c36a730449690fc1199363f276b55acefe604fce1c30d",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0021.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0021.png",
+      "source_sha256": "eb3631c6e893158210cbf19838ac8462c482743d67fc93e0576cd987a1591eae",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_1/frame_0022.png",
+      "cleaned": "image/cleaned/nightcrow/attack_1/frame_0022.png",
+      "source_sha256": "128294123672ce1b61d98618126397afed0b6da2098008b27a078a257cd2500e",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0001.png",
+      "source_sha256": "eeba466eae3a716a522cfaab6cb62650e42275713610cc9359789c6e18013f68",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0002.png",
+      "source_sha256": "f542dd70e3f9954dc2cddc0f77979c213f4172dcef9575eb1fd18e2789fb01fa",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 6
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0003.png",
+      "source_sha256": "5f86a5afc1073c77aedd44e2a5d02e1d5952e5cf16dc67e4cd6c5fde54c8834d",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 8
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0004.png",
+      "source_sha256": "aab119216fa34e3ca86ff689ed86093368b603601119bc4f52c57071bb7d4fa4",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0005.png",
+      "source_sha256": "77cd4528b599495654c45c8af92cc94c3e6331114b3829d0b85c4fa9f59e645a",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0006.png",
+      "source_sha256": "1dcc16b401966b7636be3a33ddbf9905d35cae9417d58b1ca8f7aa1b6159e26c",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0007.png",
+      "source_sha256": "f88f3b48c121eca640005b8b7acdefc406f92e7f96c67de3cdd1fcd2e2238c8b",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 5
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0008.png",
+      "source_sha256": "3f4219577a370fc98c6ec09ff4e8ae34760909672cb47c76499e76027b586ab5",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 7
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0009.png",
+      "source_sha256": "7cd7a14cd596464705905e53ca3ac0b4f9e1773603fe99b8ce5351da9702beb9",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 6
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0010.png",
+      "source_sha256": "85bda4a72fcf2791389d78a9140ed6b178480f7eb9656e4432182d7efffb083c",
+      "key_pixels_removed": 3,
+      "spill_pixels_despilled": 6
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0011.png",
+      "source_sha256": "d4b0cb95ce1f4ad2a7f9b16a75a20acb1a2e365f7c1eca036aade60892187572",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0012.png",
+      "source_sha256": "9c6c368028c4a0148f9e9add67fdb5c9bac72e65ec8282a5e24b4e0ab313c492",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0013.png",
+      "source_sha256": "bb6ba532a0950d458d3fdda6590b44328f1d57d503d975bd85fec0f169e695cd",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0014.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0014.png",
+      "source_sha256": "e7723b9c7e806e5530bbc36d7f4b9aa0a8714dd9ba54a897bdade9a43297511e",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0015.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0015.png",
+      "source_sha256": "dcd6415df31df55727c77bfc8f223f9c186be679351a7b508f0ecd148649209b",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0016.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0016.png",
+      "source_sha256": "2955c4174c891efc6286f2087d87e53257e67c59b90070c1f6b27939d2ae98be",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0017.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0017.png",
+      "source_sha256": "498040f9625ecebb1213b4d2bdc952fa1a1d9cd848cd43ee08c8685b1a11868d",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0018.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0018.png",
+      "source_sha256": "24797a27d8cad0a50bcbd163e4af0184af0bf27a13854de51f1eaaa237de671c",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0019.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0019.png",
+      "source_sha256": "f4c8bfe9243aee7e4b23b8e4869ff5c8fba83f5fd2edaeed9e9472a5e7b36d63",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0020.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0020.png",
+      "source_sha256": "c9614b09fd76bf75f7d6390ac4c4788e5b941d2df03f7598a0cf820de0bb9ce2",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0021.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0021.png",
+      "source_sha256": "a120d8cf832d13d503b5553727e8102948ab04d2b5c5609e1671eccedf79c068",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0022.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0022.png",
+      "source_sha256": "cd4c5b55251bcd22ad9ba7fbc8968701426fd46ab6f58b128f52e17b92d40aae",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0023.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0023.png",
+      "source_sha256": "1652c36639eacd7319d0e865604d8a0729d90fa6fac9b53dfe501ac64926410f",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0024.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0024.png",
+      "source_sha256": "db571522fd3e6f11e30719e2a9c961472ff85bac3abdcf59533ebf2e6a2c1d33",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0025.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0025.png",
+      "source_sha256": "fc5a4c2ccd574e46fdd47df89556782be3a62b1f6be4d779ac0a06eb45b1f7b2",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0026.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0026.png",
+      "source_sha256": "27b7687e6526dbacc4ce73f26e8e50e96c1ccc553cf5762e5ec90f8f14f59fce",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0027.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0027.png",
+      "source_sha256": "813666be2cea7d70586d2a55f5491083449d3f1abf4f147c9423e87261d7e567",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 1
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0028.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0028.png",
+      "source_sha256": "488a335e9a522762cc9dc81e7fb21dee6e062a63893672e496ce4d5a6c34a977",
+      "key_pixels_removed": 3,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0029.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0029.png",
+      "source_sha256": "d065eebc111d86a2ef6ca35eaf585f7f09000e495a405a33fdb578dab3c48e47",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0030.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0030.png",
+      "source_sha256": "492d779b5366bdf5f03e0738dcef520b2a1a1a806c9e62a8181ef3fdb925daea",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 2
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0031.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0031.png",
+      "source_sha256": "9f712f1a262bd4c7de34b01031933b0b8f91b4286ef578457ac2608ac3539898",
+      "key_pixels_removed": 2,
+      "spill_pixels_despilled": 4
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0032.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0032.png",
+      "source_sha256": "cb23a1832643743dd38946e5331db611bd03348f846c90feaa9d696298737fe6",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0033.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0033.png",
+      "source_sha256": "dcead111f57c41b3858cb878b0d11b34690e86d663d0ab6c84975350e2329105",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0034.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0034.png",
+      "source_sha256": "7438c8ccdcb1255a14003b913c5c249460ad82d19f5bf282ce446c8494c63f4b",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0035.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0035.png",
+      "source_sha256": "eb8c3b6c691a032e124b2c210ce48f1aadd233dbe72316a39aeea0abd63174e4",
+      "key_pixels_removed": 0,
+      "spill_pixels_despilled": 3
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0036.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0036.png",
+      "source_sha256": "414b822438ced2f26940cbadc0aa8adf24a8a9425a9b673d84f615342631b508",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_2/frame_0037.png",
+      "cleaned": "image/cleaned/nightcrow/attack_2/frame_0037.png",
+      "source_sha256": "913c4aa62fd2e978f241e44e190360fde8e7749fb919610de6e81c7d99846641",
+      "key_pixels_removed": 1,
+      "spill_pixels_despilled": 0
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0001.png",
+      "source_sha256": "5fde8a6bc732c3d4c17584853c91da8480e00130686316f144bf936ad8a0173b",
+      "key_pixels_removed": 30,
+      "spill_pixels_despilled": 135
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0002.png",
+      "source_sha256": "24565f1b385cb15c1351ca5d1705ae4b4768b412edba0c643f8961ba3abfbbf5",
+      "key_pixels_removed": 39,
+      "spill_pixels_despilled": 151
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0003.png",
+      "source_sha256": "b4b9c3ad1e40057c0ea54111d37a478dfde412800e01343c4a4d38623ca0aa8f",
+      "key_pixels_removed": 26,
+      "spill_pixels_despilled": 135
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0004.png",
+      "source_sha256": "a634531a92e456a63fa932ff6eb6545fe987924999f62cb11dd57b923fb9319e",
+      "key_pixels_removed": 32,
+      "spill_pixels_despilled": 120
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0005.png",
+      "source_sha256": "ac67d15ab21548edfab1d00537a94a50788a15c39522e414e2708f38e6b811b7",
+      "key_pixels_removed": 28,
+      "spill_pixels_despilled": 139
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0006.png",
+      "source_sha256": "a85a002523f83e4f25c5a888b31d72560e33593daf4c151c3f393a216f3ed68f",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 104
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0007.png",
+      "source_sha256": "c02b051dcdb79c21d40fac4b403f8a3a23c2ef22b7b0837e25840edaab9664f0",
+      "key_pixels_removed": 31,
+      "spill_pixels_despilled": 93
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0008.png",
+      "source_sha256": "8bc4558e2ba0d6a82d533e07d4cfe2a86c17afdf5683ed1c4a577027c1dbf908",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 96
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0009.png",
+      "source_sha256": "618252b97d4c469d16499a7dde67e2df23096f109a9299b816f48d80ae865e7c",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 71
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0010.png",
+      "source_sha256": "8db5940adf731a514c6d48fb3d63d0f5d5cbcb8049f17ca947b67571ce92ccd6",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 59
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0011.png",
+      "source_sha256": "92c471d4018ba35ce56e3de52f55738087f6fd44839e740022b7cd91dfbb925e",
+      "key_pixels_removed": 19,
+      "spill_pixels_despilled": 63
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0012.png",
+      "source_sha256": "3a4b45ff52167d86211365f8735c3703c9e3701bd3371e88c127465f5ab17fd5",
+      "key_pixels_removed": 8,
+      "spill_pixels_despilled": 73
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0013.png",
+      "source_sha256": "e8d64abc045ad28ac2add09bcd5193588401dc2c2b5c44f1cb04d1742739cbc9",
+      "key_pixels_removed": 20,
+      "spill_pixels_despilled": 76
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0014.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0014.png",
+      "source_sha256": "2e1420e6fdbfe7286fb038d0739d758a0da8a323e73653eb43a86f226fafd087",
+      "key_pixels_removed": 19,
+      "spill_pixels_despilled": 90
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0015.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0015.png",
+      "source_sha256": "da3d287fe24979d9af9c03532cf15c260012934f56cd21b5c797306809548e92",
+      "key_pixels_removed": 25,
+      "spill_pixels_despilled": 78
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0016.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0016.png",
+      "source_sha256": "8299f039ac6b84f9fb904853df8dfd5506e6f99d579a35e8f584df2e31ceca63",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 62
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0017.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0017.png",
+      "source_sha256": "120a0259ff576a522a8ac666b587c23be19063f73dfcf533ebd2cd2328a6a563",
+      "key_pixels_removed": 19,
+      "spill_pixels_despilled": 71
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0018.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0018.png",
+      "source_sha256": "64737b5a83c00c0ac0f6c515c9e94848364564c62b6d894400b088b62b29a8d2",
+      "key_pixels_removed": 10,
+      "spill_pixels_despilled": 74
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0019.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0019.png",
+      "source_sha256": "0b712da06ea344de1bdd1b784a6f4a204a0ec2e636e9572d95879e55d858bdec",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 101
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0020.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0020.png",
+      "source_sha256": "f966098e4a87db8fa1f6a2179af5908edb59eeb5a15a7da9d73c04cf99a53316",
+      "key_pixels_removed": 22,
+      "spill_pixels_despilled": 114
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0021.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0021.png",
+      "source_sha256": "9e623f7340e671122364081a0c0bf5b36089be7d89fcc15a7709abd386d97a1d",
+      "key_pixels_removed": 20,
+      "spill_pixels_despilled": 110
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0022.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0022.png",
+      "source_sha256": "9ca43d3bebb71c8052d55cd4a1370d86f020a3204f744791c2d13914e850cf91",
+      "key_pixels_removed": 16,
+      "spill_pixels_despilled": 113
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0023.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0023.png",
+      "source_sha256": "125a01da0ae3db4fc3257e085c98541b9e4ce3cbcd61ce7beaea60a75687416b",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 74
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0024.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0024.png",
+      "source_sha256": "5f64b869d472b210a15f54c53a2a65fc55a49a8f823a4b3e1bd1daea2eabbd2a",
+      "key_pixels_removed": 34,
+      "spill_pixels_despilled": 86
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0025.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0025.png",
+      "source_sha256": "a0e805957acb92be078193e1ced002b25e14397518bd7ba62c686ee33cd98ae3",
+      "key_pixels_removed": 18,
+      "spill_pixels_despilled": 114
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0026.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0026.png",
+      "source_sha256": "5b6952dde09d766c39e1008fdbf299b9b114819bafb400c8eeffb60ce482e9ef",
+      "key_pixels_removed": 27,
+      "spill_pixels_despilled": 87
+    },
+    {
+      "source": "image/characters/nightcrow/attack_3/frame_0027.png",
+      "cleaned": "image/cleaned/nightcrow/attack_3/frame_0027.png",
+      "source_sha256": "55cb4568f55fbf60a35fd4d7e4e2b9490b292fd531713f00e0dd1c9314321881",
+      "key_pixels_removed": 9,
+      "spill_pixels_despilled": 94
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0001.png",
+      "source_sha256": "7097587bcf60332718f16b5ee98637cfeab089b80dc2274bad96e4ad987e956c",
+      "key_pixels_removed": 40,
+      "spill_pixels_despilled": 184
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0002.png",
+      "source_sha256": "cd864c49798a89916d14a55cacb8efa46ca755b040b55a9e453696515452cd21",
+      "key_pixels_removed": 45,
+      "spill_pixels_despilled": 208
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0003.png",
+      "source_sha256": "5d8491322187f2a00b3cb2297d2fbacb7b70f1a0e9a225b3c938dec9be6e7073",
+      "key_pixels_removed": 45,
+      "spill_pixels_despilled": 178
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0004.png",
+      "source_sha256": "f33ef2c267573c1c66d9b7bc4a21c38fcaf27ba3f6886e1b1e7b380b9e3b67ef",
+      "key_pixels_removed": 55,
+      "spill_pixels_despilled": 177
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0005.png",
+      "source_sha256": "314d39d8bf450c5dbc43ef60a0bad6bb133aab2891bb4515766f887717388f5f",
+      "key_pixels_removed": 42,
+      "spill_pixels_despilled": 159
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0006.png",
+      "source_sha256": "ba917e6c2a1236ea78e1a9ea48e9e85b5e33ee21b9bb097253083e359356f928",
+      "key_pixels_removed": 47,
+      "spill_pixels_despilled": 173
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0007.png",
+      "source_sha256": "6743d97f68266d4aa408e1ec280668fecc753de19a806684bb0b45acb8c6f962",
+      "key_pixels_removed": 64,
+      "spill_pixels_despilled": 163
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0008.png",
+      "source_sha256": "84acc85a2e6cca0838c9d0dc637bac4f478a7215fe7110d5215eddd43df6334b",
+      "key_pixels_removed": 46,
+      "spill_pixels_despilled": 158
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0009.png",
+      "source_sha256": "8e65c3c0956eb26ff3751273d5859812e616d9e56f1e420658f0c4446f05b7bb",
+      "key_pixels_removed": 45,
+      "spill_pixels_despilled": 176
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0010.png",
+      "source_sha256": "3425307d4ef8ca79d15a724104e27a048d70842603fdfbc2521f7a502504c00e",
+      "key_pixels_removed": 44,
+      "spill_pixels_despilled": 174
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0011.png",
+      "source_sha256": "895493677090dc1a3f9e643e6cf49aa12b66230ed4bdc4e2e5365db24e02a7fd",
+      "key_pixels_removed": 58,
+      "spill_pixels_despilled": 173
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0012.png",
+      "source_sha256": "617a5aaa1c4630c1e2ea278a03abcb99142b5747193cda8e38d391da2cadc33c",
+      "key_pixels_removed": 47,
+      "spill_pixels_despilled": 168
+    },
+    {
+      "source": "image/characters/nightcrow/fall/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/fall/frame_0013.png",
+      "source_sha256": "c5678be3021d0daef3c5c6e43d352e5311eb0996ff394cef14d7a15fdfb9abfc",
+      "key_pixels_removed": 51,
+      "spill_pixels_despilled": 160
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0001.png",
+      "source_sha256": "f06f2a03e80b910ae4c39444a498f835ebde14f92a1a0605ad22f33cad3ef979",
+      "key_pixels_removed": 215,
+      "spill_pixels_despilled": 560
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0002.png",
+      "source_sha256": "8ed06e49b8db16b5ead90bd1dd43c0f63734cdd101f52e7fac0e449cb0d88588",
+      "key_pixels_removed": 219,
+      "spill_pixels_despilled": 549
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0003.png",
+      "source_sha256": "f5592f6e5688b763a4786e6661670bd610fdab10eeaa8386b408a4e7be68ce89",
+      "key_pixels_removed": 229,
+      "spill_pixels_despilled": 536
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0004.png",
+      "source_sha256": "394362c21137ac2fccaf9518441ca4d0baa1c7c7c80b4c3f52776637a7cafddb",
+      "key_pixels_removed": 195,
+      "spill_pixels_despilled": 512
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0005.png",
+      "source_sha256": "eea640a3e593b71d0ab80fb2d85377d1a8a32f9988457283a799f356418fe0fa",
+      "key_pixels_removed": 202,
+      "spill_pixels_despilled": 525
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0006.png",
+      "source_sha256": "3e50175223ea17d322b939bb08bb5d0a214c24a4dd5f9b7f1f2fef20d8eeb14f",
+      "key_pixels_removed": 214,
+      "spill_pixels_despilled": 516
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0007.png",
+      "source_sha256": "76486b3b7eae64fbdc235db3cb72df2d5379abc55afee0151e6d35b75205552b",
+      "key_pixels_removed": 225,
+      "spill_pixels_despilled": 509
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0008.png",
+      "source_sha256": "ca5ab37d51a099b8ccf10f910d38217bd378c6124d8a21c948b9fdf7db080360",
+      "key_pixels_removed": 219,
+      "spill_pixels_despilled": 509
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0009.png",
+      "source_sha256": "765f92c43798dd0d29e0247857a14a76b1fff9c8e01a97c181323edce0ba63e4",
+      "key_pixels_removed": 240,
+      "spill_pixels_despilled": 531
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0010.png",
+      "source_sha256": "2362ce799a76f0b6f20c25b6356c2634e4b9fe8c0e4576a74792f5ed45a43ac1",
+      "key_pixels_removed": 243,
+      "spill_pixels_despilled": 517
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0011.png",
+      "source_sha256": "146a2cd4fd68e0bb2fedd451bbf6f1b147c66b6a1b3225abc1fa9d1939ef25ba",
+      "key_pixels_removed": 219,
+      "spill_pixels_despilled": 529
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0012.png",
+      "source_sha256": "affe9b735efdd01ae16ec490dfe907e3825425ec861d65a82463475f12c22cba",
+      "key_pixels_removed": 232,
+      "spill_pixels_despilled": 517
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0013.png",
+      "source_sha256": "110eb10b677a12d062882fd239e94d3e11cbd1d07ab82b6e1f1544de29f6d009",
+      "key_pixels_removed": 204,
+      "spill_pixels_despilled": 547
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0014.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0014.png",
+      "source_sha256": "5e01e0faf9121c860b5864db1fe49a7dddf2c45323c58180a1e27d99f206e42b",
+      "key_pixels_removed": 219,
+      "spill_pixels_despilled": 524
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0015.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0015.png",
+      "source_sha256": "846abe59d8e0de73a3f6e8a62a7c6ce3621091e008da660c008902ed1e0e7dc7",
+      "key_pixels_removed": 213,
+      "spill_pixels_despilled": 528
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0016.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0016.png",
+      "source_sha256": "1393fcc97107884feb9a65e1b6813a0814969604fbde3e10272fea18d6ecf698",
+      "key_pixels_removed": 188,
+      "spill_pixels_despilled": 562
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0017.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0017.png",
+      "source_sha256": "050f09b50bf57e6758f61a2fda1f6f9f56bb2457c585372e507fab47ade1bb7c",
+      "key_pixels_removed": 209,
+      "spill_pixels_despilled": 576
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0018.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0018.png",
+      "source_sha256": "c0085440633bfc28b314eec3d924554ba74be4eeb849d959496bcd93883c84a7",
+      "key_pixels_removed": 226,
+      "spill_pixels_despilled": 577
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0019.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0019.png",
+      "source_sha256": "ebed91079545dba8b949724ed54ce3455500e67cd3836fb76fbec169247ade00",
+      "key_pixels_removed": 226,
+      "spill_pixels_despilled": 603
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0020.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0020.png",
+      "source_sha256": "24a2038a068040b400721dcf56ff1b6072895d345a519fdc94d18c116dfa273b",
+      "key_pixels_removed": 239,
+      "spill_pixels_despilled": 578
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0021.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0021.png",
+      "source_sha256": "cc9e71b8c95266902340f9e884c0550a7b4c6aa80511149513f39fb7c60916ce",
+      "key_pixels_removed": 242,
+      "spill_pixels_despilled": 596
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0022.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0022.png",
+      "source_sha256": "74ac86a9ddc6dd5db8c9f92d537dad657a827223b857afe2eba2431fb5614370",
+      "key_pixels_removed": 259,
+      "spill_pixels_despilled": 566
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0023.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0023.png",
+      "source_sha256": "30628a5be114018ab395440f56a31c777bc991247a249f52ee33fd61613a78f3",
+      "key_pixels_removed": 234,
+      "spill_pixels_despilled": 579
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0024.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0024.png",
+      "source_sha256": "04c411b1a1c8f859c45139beb6ba806161559fe00851b7b5637e562c4bd981a9",
+      "key_pixels_removed": 241,
+      "spill_pixels_despilled": 551
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0025.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0025.png",
+      "source_sha256": "40e8e62e71ce7a150028c6c2c8387b2e5a1cbc12e7d06c3965a08340ca8e88cd",
+      "key_pixels_removed": 259,
+      "spill_pixels_despilled": 558
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0026.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0026.png",
+      "source_sha256": "94782727ef80a07f2b424a0f82a43b007644d2cf9d05e0f73b12ccc63955db3c",
+      "key_pixels_removed": 233,
+      "spill_pixels_despilled": 557
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0027.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0027.png",
+      "source_sha256": "9adbae191cafc6f822611c336400103f66c13e4cda58669dbf47bf03b542e7fe",
+      "key_pixels_removed": 253,
+      "spill_pixels_despilled": 565
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0028.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0028.png",
+      "source_sha256": "c97b74fbc5c516d3d454a89295776fa48029467b451241ecab97cbc7fbb28f83",
+      "key_pixels_removed": 256,
+      "spill_pixels_despilled": 548
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0029.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0029.png",
+      "source_sha256": "4aec5e486be63e89066a9e49af6e4c44176c708dfa647c073c62fd95f8564627",
+      "key_pixels_removed": 251,
+      "spill_pixels_despilled": 532
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0030.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0030.png",
+      "source_sha256": "b00b0e85506cf403e092bf10ab343bc41193283a26389e0ec31929fbb0317e30",
+      "key_pixels_removed": 245,
+      "spill_pixels_despilled": 542
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0031.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0031.png",
+      "source_sha256": "e094f927c5a657e1ac6b267c679285daecd171377167d55e642359b55f6507fc",
+      "key_pixels_removed": 227,
+      "spill_pixels_despilled": 569
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0032.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0032.png",
+      "source_sha256": "f8a87ad0edabaf8e3420c5a014c233caad701398fdc8a3b9baa61bbba2896bff",
+      "key_pixels_removed": 225,
+      "spill_pixels_despilled": 572
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0033.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0033.png",
+      "source_sha256": "e5b87609feed507f4912f0153ecf489c02a8db2283c53219d118a3c24a624270",
+      "key_pixels_removed": 253,
+      "spill_pixels_despilled": 556
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0034.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0034.png",
+      "source_sha256": "763a9a575501f360bc092cfb8eb19ffe73452e0fc18db96e37f60fd5c6fcb26d",
+      "key_pixels_removed": 230,
+      "spill_pixels_despilled": 553
+    },
+    {
+      "source": "image/characters/nightcrow/idle/frame_0035.png",
+      "cleaned": "image/cleaned/nightcrow/idle/frame_0035.png",
+      "source_sha256": "9af4e0c825bbc557bcc8d5f553771900464937a1d6b7b1af1a64f795f661f6bb",
+      "key_pixels_removed": 248,
+      "spill_pixels_despilled": 561
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0001.png",
+      "source_sha256": "fc0b8b4bf8ae7448909b980d7e016dce1eca5678a12842cd0c5e64e19840399c",
+      "key_pixels_removed": 72,
+      "spill_pixels_despilled": 159
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0002.png",
+      "source_sha256": "4d2cdfcfb8ab4a23749c8e7a1f895d9a84af68db5c4d5aa847fbb773e3a3c383",
+      "key_pixels_removed": 62,
+      "spill_pixels_despilled": 135
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0003.png",
+      "source_sha256": "52be6b7f499f0365f3c4cca0146dc64c246c657d3ed4715c965d218871b96a1b",
+      "key_pixels_removed": 72,
+      "spill_pixels_despilled": 130
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0004.png",
+      "source_sha256": "9d64dd982d514377fb6faace135a1beeea2c51ec61f1b9a3979b214ee7929b77",
+      "key_pixels_removed": 60,
+      "spill_pixels_despilled": 145
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0005.png",
+      "source_sha256": "49351700aeeaa179140a4e622f471cf3dbbd450784bb00df36f761e3b6ba2eb8",
+      "key_pixels_removed": 61,
+      "spill_pixels_despilled": 138
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0006.png",
+      "source_sha256": "6801674392b956bfb50c43b54774c0a94af0c161ae64364e1e45b577bdda2898",
+      "key_pixels_removed": 66,
+      "spill_pixels_despilled": 145
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0007.png",
+      "source_sha256": "119f5b5fc2ccffb8ba6fc433748bc994d16ada3131a2b0c427e870b380bca618",
+      "key_pixels_removed": 55,
+      "spill_pixels_despilled": 129
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0008.png",
+      "source_sha256": "3bb42a000be69e54e42d5bf92ccdac7602b33b218cead51171bbc248da9fca0d",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 164
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0009.png",
+      "source_sha256": "ebefa1f31605c54ea73eefc050c12e67e8c6cf349d9bbc9a5092ef0d35b061a7",
+      "key_pixels_removed": 53,
+      "spill_pixels_despilled": 159
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0010.png",
+      "source_sha256": "482ad07eef63721ac333ef1deae742bd5be7e29253b0dfced0edd9f09fe9def6",
+      "key_pixels_removed": 50,
+      "spill_pixels_despilled": 170
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0011.png",
+      "source_sha256": "2021fd84ddbc681eaf00af584481f3ad85019d28be56d8518e014a656eb98b3a",
+      "key_pixels_removed": 54,
+      "spill_pixels_despilled": 166
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0012.png",
+      "source_sha256": "11f44fb3bd00a7525c8632a7a1703002def442f45705417efa22d9efcd40ea10",
+      "key_pixels_removed": 44,
+      "spill_pixels_despilled": 148
+    },
+    {
+      "source": "image/characters/nightcrow/jump/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/jump/frame_0013.png",
+      "source_sha256": "927937db11b41d341473320f8391f7d7bf0bd9b709af2c518bd895d31a489517",
+      "key_pixels_removed": 55,
+      "spill_pixels_despilled": 160
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0001.png",
+      "source_sha256": "d954e5300756258a90e724e0d1e733e31f2fab823403412c30c6fa28d7bc2dda",
+      "key_pixels_removed": 57,
+      "spill_pixels_despilled": 164
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0002.png",
+      "source_sha256": "b5c6417c0c1f20ade14f0aa753d69a3157767a6de3e364b536ebc8797aa61c25",
+      "key_pixels_removed": 65,
+      "spill_pixels_despilled": 190
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0003.png",
+      "source_sha256": "0f39c86c0e6b706262908b44aacd0abe10ebc0a49c4ea2aada82cf0605cb706e",
+      "key_pixels_removed": 64,
+      "spill_pixels_despilled": 183
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0004.png",
+      "source_sha256": "851c7041da82b98858b88147594e251e224bc0d8b368a2ab77d0a9f25687c7f7",
+      "key_pixels_removed": 68,
+      "spill_pixels_despilled": 183
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0005.png",
+      "source_sha256": "e339fb1a337b1e4004de58c8ebe506b01b2da2dfc2e8607a2d489492cee45aa0",
+      "key_pixels_removed": 66,
+      "spill_pixels_despilled": 191
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0006.png",
+      "source_sha256": "c64852efe1583df24a92520714c59e81e69a31e606c3ae9c7a4216a634f90499",
+      "key_pixels_removed": 64,
+      "spill_pixels_despilled": 159
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0007.png",
+      "source_sha256": "23531ec8a77bd301dcb01568c4943582d13008c9af6148e5f7b1305a076b9c75",
+      "key_pixels_removed": 57,
+      "spill_pixels_despilled": 175
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0008.png",
+      "source_sha256": "e2346263903bf605e4020e6fda207019395e928fca6ed6527ab001ff71184fc2",
+      "key_pixels_removed": 63,
+      "spill_pixels_despilled": 167
+    },
+    {
+      "source": "image/characters/nightcrow/land/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/land/frame_0009.png",
+      "source_sha256": "2321c47962e99c93dc4bf96f482fc684c2cf0a85440ba4f801f628be8438ef4c",
+      "key_pixels_removed": 42,
+      "spill_pixels_despilled": 148
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0001.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0001.png",
+      "source_sha256": "e39fd700be4dca15ebc3c3b1263f4ae5126ffa32c578195a42415451032f4580",
+      "key_pixels_removed": 73,
+      "spill_pixels_despilled": 208
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0002.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0002.png",
+      "source_sha256": "9cbad303f017f773785c250e48b99d63e430e7bd0fe357f0e5c82d5659ce9b2e",
+      "key_pixels_removed": 78,
+      "spill_pixels_despilled": 192
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0003.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0003.png",
+      "source_sha256": "eb2a7bc7bf55c11ad43c3adf523c740bd3c762a98777f40a69035b1a9b40d46f",
+      "key_pixels_removed": 45,
+      "spill_pixels_despilled": 201
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0004.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0004.png",
+      "source_sha256": "aa0545a4942441be1a27608fff0361931f3e87bfb7e44d65a449b01071e8d3b2",
+      "key_pixels_removed": 54,
+      "spill_pixels_despilled": 194
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0005.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0005.png",
+      "source_sha256": "63052390226f1c5660d2519d850314557f42676059dfa3a4122d37ca41227d09",
+      "key_pixels_removed": 63,
+      "spill_pixels_despilled": 196
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0006.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0006.png",
+      "source_sha256": "b4f1c47bff32c69e17b37b9fba4f28d14f67a6158e8316176794afa56d95670c",
+      "key_pixels_removed": 55,
+      "spill_pixels_despilled": 175
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0007.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0007.png",
+      "source_sha256": "b8b63c61182627e6f260b46446e9f114a9c78aca5fa948393b5b8ce401eabf35",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 174
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0008.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0008.png",
+      "source_sha256": "0153a4ac49c18f086bfd3e9a2af3c7b524b3b61596c83355d1482b098a8021aa",
+      "key_pixels_removed": 71,
+      "spill_pixels_despilled": 198
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0009.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0009.png",
+      "source_sha256": "5928e38fed5685eda910a78732df770c90520ce3bfeef9c1065e7f5dd174c445",
+      "key_pixels_removed": 68,
+      "spill_pixels_despilled": 193
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0010.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0010.png",
+      "source_sha256": "e49d79fca9f30dbb1e285e65c8fa61c60f163403db8f006777d3d162779e6f10",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 175
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0011.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0011.png",
+      "source_sha256": "786c9450eacb44f27fa6cb28d0dec6b99ccd7ad54a2231afec7cf3f9e370223c",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 177
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0012.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0012.png",
+      "source_sha256": "10a4e4a3260bdef0f15832d7a40a554f2bdb98f191fd00421037cde7ec860e52",
+      "key_pixels_removed": 46,
+      "spill_pixels_despilled": 174
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0013.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0013.png",
+      "source_sha256": "76a374cc0682f9f5d5c34c5a5e26395728810d2d8f666dfbc79ce434c50e68d4",
+      "key_pixels_removed": 56,
+      "spill_pixels_despilled": 188
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0014.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0014.png",
+      "source_sha256": "abe4a6eb5c1b416d8248afcbbc8651c8c5a344251d4f6ebb0b48fb545e61d4f2",
+      "key_pixels_removed": 63,
+      "spill_pixels_despilled": 206
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0015.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0015.png",
+      "source_sha256": "79ce52e64992a8730085a7a3747024b6e72096af34043e3927d6c228738b88c6",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 205
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0016.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0016.png",
+      "source_sha256": "11b7f53fa183a514c418f1968626795bd500b66c203ec160de2137f06a5996b6",
+      "key_pixels_removed": 62,
+      "spill_pixels_despilled": 200
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0017.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0017.png",
+      "source_sha256": "56c3be238a46b62a1b3ede9e83d355a07005d15b2ca41253eec88d02bca2cd3b",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 223
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0018.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0018.png",
+      "source_sha256": "fc2313a4b90b033a3146dd1dab37a5f08d3dd1b2c5263d57aa5704b0717fccc4",
+      "key_pixels_removed": 58,
+      "spill_pixels_despilled": 212
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0019.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0019.png",
+      "source_sha256": "8122f2cfc6de388d813878b8141670aeb05a219b09855289e11054ca0c1e3e1c",
+      "key_pixels_removed": 59,
+      "spill_pixels_despilled": 190
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0020.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0020.png",
+      "source_sha256": "777788e50d8955ba9737426c408327185df48f7cb5698f0292180b1e543a0c60",
+      "key_pixels_removed": 56,
+      "spill_pixels_despilled": 183
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0021.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0021.png",
+      "source_sha256": "8a10791afac8e5f5d67a6fc466a8930d0b0fee986a27a3bd65dc148702554660",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 196
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0022.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0022.png",
+      "source_sha256": "816fb4f9a092a41a53f6a4819518a27ab500d5b1de7cfb20dd759de7b6f4d5a3",
+      "key_pixels_removed": 56,
+      "spill_pixels_despilled": 194
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0023.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0023.png",
+      "source_sha256": "949192e71895688fd47dc4d44e00d5cbf40dfd0b193939d8a60d0f9b3eb20f02",
+      "key_pixels_removed": 69,
+      "spill_pixels_despilled": 191
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0024.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0024.png",
+      "source_sha256": "c58ee0fd7a76482eaf3fd6e4a7eb526fd936e03a1aecd030dd0627c8dfb2327a",
+      "key_pixels_removed": 57,
+      "spill_pixels_despilled": 171
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0025.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0025.png",
+      "source_sha256": "96deb3ec33d7d7c5da807b9caeac0e668429af753ab67d344c163944f4c3f8b0",
+      "key_pixels_removed": 45,
+      "spill_pixels_despilled": 182
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0026.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0026.png",
+      "source_sha256": "82f99ad2f6bb741c533a4df5646c8031acfb86668f67b467a6beadb200571d89",
+      "key_pixels_removed": 63,
+      "spill_pixels_despilled": 171
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0027.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0027.png",
+      "source_sha256": "17cea50a86d73dc185a95a3759ff4e61238de0cca2aa88dd19846e3623068060",
+      "key_pixels_removed": 66,
+      "spill_pixels_despilled": 205
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0028.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0028.png",
+      "source_sha256": "a38920cadb645c66306b633dcef9641c92651039a5f2fe29bd15bd48969fa38b",
+      "key_pixels_removed": 69,
+      "spill_pixels_despilled": 186
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0029.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0029.png",
+      "source_sha256": "31195873099ba7a4fa629e1c32c98836f7adcd5fd20ef1645021be4b25879d25",
+      "key_pixels_removed": 49,
+      "spill_pixels_despilled": 191
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0030.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0030.png",
+      "source_sha256": "1c64ed5e7ae5202b11c2a125bcb2887b20b5f8eebc490f20eebd0d58caf8cef7",
+      "key_pixels_removed": 43,
+      "spill_pixels_despilled": 193
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0031.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0031.png",
+      "source_sha256": "41968fe251049f9a8bae9ef3165d5ccff485ee437b636c1fb7a8dd50b0f2b22a",
+      "key_pixels_removed": 57,
+      "spill_pixels_despilled": 198
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0032.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0032.png",
+      "source_sha256": "a1214757d9e04369c8e2c3d73823bb2995c70ef0dcd3c5986402683e60338344",
+      "key_pixels_removed": 52,
+      "spill_pixels_despilled": 204
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0033.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0033.png",
+      "source_sha256": "1fc8fdfda59b67c859fef7f746969a2dba0896d6069a7afe3c059a477262999d",
+      "key_pixels_removed": 62,
+      "spill_pixels_despilled": 210
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0034.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0034.png",
+      "source_sha256": "9bb6365e09f33c59907da0ceed8fbf11d2de0a6f1d1f7a8a422c736048bd9491",
+      "key_pixels_removed": 53,
+      "spill_pixels_despilled": 226
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0035.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0035.png",
+      "source_sha256": "703726de3d1ae9f803a3ce0ba1a2ecb9a4427e7996655b78b14c0464794cd5c0",
+      "key_pixels_removed": 54,
+      "spill_pixels_despilled": 202
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0036.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0036.png",
+      "source_sha256": "a5fd4e07541b8869cf7ab02dab867442fa39c438232b7761490df27d968e42a0",
+      "key_pixels_removed": 51,
+      "spill_pixels_despilled": 178
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0037.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0037.png",
+      "source_sha256": "b4854df2903fde9609e587016b77305ed3059f5707c0682817e44a71d900bcca",
+      "key_pixels_removed": 49,
+      "spill_pixels_despilled": 215
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0038.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0038.png",
+      "source_sha256": "17dd3f6dd1cb9e622c1c6de2a851388472143a67bf8a1c2ae9ecf8e6b811fefd",
+      "key_pixels_removed": 50,
+      "spill_pixels_despilled": 199
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0039.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0039.png",
+      "source_sha256": "1fb38db01232708feec31d392358c31a281979d0ae7f026f0d2146dd84ea5979",
+      "key_pixels_removed": 52,
+      "spill_pixels_despilled": 191
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0040.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0040.png",
+      "source_sha256": "ac4eab39a49101fd4ee62c2760c8a50106eb4962a1f6bc0956131f1e14715780",
+      "key_pixels_removed": 53,
+      "spill_pixels_despilled": 191
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0041.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0041.png",
+      "source_sha256": "6e73036f6cd6eb1d9c3dd6eb43d580268758afc2e0629b9b03e10f4c5dcba228",
+      "key_pixels_removed": 42,
+      "spill_pixels_despilled": 186
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0042.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0042.png",
+      "source_sha256": "f8125b1c39ff729a3f598d4c01bb0d24c9e5b0e6feb03eaa96555eed936e6a1b",
+      "key_pixels_removed": 62,
+      "spill_pixels_despilled": 171
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0043.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0043.png",
+      "source_sha256": "628b05dfb5c2b8b1f26fcb4651cafb0368c02f997de7caa82f91894d583bb7a8",
+      "key_pixels_removed": 67,
+      "spill_pixels_despilled": 183
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0044.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0044.png",
+      "source_sha256": "c848b5cffc093937967acd24c116e341138cc015e82207c3d96a122b3530d8e8",
+      "key_pixels_removed": 83,
+      "spill_pixels_despilled": 216
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0045.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0045.png",
+      "source_sha256": "31748adb8c4d5d24a87e9c342e727abab5e2bb8c7faf77e7c835b875705f0a7f",
+      "key_pixels_removed": 82,
+      "spill_pixels_despilled": 205
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0046.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0046.png",
+      "source_sha256": "941434033198e9f6798597e4f0a6079f4afb92cc8a25750b77a6c4e48bc0f253",
+      "key_pixels_removed": 42,
+      "spill_pixels_despilled": 209
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0047.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0047.png",
+      "source_sha256": "e12d377ca5cfaa7cc3be1841ac1004a1efee255f9d8f63c154bf292091fd73af",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 200
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0048.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0048.png",
+      "source_sha256": "e9b6234941a5fcccb4aa0e65885864d306e9bd93c39b0fd4baa4bc82a5baf612",
+      "key_pixels_removed": 53,
+      "spill_pixels_despilled": 219
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0049.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0049.png",
+      "source_sha256": "33e59ad59f0c0724a30374024e8574b1977bf3172d684333b7b542570194507a",
+      "key_pixels_removed": 53,
+      "spill_pixels_despilled": 202
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0050.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0050.png",
+      "source_sha256": "a94b9c2207f312edb4728145246cc5111f27ac370b2bd7f985c99ecd41397470",
+      "key_pixels_removed": 55,
+      "spill_pixels_despilled": 196
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0051.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0051.png",
+      "source_sha256": "cc0c18e0aefdce7266608a56e25cbb1598cb54fdfaecbb78c24e174e41459451",
+      "key_pixels_removed": 68,
+      "spill_pixels_despilled": 194
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0052.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0052.png",
+      "source_sha256": "34027e55c6bf112d96776a5d0fb44ed2695b6c4b005e86463e55bc72dcc8d8c9",
+      "key_pixels_removed": 54,
+      "spill_pixels_despilled": 192
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0053.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0053.png",
+      "source_sha256": "40794ba066da6fbf63f6e93af7977049e23a0139480cf6caa005c5d51c2e44ba",
+      "key_pixels_removed": 41,
+      "spill_pixels_despilled": 173
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0054.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0054.png",
+      "source_sha256": "5466d25cd184e30d54e57e66645014745c7acfda510cfc19bd052e9a7b440cdf",
+      "key_pixels_removed": 50,
+      "spill_pixels_despilled": 171
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0055.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0055.png",
+      "source_sha256": "7dfc94c419a7e5041490e189f7dadf6cc79e06cadcadf232868493a03a40cada",
+      "key_pixels_removed": 52,
+      "spill_pixels_despilled": 171
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0056.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0056.png",
+      "source_sha256": "491cfa829d9e9ddf42878874fba1b01aa1e739361f2f5a3b8059814833f745ae",
+      "key_pixels_removed": 52,
+      "spill_pixels_despilled": 180
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0057.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0057.png",
+      "source_sha256": "600d8c910ec485a79cd9be4aad6a09f47a976362dea40bf2aa92011d6dc95f8f",
+      "key_pixels_removed": 46,
+      "spill_pixels_despilled": 188
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0058.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0058.png",
+      "source_sha256": "db494b45e8a9f645612f53e58ae95c746ba5d1b945371300c87d3b541f32fb9d",
+      "key_pixels_removed": 70,
+      "spill_pixels_despilled": 209
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0059.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0059.png",
+      "source_sha256": "fe603bece5ed05f3c55839d15f027036d1f77be3d912ba66031a2449738ab48d",
+      "key_pixels_removed": 72,
+      "spill_pixels_despilled": 193
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0060.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0060.png",
+      "source_sha256": "a2d41957b19e934f4992047f72b8ef53070f45437fccf9ea4329f0ca8e601e67",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 216
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0061.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0061.png",
+      "source_sha256": "fe2d691a890bcb3fc5872b7a19a8d0755b7f7e62a4eadcad745df6ef8c0b719c",
+      "key_pixels_removed": 48,
+      "spill_pixels_despilled": 205
+    },
+    {
+      "source": "image/characters/nightcrow/run/frame_0062.png",
+      "cleaned": "image/cleaned/nightcrow/run/frame_0062.png",
+      "source_sha256": "e1ed094099def83cbec29c2b72d01af556ada2514bba4a075824bd6cef6969fe",
+      "key_pixels_removed": 64,
+      "spill_pixels_despilled": 206
+    }
+  ]
+}

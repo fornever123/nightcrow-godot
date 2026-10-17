@@ -1,0 +1,2 @@
+Original project-generated PCM WAV files.
+Generated locally by tools/generate_feedback_audio.ps1 with no third-party sample dependency.

@@ -1,0 +1,80 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
+
+const root=path.resolve(import.meta.dirname,'..');
+const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'nightcrow-github-test-'));
+const game=path.join(fixture,'game'), remote=path.join(fixture,'remote.git');
+fs.mkdirSync(path.join(game,'tools'),{recursive:true});
+fs.copyFileSync(path.join(root,'tools/github-sync.ps1'),path.join(game,'tools/github-sync.ps1'));
+fs.copyFileSync(path.join(root,'.gitignore'),path.join(game,'.gitignore'));
+let checks=0;
+const check=(ok,label)=>{assert.ok(ok,label);checks++;};
+function git(cwd,...args){const r=spawnSync('git',['-C',cwd,...args],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();}
+function sync(...args){return spawnSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(game,'tools/github-sync.ps1'),...args],{encoding:'utf8',timeout:30000});}
+function identity(cwd){git(cwd,'config','user.name','Sync regression');git(cwd,'config','user.email','sync-test@example.invalid');git(cwd,'config','core.autocrlf','false');}
+
+check(sync('-CheckOnly').status!==0,'requires an independent project repository');
+git(game,'init','-b','main');identity(game);
+check(sync('-CheckOnly').status===0,'read-only preflight without a configured remote');
+const secret='ghp_'+'x'.repeat(36);
+fs.writeFileSync(path.join(game,'leak.json'),JSON.stringify({token:secret}));
+const blocked=sync('-CheckOnly');
+check(blocked.status!==0&&blocked.stdout.includes('leak.json'),'blocks obvious credentials');
+check(!blocked.stdout.includes(secret),'does not echo detected credentials');
+fs.unlinkSync(path.join(game,'leak.json'));
+fs.writeFileSync(path.join(game,'oversize.bin'),'');fs.truncateSync(path.join(game,'oversize.bin'),100*1024*1024);
+check(sync('-CheckOnly').status!==0,'blocks files at GitHub size limit');
+fs.unlinkSync(path.join(game,'oversize.bin'));
+for(const file of ['.env','.runtime/cache.json','.godot/cache.json','tools/battle-editor/node_modules/cache.json','assets/data/backups/test.json']){
+  const full=path.join(game,file);fs.mkdirSync(path.dirname(full),{recursive:true});fs.writeFileSync(full,secret);
+  check(git(game,'check-ignore',file)===file,`ignores ${file}`);
+}
+check(sync('-CheckOnly').status===0,'ignored local caches and credentials are excluded');
+git(game,'remote','add','origin','https://example.invalid/old.git');
+check(sync().status!==0&&git(game,'diff','--cached','--name-only')==='','rejects unrelated remote before staging');
+git(game,'remote','remove','origin');
+git(fixture,'init','--bare',remote);
+git(game,'add','.');git(game,'commit','-m','Seed');git(game,'remote','add','origin',remote);git(game,'push','-u','origin','main');
+const declared='https://github.com/nightcrow-sync-tests/nightcrow.git';
+git(game,'remote','set-url','origin',declared);
+git(game,'config',`url.${pathToFileURL(remote).href}.insteadOf`,declared);
+fs.writeFileSync(path.join(game,'game.txt'),'First update');
+const uploaded=sync('-Message','Local regression update');
+check(uploaded.status===0,`uploads to a local test remote: ${uploaded.stdout} ${uploaded.stderr}`);
+check(git(game,'rev-parse','HEAD')===git(remote,'rev-parse','refs/heads/main'),'remote commit equals local commit');
+check(git(game,'status','--porcelain')==='','successful update leaves a clean project');
+const head=git(game,'rev-parse','HEAD');
+check(sync().status===0&&git(game,'rev-parse','HEAD')===head,'unchanged upload does not create an extra commit');
+const other=path.join(fixture,'other');git(fixture,'clone','--branch','main',remote,other);identity(other);
+fs.writeFileSync(path.join(other,'other.txt'),'Remote change');git(other,'add','.');git(other,'commit','-m','Remote update');git(other,'push','origin','main');
+fs.writeFileSync(path.join(game,'game.txt'),'Keep local work');
+const stopped=sync();
+check(stopped.status!==0&&stopped.stdout.includes('newer commits'),'stops when another computer has updated GitHub');
+check(git(game,'rev-parse','HEAD')===head&&fs.readFileSync(path.join(game,'game.txt'),'utf8')==='Keep local work','remote-ahead stop preserves local commit and working files');
+check(git(game,'diff','--cached','--name-only')==='','remote-ahead stop does not stage local work');
+git(game,'fetch','origin','main');
+git(game,'merge','--ff-only','origin/main');
+git(game,'add','game.txt');git(game,'commit','-m','Keep local change');git(game,'push','origin','main');
+git(game,'checkout','-b','conflict-fixture');
+fs.writeFileSync(path.join(game,'game.txt'),'Branch version');git(game,'add','.');git(game,'commit','-m','Branch version');
+git(game,'checkout','main');fs.writeFileSync(path.join(game,'game.txt'),'Main version');git(game,'add','.');git(game,'commit','-m','Main version');
+const merge=spawnSync('git',['-C',game,'merge','conflict-fixture'],{encoding:'utf8'});
+assert.notEqual(merge.status,0,'fixture must actually conflict');
+const unmerged=git(game,'ls-files','--unmerged');
+const conflictedText=fs.readFileSync(path.join(game,'game.txt'),'utf8');
+const conflictedHead=git(game,'rev-parse','HEAD');
+const conflictResult=sync();
+check(conflictResult.status!==0&&conflictResult.stdout.includes('Unresolved conflicts'),'rejects unresolved merge conflicts before staging');
+check(git(game,'ls-files','--unmerged')===unmerged&&git(game,'rev-parse','HEAD')===conflictedHead,'keeps unresolved index and commit intact');
+check(fs.readFileSync(path.join(game,'game.txt'),'utf8')===conflictedText,'keeps conflicted working file intact');
+git(game,'merge','--abort');
+const marker=path.join(game,'.git','CHERRY_PICK_HEAD');fs.writeFileSync(marker,head+'\n');
+const operation=sync('-CheckOnly');
+check(operation.status!==0&&operation.stdout.includes('still in progress'),'rejects ongoing Git operations even when files are resolved');
+fs.unlinkSync(marker);
+console.log(`GITHUB_SYNC_TESTS: ${checks} checks / 0 failures`);
+console.log(`Local-only fixtures retained: ${fixture}`);

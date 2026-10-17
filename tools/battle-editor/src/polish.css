@@ -1,0 +1,25 @@
+.local-confirm {position:fixed;inset:0;z-index:100;background:#0009;display:grid;place-items:center;}
+.local-confirm>div {padding:28px;background:#242033;border:1px solid #a78bfa;border-radius:12px;font-size:16px;max-width:460px;box-shadow:0 10px 40px #0008;}
+.local-confirm .button {margin-right:12px;}
+.draft-banner {padding:12px 24px;background:#3b2e45;color:#e9d5ff;font-size:14px;display:flex;align-items:center;gap:14px;}
+body .nav-item {font-size:15px;}
+body .editor-field>span,body .notice,body .panel-description {font-size:14px;}
+body .editor-field input,body .editor-field select,body .button {font-size:14px;}
+body .top-actions .button {font-size:12px;}
+body .panel-title {font-size:20px;}
+body .stage-hint,body .form-hint,body .muted {font-size:13px;}
+.combat-matrix input {font-size:14px;}
+.studio-canvas {aspect-ratio:900 / 460;box-sizing:border-box;}
+body {min-width:0;}
+.panel {min-width:0;}
+@media(max-width:800px) {
+  .topbar {padding:12px;gap:12px;}
+  .top-actions {width:100%;}
+  .editor-body {grid-template-columns:155px minmax(0,1fr);}
+  .sidebar {min-width:0;padding:18px 8px;}
+  .nav-item {padding:10px 6px;gap:6px;}
+  .content {padding:16px 12px;}
+  .field-grid,.feedback-grid,.check-grid {grid-template-columns:minmax(0,1fr);}
+  .panel-header,.panel-body {padding:14px;}
+  .panel-description,.notice {overflow-wrap:anywhere;}
+}

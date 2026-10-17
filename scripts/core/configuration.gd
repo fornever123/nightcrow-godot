@@ -1,0 +1,78 @@
+extends RefCounted
+const Move := preload("res://scripts/core/move_definition.gd")
+const PATH := "res://assets/data/battle.json"
+
+static func read() -> Dictionary:
+	var value: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
+	return value if value is Dictionary else {}
+
+static func character(config: Dictionary, id: String) -> Dictionary:
+	for c in config.get("characters", []):
+		if c.get("id", "") == id:
+			return c
+	return {}
+
+static func moves(config: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	var actor := character(config, "player")
+	var animations: Dictionary = actor.get("sprite", {}).get("animations", {})
+	for source in config.get("moves", []):
+		var m := Move.new()
+		m.id = StringName(source["id"])
+		m.display_name = String(source.get("name", m.id))
+		m.animation = String(source.get("animation", "idle"))
+		m.animation_fps = float(animations.get(m.animation, {}).get("fps", 36)) * float(source.get("animationSpeed", 1.0))
+		var duration := float(source.get("duration", 0.5))
+		var start := float(source.get("activeStart", 0.08))
+		var end := float(source.get("activeEnd", 0.16))
+		var chain := float(source.get("chainOpen", end))
+		if bool(source.get("syncAnimation", false)) and animations.has(m.animation):
+			var clip: Dictionary = animations[m.animation]
+			duration = float(clip["frames"].size()) / maxf(m.animation_fps, 1.0)
+			start = float(source.get("activeFrameStart", 2)) / m.animation_fps
+			end = (float(source.get("activeFrameEnd", 12)) + 1.0) / m.animation_fps
+			chain = float(source.get("chainFrame", clip["frames"].size())) / m.animation_fps
+		m.startup_frames = maxi(0, ceili(start * 60.0 - 0.0001))
+		var end_tick := maxi(m.startup_frames + 1, ceili(end * 60.0 - 0.0001))
+		m.active_frames = end_tick - m.startup_frames
+		m.recovery_frames = maxi(1, ceili(duration * 60.0 - 0.0001) - end_tick)
+		m.cancel_frame = maxi(0, ceili(chain * 60.0 - 0.0001) - end_tick)
+		m.damage = float(source.get("damage", 10))
+		var x := float(source.get("knockbackX", 200))
+		var y := float(source.get("launchY", 0))
+		m.knockback = Vector2(x, y).length()
+		m.knockback_angle = rad_to_deg(atan2(y, x))
+		m.forces_launch = bool(source.get("forcesLaunch", false))
+		m.launch_speed = y
+		m.stun_frames = roundi(float(source.get("hitstun", 0)) * 60.0)
+		m.hitstop_frames = roundi(float(source.get("hitstop", 0.05)) * 60.0 * float(config.feedback.get("hitstopMultiplier",1)))
+		m.victim_hitstop_frames = roundi(float(source.get("victimHitstop", source.get("hitstop", 0.05))) * 60.0 * float(config.feedback.get("hitstopMultiplier",1)))
+		m.shake_amount = float(source.get("shakeAmount", 5)) * float(config.feedback.get("shakeMultiplier",1))
+		m.squash = Vector2(float(source.get("squashX",1.35)),float(source.get("squashY",0.72)))
+		m.wall_damage_factor = float(source.get("wallDamageFactor", 0.5))
+		m.lunge = float(source.get("lunge", 0))
+		m.movement_scale = float(source.get("movementSpeedMultiplier", 0.62))
+		var light := String(source.get("input", "")) == "J"
+		m.startup_movement_scale = m.movement_scale * (1.0 if light else 0.6)
+		m.recovery_movement_scale = m.movement_scale * (1.0 if light else 0.75)
+		m.effect = String(source.get("effect", ""))
+		var box: Dictionary = source.get("hitbox", {})
+		m.hitbox = Rect2(Vector2(box.get("x", 100), box.get("y", -90)), Vector2(box.get("width", 200), box.get("height", 136)))
+		m.command = &"light"
+		m.is_charge = String(source.get("input", "")) == "J_HOLD"
+		m.is_parry = String(source.get("input", "")) == "L"
+		m.is_air = String(source.get("input", "")) == "AIR_J"
+		m.direction = 1 if String(source.get("input", "")) in ["W+J", "AIR_J"] else 0
+		if m.is_charge:
+			m.command = &"charge"
+		elif m.is_parry:
+			m.command = &"parry"
+		if String(source.get("input", "")) == "K":
+			m.command = &"ranged"
+		m.min_charge_frames = roundi(float(source.get("minHold", 0.36)) * 60.0)
+		m.max_charge_frames = roundi(float(source.get("maxHold", 0.8)) * 60.0)
+		m.charge_damage_bonus = float(source.get("chargeDamageBonus", 1.9))
+		m.charge_knockback_bonus = float(source.get("chargeKnockbackBonus", 1.7))
+		m.charge_hitstop_bonus = roundi(float(source.get("chargeHitstopBonus",0.1)) * 60.0 * float(config.feedback.get("hitstopMultiplier",1)))
+		result[String(m.id)] = m
+	return result

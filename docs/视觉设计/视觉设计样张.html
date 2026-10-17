@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>夜鸦 · 视觉设计样张</title>
+<style>
+  :root{
+    /* ── 背景（冷、低饱和） ── */
+    --sky-top:#0E0F22; --sky-mid:#1B1A38; --sky-bot:#2A2247;
+    --far:#191A31; --mid:#232445; --near:#2E2B4E;
+    /* ── 可站立层（中对比 + 描边） ── */
+    --ground:#3C3866; --ground-edge:#7C6FBF; --ground-dark:#262340;
+    /* ── 角色（高对比 + 亮边） ── */
+    --hero-ink:#0E0C16; --hero-purple:#6E4BD6; --hero-lilac:#B792F6;
+    --hero-white:#FFFFFF; --hero-rim:#C9B6FF;
+    /* ── 敌人（暖色系，禁用紫） ── */
+    --foe-rust:#C2543C; --foe-bone:#E3C08A; --foe-gold:#8A6B2F;
+    /* ── 危险 / 机关 ── */
+    --danger:#FF4D5E; --hazard-glow:#FF8A3D;
+    /* ── 击飞值梯度 ── */
+    --launch-0:#F2EEF7; --launch-1:#FFD166; --launch-2:#FF8A3D; --launch-3:#FF3B47;
+    /* ── UI 底板 ── */
+    --panel:#12111F; --panel-2:#1C1A30; --panel-line:#5B4E9E; --accent:#B792F6;
+    --text:#EDE9F7; --text-dim:#9F98BE;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    background:#07070F; color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+    padding:28px; display:flex; flex-direction:column; gap:26px; align-items:center;
+  }
+  h1.title{font-size:20px; letter-spacing:2px; font-weight:600; color:var(--text-dim)}
+  /* 1920×1080 舞台，等比缩放 */
+  .stage-wrap{width:100%; max-width:1500px}
+  .stage{
+    position:relative; width:1920px; height:1080px; transform-origin:top left;
+    overflow:hidden; background:var(--sky-top); border-radius:4px;
+    box-shadow:0 24px 70px rgba(0,0,0,.65);
+  }
+  .label{
+    font-size:15px; letter-spacing:1px; color:var(--text-dim);
+    align-self:flex-start; padding-left:2px;
+  }
+  .label b{color:var(--accent); font-weight:600}
+  .caption{font-size:14px; color:var(--text-dim); max-width:1500px; line-height:1.9}
+  .caption b{color:var(--text)}
+  /* 全屏图层 */
+  .layer{position:absolute; inset:0}
+  svg{display:block; width:100%; height:100%}
+
+  /* ══════════ 战斗 HUD ══════════ */
+  .hud{position:absolute; inset:0; pointer-events:none}
+  /* 左上：玩家状态：头像 + 血条 + 裂羽环 */
+  .p1{position:absolute; left:48px; top:44px; display:flex; gap:14px}
+  .portrait{
+    width:112px; height:112px; position:relative;
+    background:linear-gradient(150deg,#2A2547,#14121F);
+    border:2px solid var(--panel-line);
+    clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  }
+  .portrait img{
+    position:absolute; left:50%; bottom:0; height:104px; transform:translateX(-50%) scaleX(-1);
+    filter:drop-shadow(0 0 6px rgba(183,146,246,.5));
+  }
+  .p1-info{display:flex; flex-direction:column; gap:7px; padding-top:4px; width:330px}
+  .p1-name{font-size:22px; letter-spacing:3px; font-weight:700}
+  .p1-name span{font-size:13px; color:var(--text-dim); letter-spacing:1px; margin-left:8px; font-weight:400}
+  .bar{position:relative; height:16px; background:#0B0A14; border:1px solid #3B3363;
+       clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%)}
+  .bar>i{position:absolute; inset:0; right:auto; display:block; height:100%}
+  .hp>i{width:78%; background:linear-gradient(90deg,#F4F1FF,#C9B6FF)}
+  .launch-row{display:flex; align-items:center; gap:10px}
+  .launch-ring{width:56px; height:56px; flex:0 0 auto; position:relative}
+  .launch-num{font-size:26px; font-weight:700; letter-spacing:1px; color:#FFB44D;
+              text-shadow:0 0 14px rgba(255,138,61,.55)}
+  .launch-num small{font-size:13px; color:var(--text-dim); margin-left:4px; letter-spacing:0}
+  /* 右上：Boss / 精英 */
+  .boss{position:absolute; right:48px; top:44px; width:520px; text-align:right}
+  .boss-name{font-size:20px; letter-spacing:3px; font-weight:700; color:var(--foe-bone)}
+  .boss .bar{margin-top:8px; height:14px; clip-path:polygon(0 0,calc(100% - 9px) 0,100% 100%,9px 100%)}
+  .boss .bar>i{background:linear-gradient(270deg,var(--foe-rust),var(--foe-bone)); width:56%; float:right}
+  .boss-tag{display:inline-block; margin-top:8px; font-size:12px; letter-spacing:2px; padding:3px 10px;
+            border:1px solid #6B4A3A; color:var(--foe-bone); background:#241711}
+  /* 顶部中央：房间进度 */
+  .room{position:absolute; left:50%; top:46px; transform:translateX(-50%); text-align:center}
+  .room-name{font-size:15px; letter-spacing:5px; color:var(--text-dim)}
+  .room-pips{display:flex; gap:7px; justify-content:center; margin-top:9px}
+  .room-pips i{width:22px; height:5px; background:#2C2748; display:block}
+  .room-pips i.on{background:var(--accent); box-shadow:0 0 10px rgba(183,146,246,.75)}
+  .room-pips i.boss{background:var(--foe-rust); width:30px}
+  /* 底部：连击（左，不压在角色身上） / 招式提示（右） */
+  .combo{position:absolute; left:190px; bottom:126px; display:flex; align-items:flex-end; gap:16px}
+  .combo-num{font-family:Georgia,"Times New Roman",serif; font-size:78px; line-height:.82;
+             font-weight:700; color:#FFF; text-shadow:0 4px 0 rgba(0,0,0,.6),0 0 30px rgba(183,146,246,.65)}
+  .combo-l{display:flex; flex-direction:column; gap:8px; padding-bottom:8px}
+  .combo-l b{font-size:20px; letter-spacing:5px; color:var(--hero-lilac); font-weight:700;
+             text-shadow:0 2px 0 rgba(0,0,0,.6)}
+  .airtag{display:flex; align-items:center; gap:6px; font-size:16px; letter-spacing:3px; color:#FFD166;
+          text-shadow:0 2px 0 rgba(0,0,0,.6)}
+  .airtag em{font-style:normal; font-family:Georgia,serif; font-size:22px; font-weight:700}
+  /* 左下：招式提示（可关） */
+  .hints{position:absolute; right:48px; bottom:46px; text-align:right; font-size:14px; color:var(--text-dim);
+         letter-spacing:1px; line-height:2.2}
+  .hints kbd{font-family:inherit; color:var(--text); background:#1B1930; border:1px solid #423A6E;
+             padding:1px 7px; margin-left:7px}
+  /* 命中反馈：伤害数字 + 撞墙提示 */
+  .dmg{position:absolute; left:1082px; top:326px; font-family:Georgia,serif; font-weight:700;
+       font-size:56px; color:#FFF; text-shadow:0 3px 0 rgba(0,0,0,.65),0 0 24px rgba(255,209,102,.9)}
+  .dmg small{font-size:25px; color:#FFD166}
+  .slam{position:absolute; right:230px; top:520px; font-size:23px; letter-spacing:5px; font-weight:700;
+        color:var(--hazard-glow); text-shadow:0 2px 0 rgba(0,0,0,.65),0 0 20px rgba(255,138,61,.85)}
+  .chain{position:absolute; left:1216px; top:376px; font-size:18px; letter-spacing:2px; color:#FFD166;
+         text-shadow:0 2px 0 rgba(0,0,0,.65)}
+  /* 危险暗角（裂羽值高时） */
+  .vignette{position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 58%,rgba(255,59,71,.20) 100%)}
+
+  /* 设计标注 */
+  .anno{position:absolute; inset:0; pointer-events:none; display:none}
+  .anno.on{display:block}
+  .anno .box{position:absolute; border:2px dashed #46E0B0; }
+  .anno .tag{position:absolute; font-size:14px; letter-spacing:1px; color:#0A1A15; background:#46E0B0;
+             padding:3px 9px; white-space:nowrap; font-weight:700}
+  .anno .safe{position:absolute; inset:48px; border:2px dashed rgba(70,224,176,.55)}
+  .anno .play{position:absolute; left:0; right:0; top:430px; height:520px;
+              border-top:2px dashed rgba(255,209,102,.6); border-bottom:2px dashed rgba(255,209,102,.6)}
+  .anno .lbl{position:absolute; left:52px; font-size:14px; color:#FFD166; letter-spacing:1px}
+  .toggle{position:fixed; right:24px; bottom:24px; z-index:99; font-size:14px; letter-spacing:1px;
+          padding:10px 16px; background:#1B1930; color:var(--text); border:1px solid #423A6E; cursor:pointer}
+  .toggle:hover{background:#241F42}
+
+  /* ══════════ 菜单 / 结算 / 风格板 ══════════ */
+  .menu-scrim{position:absolute; inset:0; background:linear-gradient(90deg,rgba(9,8,18,.94) 0%,rgba(9,8,18,.78) 38%,rgba(9,8,18,.12) 68%)}
+  .menu-list{position:absolute; left:150px; top:300px; display:flex; flex-direction:column; gap:4px; width:440px}
+  .menu-list .item{font-size:30px; letter-spacing:8px; padding:15px 22px; color:#B9B2D6; font-weight:600;
+                   border-left:4px solid transparent}
+  .menu-list .item.sel{color:#FFF; background:linear-gradient(90deg,rgba(183,146,246,.22),rgba(183,146,246,0));
+                       border-left-color:var(--accent); text-shadow:0 0 22px rgba(183,146,246,.7)}
+  .logo{position:absolute; left:150px; top:112px}
+  .logo .cn{font-size:84px; letter-spacing:22px; font-weight:700; color:#FFF;
+            text-shadow:0 6px 0 rgba(0,0,0,.5),0 0 40px rgba(183,146,246,.55)}
+  .logo .en{font-family:Georgia,serif; font-size:19px; letter-spacing:11px; color:var(--hero-lilac); margin-top:12px}
+  .logo .sub{font-size:15px; letter-spacing:7px; color:var(--text-dim); margin-top:14px}
+  .menu-side{position:absolute; right:96px; bottom:96px; width:430px; text-align:right}
+  .rank{font-family:Georgia,serif; font-size:15px; letter-spacing:3px; color:var(--text-dim); line-height:2.2}
+  .tip{position:absolute; right:96px; top:52px; font-size:14px; letter-spacing:2px; color:var(--text-dim)}
+
+  .result-vs{position:absolute; inset:0; background:radial-gradient(ellipse at 50% 45%,rgba(24,20,44,.55),rgba(7,7,15,.95))}
+  .result-word{position:absolute; left:50%; top:214px; transform:translateX(-50%); text-align:center}
+  .result-word .w{font-size:132px; letter-spacing:30px; font-weight:700; color:#FFF;
+                  text-shadow:0 8px 0 rgba(0,0,0,.55),0 0 60px rgba(183,146,246,.75)}
+  .result-word .s{font-size:16px; letter-spacing:12px; color:var(--hero-lilac); margin-top:16px}
+  .stat-panel{position:absolute; left:50%; bottom:126px; transform:translateX(-50%); width:1180px;
+    display:grid; grid-template-columns:repeat(5,1fr); gap:2px; background:var(--panel-line);
+    border:2px solid var(--panel-line)}
+  .stat-panel div{background:var(--panel); padding:22px 18px; text-align:center}
+  .stat-panel b{display:block; font-family:Georgia,serif; font-size:44px; color:#FFF; font-weight:700}
+  .stat-panel span{display:block; margin-top:7px; font-size:13px; letter-spacing:3px; color:var(--text-dim)}
+
+  .sheet{display:grid; grid-template-columns:repeat(6,1fr); gap:14px}
+  .swatch{height:132px; position:relative; border:1px solid rgba(255,255,255,.12)}
+  .swatch b{position:absolute; left:12px; bottom:11px; font-size:13px; letter-spacing:1px;
+            font-family:Georgia,monospace; color:#fff; text-shadow:0 1px 3px #000}
+  .swatch span{position:absolute; left:12px; top:11px; font-size:13px; color:#fff; text-shadow:0 1px 3px #000}
+  .comp{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:6px}
+  .comp .cell{background:var(--panel); border:2px solid var(--panel-line); padding:20px;
+    clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px)}
+  .comp .cell h4{font-size:14px; letter-spacing:2px; color:var(--text-dim); font-weight:400; margin-bottom:14px}
+  .btn{display:inline-block; padding:12px 30px; font-size:17px; letter-spacing:4px; color:#0B0916; font-weight:700;
+       background:linear-gradient(180deg,#E6DDFF,#B792F6);
+       clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px)}
+  .btn.ghost{background:none; color:var(--accent); border:2px solid var(--panel-line); font-weight:600}
+  .ring-demo{display:flex; align-items:center; gap:10px; font-size:15px; color:var(--text-dim)}
+</style>
+</head>
+<body>
+
+<div class="stage-wrap">
+  <div class="label"><b>样张 1</b> · 战斗画面（1920×1080 基准）。点右下角按钮可切换设计标注。</div>
+  <div class="stage" id="stage1">
+
+    <!-- 背景：远 -->
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0E0F22"/><stop offset=".55" stop-color="#1B1A38"/>
+          <stop offset="1" stop-color="#2A2247"/></linearGradient>
+        <radialGradient id="moonGlow">
+          <stop offset="0" stop-color="#E9E4FF" stop-opacity=".5"/>
+          <stop offset="1" stop-color="#E9E4FF" stop-opacity="0"/></radialGradient>
+        <linearGradient id="fogG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8C7BD8" stop-opacity="0"/>
+          <stop offset="1" stop-color="#8C7BD8" stop-opacity=".16"/></linearGradient>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#sky)"/>
+      <circle cx="1466" cy="300" r="250" fill="url(#moonGlow)"/>
+      <circle cx="1466" cy="300" r="84" fill="#EFEAFB" opacity=".92"/>
+      <circle cx="1448" cy="284" r="76" fill="#DCD5F2" opacity=".4"/>
+      <!-- 云 -->
+      <ellipse cx="360" cy="300" rx="300" ry="30" fill="#3A3263" opacity=".5"/>
+      <ellipse cx="760" cy="242" rx="220" ry="22" fill="#3A3263" opacity=".38"/>
+      <ellipse cx="1660" cy="404" rx="280" ry="26" fill="#3A3263" opacity=".42"/>
+      <!-- 远景尖顶剪影 -->
+      <path d="M0 900 L90 760 L150 900 L210 690 L270 900 L360 800 L430 900 L520 720 L610 900
+               L700 840 L780 900 L880 700 L980 900 L1080 810 L1180 900 L1280 660 L1390 900
+               L1500 830 L1600 900 L1720 740 L1830 900 L1920 860 L1920 1080 L0 1080 Z"
+            fill="#191A31"/>
+      <path d="M520 720 L560 640 L600 720 Z M1280 660 L1330 560 L1385 660 Z M210 690 L250 600 L292 690 Z"
+            fill="#191A31"/>
+      <rect x="0" y="820" width="1920" height="260" fill="url(#fogG)"/>
+    </svg>
+
+    <!-- 背景：中（钟楼内部：拱窗、飞扶壁、悬钟、横向石梁） -->
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#CFC0FF" stop-opacity=".55"/>
+          <stop offset=".55" stop-color="#9A86E8" stop-opacity=".30"/>
+          <stop offset="1" stop-color="#6E4BD6" stop-opacity=".10"/></linearGradient>
+        <linearGradient id="col" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#1A1930"/><stop offset=".5" stop-color="#2E2B52"/>
+          <stop offset="1" stop-color="#161528"/></linearGradient>
+      </defs>
+      <rect x="0" y="0" width="1920" height="1080" fill="#232445" opacity=".5"/>
+
+      <!-- 尖拱高窗：双扇花格，横向窗棂，避免读成箭头 -->
+      <g>
+        <!-- 中央大窗：离角色最远，亮度最低 -->
+        <g opacity=".68">
+          <path d="M884 250 h132 v470 q-66 26 -132 0 Z" fill="#1B1A33" stroke="#4A4180" stroke-width="3"/>
+          <path d="M884 250 q66 -120 132 0" fill="none" stroke="#4A4180" stroke-width="3"/>
+          <path d="M930 236 v484 M970 236 v484" stroke="#4A4180" stroke-width="2"/>
+          <path d="M908 320 h84 M908 380 h84 M908 440 h84" stroke="#4A4180" stroke-width="2"/>
+                  </g>
+        <!-- 左侧高窗 -->
+        <g>
+          <path d="M96 330 h132 v430 q-66 26 -132 0 Z" fill="#1B1A33" stroke="#4A4180" stroke-width="3"/>
+          <path d="M96 330 q66 -120 132 0" fill="none" stroke="#4A4180" stroke-width="3"/>
+          <path d="M142 316 v460 M182 316 v460" stroke="#4A4180" stroke-width="2"/>
+          <path d="M120 400 h84 M120 470 h84 M120 540 h84" stroke="#4A4180" stroke-width="2"/>
+          <path d="M146 320 h32 v452 h-32 Z" fill="url(#win)"/>
+        </g>
+        <!-- 右侧高窗 -->
+        <g>
+          <path d="M1692 330 h132 v430 q-66 26 -132 0 Z" fill="#1B1A33" stroke="#4A4180" stroke-width="3"/>
+          <path d="M1692 330 q66 -120 132 0" fill="none" stroke="#4A4180" stroke-width="3"/>
+          <path d="M1738 316 v460 M1778 316 v460" stroke="#4A4180" stroke-width="2"/>
+          <path d="M1716 400 h84 M1716 470 h84 M1716 540 h84" stroke="#4A4180" stroke-width="2"/>
+          <path d="M1742 320 h32 v452 h-32 Z" fill="url(#win)"/>
+        </g>
+      </g>
+
+      <!-- 竖向石柱：带柱头与柱基，明确读成柱子 -->
+      <g>
+        <g>
+          <rect x="330" y="200" width="54" height="726" fill="url(#col)" stroke="#3A3468" stroke-width="2"/>
+          <rect x="314" y="176" width="86" height="26" fill="#3E3A5C" stroke="#4A4180" stroke-width="2"/>
+          <rect x="322" y="160" width="70" height="18" fill="#443F66"/>
+          <rect x="312" y="926" width="90" height="24" fill="#3E3A5C" stroke="#4A4180" stroke-width="2"/>
+        </g>
+        <g>
+          <rect x="1536" y="200" width="54" height="726" fill="url(#col)" stroke="#3A3468" stroke-width="2"/>
+          <rect x="1520" y="176" width="86" height="26" fill="#3E3A5C" stroke="#4A4180" stroke-width="2"/>
+          <rect x="1528" y="160" width="70" height="18" fill="#443F66"/>
+          <rect x="1518" y="926" width="90" height="24" fill="#3E3A5C" stroke="#4A4180" stroke-width="2"/>
+        </g>
+      </g>
+
+      <!-- 竖向绳索 + 悬钟（右上，暖锈色，属场景物件） -->
+      <g>
+        <path d="M1758 60 L1758 372" stroke="#5A4F8E" stroke-width="6" opacity=".9"/>
+        <path d="M1704 372 q54 -38 108 0 l12 78 q-66 22 -132 0 Z" fill="#3E3A5C"
+              stroke="#7A5A46" stroke-width="3"/>
+        <rect x="1746" y="450" width="24" height="26" fill="#8A6B2F" opacity=".9"/>
+        <ellipse cx="1758" cy="500" rx="70" ry="12" fill="#FF8A3D" opacity=".12"/>
+      </g>
+
+      <!-- 横向石梁与栏杆 -->
+      <g>
+        <rect x="0" y="700" width="1920" height="30" fill="#2E2B52" stroke="#3A3468" stroke-width="2"/>
+        <rect x="0" y="730" width="1920" height="14" fill="#3E3A5C" opacity=".8"/>
+        <path d="M0 744 h1920" stroke="#5A4F8E" stroke-width="2" opacity=".6"/>
+        <g fill="#2A2748">
+          <rect x="120" y="640" width="18" height="60"/><rect x="260" y="640" width="18" height="60"/>
+          <rect x="1640" y="640" width="18" height="60"/><rect x="1780" y="640" width="18" height="60"/>
+        </g>
+      </g>
+    </svg>
+
+    <!-- 危险区：尖刺铁栏（暖色，与角色区分） -->
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <g transform="translate(1330,700)">
+        <rect x="0" y="120" width="470" height="18" fill="#2A2140" stroke="#6B4A3A" stroke-width="3"/>
+        <g fill="#C2543C" opacity=".92">
+          <path d="M18 120 L34 40 L50 120 Z"/><path d="M78 120 L94 40 L110 120 Z"/>
+          <path d="M138 120 L154 40 L170 120 Z"/><path d="M198 120 L214 40 L230 120 Z"/>
+          <path d="M258 120 L274 40 L290 120 Z"/><path d="M318 120 L334 40 L350 120 Z"/>
+          <path d="M378 120 L394 40 L410 120 Z"/>
+        </g>
+        <ellipse cx="235" cy="150" rx="250" ry="26" fill="#FF8A3D" opacity=".16"/>
+      </g>
+    </svg>
+
+    <!-- 可站立层：石台（中对比 + 明确描边） -->
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <path d="M0 950 L1920 950 L1920 1080 L0 1080 Z" fill="#3C3866"/>
+      <path d="M0 950 L1920 950" stroke="#7C6FBF" stroke-width="5"/>
+      <g fill="#4A4478" opacity=".85">
+        <rect x="120" y="968" width="180" height="46"/><rect x="380" y="968" width="140" height="46"/>
+        <rect x="620" y="968" width="210" height="46"/><rect x="910" y="968" width="160" height="46"/>
+        <rect x="1150" y="968" width="190" height="46"/><rect x="1420" y="968" width="150" height="46"/>
+        <rect x="1650" y="968" width="180" height="46"/>
+      </g>
+      <path d="M0 1080 L0 1006 L1920 1006 L1920 1080 Z" fill="#262340"/>
+    </svg>
+
+    <!-- 角色：正式序列帧（唯一真实素材） -->
+    <img src="art/hero-arc.png" alt="夜鸦 空中普攻第三段"
+         style="position:absolute; left:470px; bottom:146px; height:240px;
+                filter:drop-shadow(0 0 5px rgba(201,182,255,.9)) drop-shadow(0 10px 16px rgba(0,0,0,.55))">
+
+    <!-- 敌人占位（骨白 + 锈红：与背景的冷紫形成强对比，一眼可辨） -->
+    <div style="position:absolute; left:1010px; bottom:130px; width:116px; height:216px;">
+      <div style="position:absolute; inset:0;
+                  background:linear-gradient(180deg,#4A3226,#2A1A14);
+                  border:3px solid var(--foe-bone);
+                  border-radius:44px 44px 14px 14px;
+                  box-shadow:0 0 0 3px #8A3B2A inset, 0 0 30px rgba(255,138,61,.45)">
+        <div style="position:absolute; left:50%; top:34px; transform:translateX(-50%);
+                    width:56px; height:12px; background:var(--foe-rust); border-radius:6px"></div>
+        <span style="position:absolute; left:50%; top:112px; transform:translate(-50%,-50%);
+                     font-size:13px; letter-spacing:2px; color:#FFE3C4; white-space:nowrap; font-weight:700">敌人占位</span>
+      </div>
+      <span style="position:absolute; left:50%; top:-36px; transform:translateX(-50%);
+                   font-size:14px; letter-spacing:1px; color:#FFD166; white-space:nowrap;
+                   text-shadow:0 2px 0 rgba(0,0,0,.7)">浮空 ×3</span>
+    </div>
+
+    <!-- 击飞弧线（程序绘制，与角色分层） -->
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <path d="M1148 812 q130 -215 320 -262" stroke="#B792F6" stroke-width="4" fill="none"
+            stroke-dasharray="14 12" opacity=".8"/>
+      <path d="M1178 820 l-34 4 l16 30 Z" fill="#B792F6" opacity=".9"/>
+    </svg>
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="p1">
+        <div class="portrait"><img src="art/hero-dive.png" alt="头像"></div>
+        <div class="p1-info">
+          <div class="p1-name">夜鸦<span>NIGHTCROW</span></div>
+          <div class="bar hp"><i></i></div>
+          <div class="launch-row">
+            <div class="launch-ring">
+              <svg viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#0B0A14" stroke-width="7"/>
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#2E2A4C" stroke-width="7"/>
+                <circle cx="28" cy="28" r="23" fill="none" stroke="url(#lg1)" stroke-width="7"
+                        stroke-dasharray="89.6 54.4" stroke-linecap="butt"
+                        transform="rotate(-90 28 28)"/>
+                <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#F2EEF7"/><stop offset="1" stop-color="#FF8A3D"/>
+                </linearGradient></defs>
+              </svg>
+            </div>
+            <div class="launch-num">62<small>裂羽</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="room">
+        <div class="room-name">鸦 巢 · 第 三 层</div>
+        <div class="room-pips">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="boss"></i>
+        </div>
+      </div>
+
+      <div class="boss">
+        <div class="boss-name">钟 守 · 残 响</div>
+        <div class="bar"><i></i></div>
+        <div class="boss-tag">霸 体 · 需 撞 击 破 防</div>
+      </div>
+
+      <div class="combo">
+        <div class="combo-num">12</div>
+        <div class="combo-l">
+          <b>连 击</b>
+          <div class="airtag">浮空 <em>×3</em></div>
+        </div>
+      </div>
+
+      <div class="dmg">−49<small> 撞墙</small></div>
+      <div class="slam">砸 向 钟 塔</div>
+      <div class="chain">连锁击飞 ×2 →</div>
+
+      <div class="hints">
+        <div>空中连段 <kbd>J</kbd> &nbsp; 终结方向 <kbd>方向 + J</kbd></div>
+        <div>弹刀 <kbd>L</kbd> &nbsp; 空中受身 <kbd>跳跃</kbd></div>
+      </div>
+      <div class="vignette"></div>
+    </div>
+
+    <!-- 设计标注 -->
+    <div class="anno" id="anno1">
+      <div class="safe"></div>
+      <div class="tag" style="left:52px; top:16px">安全区 48px</div>
+      <div class="play"></div>
+      <div class="tag" style="left:52px; top:436px">角色活动区 y 430–950（中央不放大特效）</div>
+      <div class="box" style="left:470px; top:606px; width:286px; height:224px"></div>
+      <div class="tag" style="left:470px; top:578px">角色：高对比 + 亮边</div>
+      <div class="box" style="left:1006px; top:652px; width:120px; height:220px"></div>
+      <div class="tag" style="left:1140px; top:652px">敌人：暖色，禁用紫</div>
+      <div class="box" style="left:1326px; top:730px; width:480px; height:160px"></div>
+      <div class="tag" style="left:1326px; top:700px">机关：暖色 + 自发光</div>
+      <div class="box" style="left:44px; top:40px; width:466px; height:130px"></div>
+      <div class="tag" style="left:44px; top:12px">HUD 主信息：血条 + 裂羽环</div>
+      <div class="box" style="left:186px; top:900px; width:300px; height:120px"></div>
+      <div class="tag" style="left:186px; top:1024px">连击：左下角，不遮挡角色</div>
+      <div class="box" style="left:1150px; top:340px; width:420px; height:130px"></div>
+      <div class="tag" style="left:1150px; top:314px">伤害数字跟随敌人，撞墙时附带来源</div>
+    </div>
+  </div>
+</div>
+
+<div class="stage-wrap">
+  <div class="label"><b>样张 2</b> · 主菜单：左侧竖排菜单，右侧角色立绘，背景为钟楼内部。</div>
+  <div class="stage" id="stage2">
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <rect width="1920" height="1080" fill="#14132A"/>
+      <radialGradient id="m2" cx=".72" cy=".3" r=".7">
+        <stop offset="0" stop-color="#B792F6" stop-opacity=".22"/>
+        <stop offset="1" stop-color="#B792F6" stop-opacity="0"/></radialGradient>
+      <rect width="1920" height="1080" fill="url(#m2)"/>
+      <circle cx="1380" cy="230" r="76" fill="#EFEAFB" opacity=".8"/>
+      <g fill="#1D1B38">
+        <rect x="1180" y="300" width="26" height="500"/><rect x="1560" y="300" width="26" height="500"/>
+        <path d="M1160 300 h66 v-40 h-66 Z M1540 300 h66 v-40 h-66 Z"/>
+        <path d="M1170 260 L1193 200 L1216 260 Z M1550 260 L1573 200 L1596 260 Z"/>
+      </g>
+      <g stroke="#3A3468" stroke-width="4" opacity=".8">
+        <path d="M0 800 L1920 800"/><path d="M1320 190 v610"/>
+      </g>
+      <ellipse cx="1380" cy="800" rx="420" ry="40" fill="#8C7BD8" opacity=".12"/>
+    </svg>
+    <img src="art/hero-slash2.png" alt="夜鸦 立绘"
+         style="position:absolute; right:150px; bottom:150px; height:520px;
+                filter:drop-shadow(0 0 6px rgba(201,182,255,.7)) drop-shadow(0 22px 30px rgba(0,0,0,.6))">
+    <div class="menu-scrim"></div>
+    <div class="logo">
+      <div class="cn">夜鸦</div>
+      <div class="en">NIGHTCROW · AERIE</div>
+      <div class="sub">把 敌 人 挑 上 天  再 摔 碎 在 钟 塔 上</div>
+    </div>
+    <div class="menu-list">
+      <div class="item sel">开始猎杀</div>
+      <div class="item">鸦巢地图</div>
+      <div class="item">羽技 · 强化</div>
+      <div class="item">本地对战</div>
+      <div class="item">设置</div>
+    </div>
+    <div class="tip">建议使用手柄 A / B　·　键位可在设置中修改</div>
+    <div class="menu-side">
+      <div class="rank">
+        本 局 最 高 连 击 　 27<br>
+        最 远 击 飞 距 离 　 1 8 4 0<br>
+        已 解 锁 羽 技 　 9 / 20
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stage-wrap">
+  <div class="label"><b>样张 3</b> · 结算：羽刃划过的白痕开场，数据横排在下方，不遮角色。</div>
+  <div class="stage" id="stage3">
+    <svg class="layer" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <rect width="1920" height="1080" fill="#0C0B18"/>
+      <circle cx="960" cy="430" r="520" fill="#6E4BD6" opacity=".10"/>
+      <path d="M240 700 q400 -300 900 -260" stroke="#EDE9F7" stroke-width="6" fill="none" opacity=".65"/>
+      <path d="M300 730 q400 -280 900 -240" stroke="#B792F6" stroke-width="18" fill="none" opacity=".30"/>
+    </svg>
+    <img src="art/hero-thrust.png" alt="夜鸦"
+         style="position:absolute; left:50%; bottom:150px; transform:translateX(-50%); height:400px;
+                filter:drop-shadow(0 0 7px rgba(201,182,255,.7)) drop-shadow(0 18px 26px rgba(0,0,0,.6))">
+    <div class="result-vs"></div>
+    <div class="result-word">
+      <div class="w">猎 杀 完 成</div>
+      <div class="s">STAGE CLEAR　·　鸦 巢 第 三 层</div>
+    </div>
+    <div class="stat-panel">
+      <div><b>27</b><span>最 高 连 击</span></div>
+      <div><b>1840</b><span>击 飞 距 离</span></div>
+      <div><b>9</b><span>撞 击 击 杀</span></div>
+      <div><b>24.6s</b><span>浮 空 时 长</span></div>
+      <div><b>A</b><span>评 级</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="stage-wrap">
+  <div class="label"><b>样张 4</b> · 色板与组件：颜色规则是「背景冷暗 / 可站立层带描边 / 角色高对比 / 敌人暖色 / 紫只属于玩家」。</div>
+  <div style="width:1920px; transform-origin:top left">
+    <div class="sheet" style="grid-template-columns:repeat(4,1fr)">
+      <div class="swatch" style="background:#0E0F22"><span>天穹暗部</span><b>#0E0F22</b></div>
+      <div class="swatch" style="background:#232445"><span>钟楼中景</span><b>#232445</b></div>
+      <div class="swatch" style="background:#3C3866"><span>可站立层</span><b>#3C3866</b></div>
+      <div class="swatch" style="background:#7C6FBF"><span>站立层描边</span><b>#7C6FBF</b></div>
+    </div>
+    <div class="sheet" style="grid-template-columns:repeat(4,1fr); margin-top:14px">
+      <div class="swatch" style="background:#0E0C16"><span>角色墨色</span><b>#0E0C16</b></div>
+      <div class="swatch" style="background:#6E4BD6"><span>角色紫</span><b>#6E4BD6</b></div>
+      <div class="swatch" style="background:#B792F6"><span>角色亮紫</span><b>#B792F6</b></div>
+      <div class="swatch" style="background:#C9B6FF"><span>角色亮边</span><b>#C9B6FF</b></div>
+    </div>
+    <div class="sheet" style="grid-template-columns:repeat(4,1fr); margin-top:14px">
+      <div class="swatch" style="background:#C2543C"><span>敌人锈红</span><b>#C2543C</b></div>
+      <div class="swatch" style="background:#E3C08A"><span>敌人骨白</span><b>#E3C08A</b></div>
+      <div class="swatch" style="background:#FF8A3D"><span>机关 / 撞击</span><b>#FF8A3D</b></div>
+      <div class="swatch" style="background:#FF3B47"><span>危险 / 高裂羽</span><b>#FF3B47</b></div>
+    </div>
+    <div class="sheet" style="grid-template-columns:repeat(4,1fr); margin-top:14px">
+      <div class="swatch" style="background:#F2EEF7"><span>裂羽 0%</span><b>#F2EEF7</b></div>
+      <div class="swatch" style="background:#FFD166"><span>裂羽 40%</span><b>#FFD166</b></div>
+      <div class="swatch" style="background:#FF8A3D"><span>裂羽 70%</span><b>#FF8A3D</b></div>
+      <div class="swatch" style="background:#FF3B47"><span>裂羽 100%</span><b>#FF3B47</b></div>
+    </div>
+
+    <div class="comp">
+      <div class="cell">
+        <h4>按钮 · 主要</h4><span class="btn">开 始 猎 杀</span>
+      </div>
+      <div class="cell">
+        <h4>按钮 · 次要</h4><span class="btn ghost">返 回</span>
+      </div>
+      <div class="cell">
+        <h4>裂羽环（低 / 中 / 高）</h4>
+        <div class="ring-demo">
+          <svg width="42" height="42" viewBox="0 0 56 56"><circle cx="28" cy="28" r="23" fill="none" stroke="#2E2A4C" stroke-width="7"/><circle cx="28" cy="28" r="23" fill="none" stroke="#F2EEF7" stroke-width="7" stroke-dasharray="29 115" transform="rotate(-90 28 28)"/></svg>
+          <svg width="42" height="42" viewBox="0 0 56 56"><circle cx="28" cy="28" r="23" fill="none" stroke="#2E2A4C" stroke-width="7"/><circle cx="28" cy="28" r="23" fill="none" stroke="#FFD166" stroke-width="7" stroke-dasharray="87 57" transform="rotate(-90 28 28)"/></svg>
+          <svg width="42" height="42" viewBox="0 0 56 56"><circle cx="28" cy="28" r="23" fill="none" stroke="#2E2A4C" stroke-width="7"/><circle cx="28" cy="28" r="23" fill="none" stroke="#FF3B47" stroke-width="7" stroke-dasharray="140 4" transform="rotate(-90 28 28)"/></svg>
+          <span>数值越高，颜色越暖</span>
+        </div>
+      </div>
+      <div class="cell">
+        <h4>形状语言 · 斜切角 + 鸟羽装饰</h4>
+        <div style="display:flex; gap:12px; align-items:center">
+          <div style="width:92px; height:56px; background:#1C1A30; border:2px solid var(--panel-line);
+                      clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)"></div>
+          <div style="width:92px; height:56px; background:#1C1A30; border:2px solid var(--panel-line);
+                      clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))"></div>
+          <svg width="70" height="56" viewBox="0 0 70 56">
+            <path d="M8 44 q22 -34 54 -40 q-16 26 -40 40 Z" fill="#6E4BD6" stroke="#C9B6FF" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="toggle" onclick="document.getElementById('anno1').classList.toggle('on')">显示 / 隐藏设计标注</button>
+
+<script>
+  // 1920×1080 舞台等比缩放
+  function fit(){
+    document.querySelectorAll('.stage').forEach(function(s){
+      var w = s.parentElement.clientWidth;
+      s.style.transform = 'scale(' + (w / 1920) + ')';
+      s.parentElement.style.height = (1080 * (w / 1920)) + 'px';
+    });
+    var sheet = document.querySelectorAll('.sheet');
+    if (sheet.length){
+      var grid = sheet[0].parentElement;
+      var w2 = document.querySelectorAll('.stage-wrap')[0].clientWidth;
+      grid.style.width = '1920px';
+      grid.style.transform = 'scale(' + (w2 / 1920) + ')';
+      grid.style.transformOrigin = 'top left';
+    }
+  }
+  window.addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

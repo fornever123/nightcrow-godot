@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3]
+[ext_resource type="Script" path="res://scripts/gameplay/player.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/presentation/character_view.gd" id="2"]
+[sub_resource type="CapsuleShape2D" id="body"]
+radius = 25.0
+height = 168.0
+[sub_resource type="RectangleShape2D" id="hurt"]
+size = Vector2(50,156)
+[sub_resource type="RectangleShape2D" id="melee"]
+size = Vector2(200,136)
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1")
+collision_layer = 2
+collision_mask = 1
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("body")
+[node name="Visual" type="Node2D" parent="."]
+[node name="ActorSprite" type="Sprite2D" parent="Visual"]
+script = ExtResource("2")
+position = Vector2(0,84)
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("hurt")
+[node name="MeleeHitbox" type="Area2D" parent="."]
+position = Vector2(100,-6)
+collision_layer = 8
+collision_mask = 4
+monitorable = false
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeHitbox"]
+shape = SubResource("melee")

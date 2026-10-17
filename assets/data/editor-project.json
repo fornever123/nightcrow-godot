@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "workspace": {
+    "activeSection": "feedback",
+    "selectedCharacter": 0,
+    "selectedMove": 0,
+    "selectedAssetPath": "",
+    "zoom": 1,
+    "panX": 0,
+    "panY": 0
+  },
+  "documents": {
+    "animationFrame": 0,
+    "animationName": "idle",
+    "effectMode": false
+  }
+}

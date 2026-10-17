@@ -1,0 +1,29 @@
+{
+  "verified_at": "2026-10-10T19:58:04.012266+08:00",
+  "engine": "Godot 4.7.2",
+  "art_source": "E:\\MakerProjects\\pixel-brawler\\assets\\image",
+  "original_png_count": 241,
+  "changed_or_external_art": [],
+  "native_training_checks": {
+    "passed": 31,
+    "failed": 0
+  },
+  "editor_checks": {
+    "passed": 15,
+    "failed": 0
+  },
+  "scene": "plain training floor, player and one wooden dummy",
+  "source_projects_modified": false,
+  "limits": [
+    "Up strikes, parry and ranged actions still need dedicated art",
+    "No standalone release package yet"
+  ],
+  "cleaned_character_copies": 218,
+  "green_edge_validation": {
+    "passed_frames": 218,
+    "source_bytes_unchanged": true,
+    "alpha_unchanged": true,
+    "dimensions_unchanged": true,
+    "visible_green_spill_pixels_remaining": 0
+  }
+}

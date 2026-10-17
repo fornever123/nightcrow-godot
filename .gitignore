@@ -1,0 +1,37 @@
+# Godot regenerates its import cache locally. Keep source .uid and .import metadata.
+/.godot/
+/.runtime/
+/engine/*
+!/engine/.gdignore
+!/engine/README.md
+
+# Editor dependencies, builds, local backups and recycled assets.
+node_modules/
+dist/
+__pycache__/
+*.pyc
+/assets/data/backups/
+/assets/.trash/
+/exports/
+/builds/
+
+# Machine-specific editor configuration and credentials.
+/.cursor/
+/.vscode/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+!.env.sample
+.npmrc
+.netrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+/export_credentials.cfg
+/.github-auth/
