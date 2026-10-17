@@ -1,6 +1,6 @@
 # 夜鸦 · Godot 游戏开发版
 
-GitHub 版本保存：双击根目录 `SYNC_GITHUB.bat` 上传已保存的代码、素材与配置。操作说明见 [GitHub更新说明](docs/GitHub更新说明.md)。引擎安装文件、依赖缓存和本地备份不提交。
+GitHub 私有仓库：[fornever123/nightcrow-godot](https://github.com/fornever123/nightcrow-godot)。双击根目录 `上传更新到GitHub.bat` 上传已保存的代码、素材与配置。操作说明见 [GitHub更新说明](docs/GitHub更新说明.md)。引擎安装文件、依赖缓存和本地备份不提交。
 
 这是现在要使用的正式工程。E 盘旧角色素材和动作保留，战斗使用 C 盘 Godot 的基础；场景清空，只留下训练木桩。旧工程保留作备份。
 
