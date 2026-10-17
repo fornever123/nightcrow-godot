@@ -1,0 +1,1740 @@
+{
+  "source": "art\\game-ready-sequences\\locomotion-first4",
+  "sourceFrames": 107,
+  "segments": {
+    "jump": [
+      37,
+      42,
+      24
+    ],
+    "fall": [
+      43,
+      46,
+      20
+    ],
+    "land": [
+      47,
+      50,
+      26.666666666666668
+    ],
+    "run": [
+      67,
+      71,
+      16
+    ]
+  },
+  "transforms": [
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00001.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00001.png",
+      "crop": [
+        1296,
+        261,
+        1799,
+        980
+      ],
+      "foot": [
+        1462.0,
+        936
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "202e8a2c7b229a5fad5b8343269cbe1821e183d57fff6530e649a295b1c50d90"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00002.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00002.png",
+      "crop": [
+        1296,
+        260,
+        1799,
+        979
+      ],
+      "foot": [
+        1461.0,
+        932
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ceada6e6ecca5807bcc0afd67eb1e5d8f2469c09af4ed2f8a482138d9707b492"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00003.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00003.png",
+      "crop": [
+        1295,
+        149,
+        1798,
+        872
+      ],
+      "foot": [
+        1462.0,
+        822
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "24aa588e11a219aaaf4c071c8e63ddbbe55218351fd8c7efadc7a1a6925202ba"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00004.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00004.png",
+      "crop": [
+        1294,
+        117,
+        1799,
+        840
+      ],
+      "foot": [
+        1464.5,
+        784
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "aef8fc458229756716c3e81b571c98024e083e29e846fe23338205838b26825e"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00005.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00005.png",
+      "crop": [
+        1293,
+        104,
+        1800,
+        827
+      ],
+      "foot": [
+        1463.0,
+        768
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "119de4a0bc3debadd61e558bae10906725e1143faadc62350232c6daae0f7f44"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00006.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00006.png",
+      "crop": [
+        1293,
+        104,
+        1800,
+        816
+      ],
+      "foot": [
+        1465.0,
+        762
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5c12d10286fc9b320eef93e5a4ea58783f4e7da397b7fede2b68f84bc55d0d12"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00007.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00007.png",
+      "crop": [
+        1290,
+        115,
+        1947,
+        728
+      ],
+      "foot": [
+        1467.5,
+        727
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ebf30545efd8525255e9569d90022d10e0e274c1fa5cfe9e5e0d74872c0bca41"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00008.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00008.png",
+      "crop": [
+        1289,
+        135,
+        1964,
+        722
+      ],
+      "foot": [
+        1476.5,
+        722
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "17fbafb9f199994083fa1bd1e395ce7ba179511feaccc83c63a193f5afce9b39"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00009.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00009.png",
+      "crop": [
+        1289,
+        154,
+        1976,
+        721
+      ],
+      "foot": [
+        1488.0,
+        720
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "08ffda07d3cff5f4caf546311fb4a8d660c00eec7543911161b9ea08024b26d3"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00010.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00010.png",
+      "crop": [
+        1293,
+        211,
+        1990,
+        746
+      ],
+      "foot": [
+        1495.5,
+        745
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "0ff8da72e30844fde4b538f39f5fe89375f88211135fc0ac78e69629fd5f7b33"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00011.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00011.png",
+      "crop": [
+        1296,
+        367,
+        2008,
+        928
+      ],
+      "foot": [
+        1536.0,
+        928
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "b89cae451de87619e4ddec61525ad6a89d532d3a7f0242f9fbabbecb3d6feea9"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00012.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00012.png",
+      "crop": [
+        1248,
+        562,
+        1979,
+        1001
+      ],
+      "foot": [
+        1480.0,
+        1000
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "2c5b421dff149a9d8f082a22b1d7f4d23377efb5ba39a44a0d0037f27c94524f"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00013.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00013.png",
+      "crop": [
+        1247,
+        562,
+        1979,
+        1000
+      ],
+      "foot": [
+        1478.5,
+        1000
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "fb2a617a470d3bd01222eda89b5d2b17b7a7906edc77669319f66c7efbc1a890"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00014.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00014.png",
+      "crop": [
+        1265,
+        586,
+        1973,
+        1000
+      ],
+      "foot": [
+        1487.0,
+        999
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "0ef8b0f7eb6c393c9ee5278604b4f5f5e11cf8b52d77bbb139e83cf6b56416cf"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00015.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00015.png",
+      "crop": [
+        1282,
+        571,
+        1969,
+        1000
+      ],
+      "foot": [
+        1457.5,
+        1000
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "189d19b7f797aa5621c5bb5ed4bcc0d783ee8ab55e7e70a65182ee36e4633a61"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00016.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00016.png",
+      "crop": [
+        1290,
+        531,
+        1971,
+        1003
+      ],
+      "foot": [
+        1452.5,
+        1002
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5b5e12b24f97451585d78f1aada188d86bf639c2c81e5fda0e0e2429aa69a00c"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00017.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00017.png",
+      "crop": [
+        1287,
+        502,
+        1972,
+        1004
+      ],
+      "foot": [
+        1452.5,
+        1003
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5e9697da31f7eff6318c80878b8155d86267904431b815088a971d6c8b39981f"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00018.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00018.png",
+      "crop": [
+        1288,
+        455,
+        1975,
+        1005
+      ],
+      "foot": [
+        1456.0,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "10dd21b391637ed3f02e1de28b5d275b1d9e33e58f4efb44241447d19d09858e"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00019.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00019.png",
+      "crop": [
+        1280,
+        432,
+        1971,
+        1005
+      ],
+      "foot": [
+        1460.0,
+        1005
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "913c3661eb226bc9d9126b0cd092c98d4fbf38b5574544fe4d7a70692e821074"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00020.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00020.png",
+      "crop": [
+        1277,
+        428,
+        1963,
+        1005
+      ],
+      "foot": [
+        1464.0,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "4e392554ea555626f77456d6440603a097e2f5e7931a1773007e451554a51775"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00021.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00021.png",
+      "crop": [
+        1271,
+        435,
+        1892,
+        1005
+      ],
+      "foot": [
+        1460.5,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "8efb521f6dcb8ce20814d377c75fc82a99d807d99205f85c5d6811cd6ca1769a"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00022.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00022.png",
+      "crop": [
+        1270,
+        440,
+        1874,
+        1047
+      ],
+      "foot": [
+        1455.0,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "2128d39e8de567f20185a11912a4683b35bd40f142d9bd32abd0241776398d96"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00023.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00023.png",
+      "crop": [
+        1274,
+        431,
+        1847,
+        1059
+      ],
+      "foot": [
+        1450.5,
+        1002
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "87c9a80f0d6db46eda395beda3da2b758a6ef1c26cdd2251175f6d0af5e31bb5"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00024.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00024.png",
+      "crop": [
+        1296,
+        325,
+        1801,
+        1011
+      ],
+      "foot": [
+        1462.0,
+        960
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "c994f75a540c3591a570632915a1b110177e36b64191774b6bc877b1331b083d"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00025.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00025.png",
+      "crop": [
+        1296,
+        216,
+        1792,
+        921
+      ],
+      "foot": [
+        1463.5,
+        880
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "17036f913840259040cae1c7d35f2f92c6d68cf79c68b826b498ac2bf425bd5b"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00026.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00026.png",
+      "crop": [
+        1294,
+        156,
+        1792,
+        876
+      ],
+      "foot": [
+        1460.5,
+        826
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "0e117b3d51fdced8fce03c3e611971015c3904f4604c3033551e21e4ae2d3683"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00027.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00027.png",
+      "crop": [
+        1294,
+        128,
+        1796,
+        846
+      ],
+      "foot": [
+        1462.0,
+        795
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7eba9ffbca57347d06b5f343c1308b1b08b5181b196267f8a3094659491a1229"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00028.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00028.png",
+      "crop": [
+        1291,
+        122,
+        1800,
+        832
+      ],
+      "foot": [
+        1468.5,
+        775
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "533f1eece3bfe9d293a61aedf8a6952c38fdc784cc8dba1deeb9e10967e46fc1"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00029.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00029.png",
+      "crop": [
+        1291,
+        128,
+        1912,
+        764
+      ],
+      "foot": [
+        1468.5,
+        753
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "f3d7f089a52b36400ac2a4ad084a5e30f739a90dc88fcfddeb77863cc21eca9d"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00030.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00030.png",
+      "crop": [
+        1291,
+        159,
+        1940,
+        752
+      ],
+      "foot": [
+        1474.0,
+        749
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "0731d62cbbf331e3e883ce0586f03fc0d165de36680515bf5a19be57a7305ead"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00031.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00031.png",
+      "crop": [
+        1296,
+        240,
+        1970,
+        791
+      ],
+      "foot": [
+        1496.0,
+        790
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5ff78da91e4b643abf84b2c0e7dc2e0b75b3f1124008177652f6cb4582557ef0"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00032.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00032.png",
+      "crop": [
+        1296,
+        343,
+        1999,
+        896
+      ],
+      "foot": [
+        1507.5,
+        896
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "cebb610c9e0f1a52eca40cd8a14e9dbdca82d314e6be6c3b8173606e28aa2fd4"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00033.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00033.png",
+      "crop": [
+        1263,
+        498,
+        1978,
+        1002
+      ],
+      "foot": [
+        1486.5,
+        1001
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "fc890a7d736ba4d4c03f8d047536c0ccea3c05adc49110fc4fc11ed3609b90e3"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00034.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00034.png",
+      "crop": [
+        1278,
+        463,
+        1959,
+        1005
+      ],
+      "foot": [
+        1481.0,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "514b2bd3fbe614737d46674e4ddbd596bd74a2c623d58862f65a7bdcd432ffda"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00035.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00035.png",
+      "crop": [
+        1268,
+        430,
+        1891,
+        1039
+      ],
+      "foot": [
+        1455.5,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "f2ef6be4c1a2bb86672b017715a9db539ab939b85afa0d3e6a7b812f597717ac"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00036.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00036.png",
+      "crop": [
+        1266,
+        432,
+        1852,
+        1056
+      ],
+      "foot": [
+        1451.0,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "8b74e1cb540f1ef74ea12b6bed3fb3407dee16d31172c736040f1a7b1311595a"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00037.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00037.png",
+      "crop": [
+        1296,
+        332,
+        1807,
+        1012
+      ],
+      "foot": [
+        1452.5,
+        968
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ec3562f250e08ad4d57047d23b19de98fc70509502d658b14bf0a99d18798963"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00038.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00038.png",
+      "crop": [
+        1295,
+        220,
+        1792,
+        929
+      ],
+      "foot": [
+        1463.0,
+        882
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "67bd9c84c47be5cb8ed79c45f49dfcb8bcc099aa69a7903827bc6d95bca31c41"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00039.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00039.png",
+      "crop": [
+        1293,
+        152,
+        1792,
+        879
+      ],
+      "foot": [
+        1460.0,
+        828
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "3fd95097a835f88205645da2328959ebec3d0e5a3e98a948f816dfc76ab09979"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00040.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00040.png",
+      "crop": [
+        1293,
+        120,
+        1792,
+        848
+      ],
+      "foot": [
+        1460.5,
+        795
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ec87923a5a69990343ded6c2a112f781fe31df47d574c1b2e857ed80014cbd9e"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00041.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00041.png",
+      "crop": [
+        1293,
+        103,
+        1803,
+        822
+      ],
+      "foot": [
+        1460.5,
+        766
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "285c918b770e218de0571b683afb7c00de6e53ced61512ee6add49816885f64d"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00042.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00042.png",
+      "crop": [
+        1291,
+        102,
+        1880,
+        766
+      ],
+      "foot": [
+        1467.0,
+        746
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "58f0c8d79aee8c3bbbffdf3307e6b1af0cbd4d51bb147e73b105e7806c38f788"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00043.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00043.png",
+      "crop": [
+        1287,
+        119,
+        1957,
+        724
+      ],
+      "foot": [
+        1469.5,
+        723
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "94f0fa2babddb2b8962cbb5d357d0e3e9c67eb798bcde54276b4b75f6ba1bc79"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00044.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00044.png",
+      "crop": [
+        1291,
+        152,
+        1975,
+        737
+      ],
+      "foot": [
+        1485.0,
+        736
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "cbacd880453c3a848c9e388eb4e435906704330791bbfee48f2cf3bc65761399"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00045.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00045.png",
+      "crop": [
+        1296,
+        253,
+        1990,
+        763
+      ],
+      "foot": [
+        1498.5,
+        762
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "13442bb21eee8ebd044673eca44b8851a7e7e583a9ebb34f62d24ac9b1de8c0a"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00046.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00046.png",
+      "crop": [
+        1296,
+        383,
+        2017,
+        881
+      ],
+      "foot": [
+        1520.5,
+        881
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "25c6ca0a33ae816bd782738d02f81f83fb4bf660e5a74a8b2e9d3ea15f94d645"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00047.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00047.png",
+      "crop": [
+        1268,
+        511,
+        1976,
+        1003
+      ],
+      "foot": [
+        1492.0,
+        1002
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "bad5d8e5fa249a837a046a0d0bc262812a53dbafb29a2a4faf0da53c421c0c78"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00048.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00048.png",
+      "crop": [
+        1272,
+        526,
+        1972,
+        1003
+      ],
+      "foot": [
+        1480.0,
+        1002
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5c4a8060d252f148062dec2a6b320246bd046b793d0cac4af4e0ad3ca99947dd"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00049.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00049.png",
+      "crop": [
+        1267,
+        462,
+        1881,
+        1053
+      ],
+      "foot": [
+        1458.5,
+        1004
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "b1ae1de2c1a84671ee05b6a600bd4e1fd0259ec3757018d66db09fda8fef4a1b"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00050.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00050.png",
+      "crop": [
+        1268,
+        464,
+        1865,
+        1064
+      ],
+      "foot": [
+        1449.0,
+        1005
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "2ce388a183bb58c643b38f168db398958a5add37d69d8f2932419a6aa3427931"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00051.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00051.png",
+      "crop": [
+        1288,
+        396,
+        1840,
+        1056
+      ],
+      "foot": [
+        1451.5,
+        1000
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "dd921a0f87acf6b725168bd5d7a14011aa426f69292adc993106fae2d249d98f"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00052.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00052.png",
+      "crop": [
+        1287,
+        272,
+        1787,
+        989
+      ],
+      "foot": [
+        1451.5,
+        936
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "a96299cffae641c4bdb5a78639931fbfadf9b3505fa196cf84c3d963b2e67e79"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00053.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00053.png",
+      "crop": [
+        1239,
+        184,
+        1741,
+        905
+      ],
+      "foot": [
+        1415.0,
+        853
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ccf006e5dab8214a6b2e067bd3b90637c2766d71d15e6b0df60de05b7b7b4735"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00054.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00054.png",
+      "crop": [
+        1168,
+        144,
+        1683,
+        863
+      ],
+      "foot": [
+        1346.5,
+        807
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ab1ce54015cbfced034d836e3b59de1345b485a95c566fce708c0e74945b2703"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00055.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00055.png",
+      "crop": [
+        1088,
+        132,
+        1624,
+        841
+      ],
+      "foot": [
+        1268.0,
+        784
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "817ff63d87959b6c7b10936146d4a8dd0f9199acae246d950d54c13da267b021"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00056.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00056.png",
+      "crop": [
+        1008,
+        138,
+        1575,
+        821
+      ],
+      "foot": [
+        1193.5,
+        775
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "67a67e924895e45c056c2f24ece72378c45a1607a7b1fd259f7daacee49ffa51"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00057.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00057.png",
+      "crop": [
+        863,
+        201,
+        1503,
+        799
+      ],
+      "foot": [
+        1066.5,
+        768
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ede698bfdad081696514f01e59a44f494111415fa42d3e1e29be0adf072ea609"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00058.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00058.png",
+      "crop": [
+        784,
+        262,
+        1449,
+        826
+      ],
+      "foot": [
+        979.5,
+        825
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "bcb1c6800fe96d2721538375635e29952740014c30a27dded1c1027227dbb8dc"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00059.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00059.png",
+      "crop": [
+        687,
+        351,
+        1392,
+        905
+      ],
+      "foot": [
+        893.5,
+        904
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "58f3bd508850e092c2b27990f3f51fbffed4d33d4fa14212a1cbd04c65b65b3d"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00060.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00060.png",
+      "crop": [
+        562,
+        416,
+        1304,
+        1008
+      ],
+      "foot": [
+        782.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ef5f5866513f6c9c82bc12a8e346d4618652d877e723d870129acf6b95012fa2"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00061.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00061.png",
+      "crop": [
+        448,
+        447,
+        1180,
+        1008
+      ],
+      "foot": [
+        695.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "49328dcd4f39e11d9cc37546a46b4438eeca083f3a8d96ea70099f946372c9f2"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00062.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00062.png",
+      "crop": [
+        364,
+        392,
+        956,
+        1008
+      ],
+      "foot": [
+        573.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "fbde73381a2c25728daf1b036893228b33f6799038c6e03f26fd953a8dc52887"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00063.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00063.png",
+      "crop": [
+        327,
+        392,
+        791,
+        1009
+      ],
+      "foot": [
+        537.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "c30e5c733753a38566718a1230c799bcbd2b023974d87a7b1a711491d38710e3"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00064.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00064.png",
+      "crop": [
+        323,
+        392,
+        791,
+        1008
+      ],
+      "foot": [
+        535.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "c6e65e5d1c7f371c3fed196786f820aee022bb5ebce625245c953d577790d4b4"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00065.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00065.png",
+      "crop": [
+        100,
+        422,
+        770,
+        1009
+      ],
+      "foot": [
+        559.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "9f7b1cb79334409473d0db4ef65e70e014223f3856e9f1fe1ad7af8dfc32206a"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00066.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00066.png",
+      "crop": [
+        112,
+        443,
+        861,
+        1009
+      ],
+      "foot": [
+        644.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "c9c5b398dc9a824a5f3ce5d0bafe5fcb96e99ef1ad1a2085df85d59d699fd443"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00067.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00067.png",
+      "crop": [
+        197,
+        443,
+        961,
+        1008
+      ],
+      "foot": [
+        738.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "dcac5224fde136961476115b6b64b0fe5cff110e9d15f3b702fb2884d413b5ab"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00068.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00068.png",
+      "crop": [
+        245,
+        438,
+        1025,
+        1008
+      ],
+      "foot": [
+        794.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "944ad5d5d6566a8501573820cfa29b6cdd6682c1a5c099ca38e0af360a9f3528"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00069.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00069.png",
+      "crop": [
+        402,
+        440,
+        1177,
+        992
+      ],
+      "foot": [
+        917.0,
+        992
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7fc1ca137885ff0b0b50664b68f84c08439600e9734b3c35497746241a5e7bce"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00070.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00070.png",
+      "crop": [
+        482,
+        451,
+        1264,
+        1008
+      ],
+      "foot": [
+        999.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "d616594e8e314c7d480de5f5165441cf7dcc278a0c7c6b60d8a178f3ba7cbb2e"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00071.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00071.png",
+      "crop": [
+        540,
+        480,
+        1328,
+        1008
+      ],
+      "foot": [
+        1031.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "494cf0ea7a45ed1eb2729d005d414d5ac194c4cd315ab204cbf88d023f4e84b2"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00072.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00072.png",
+      "crop": [
+        778,
+        404,
+        1332,
+        1008
+      ],
+      "foot": [
+        1147.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "a3e21dc490c9983c5a87159d5c9afe0943b042167bfb65d8bea258d07b5bc105"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00073.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00073.png",
+      "crop": [
+        888,
+        394,
+        1377,
+        1009
+      ],
+      "foot": [
+        1171.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "8660fdfc10aa33d0c31f226f1552efeb84f12c11de7779784de97c15bfd06988"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00074.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00074.png",
+      "crop": [
+        928,
+        394,
+        1378,
+        1010
+      ],
+      "foot": [
+        1174.0,
+        1009
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "878a3c9fcc44cafb59c30218074070b4578e2fbfddf44509699836f3a2349cae"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00075.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00075.png",
+      "crop": [
+        945,
+        416,
+        1423,
+        1009
+      ],
+      "foot": [
+        1153.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "de1c24e8394566285c054720a7ea9502a3ebf40ed77522143555742c083e5bcc"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00076.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00076.png",
+      "crop": [
+        915,
+        432,
+        1617,
+        1009
+      ],
+      "foot": [
+        1122.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "d0c3c32e428b90349c7c57591846e389910dbcd4ee8ae8c282b51530fdd2db39"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00077.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00077.png",
+      "crop": [
+        848,
+        439,
+        1608,
+        1008
+      ],
+      "foot": [
+        1071.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "b0089ab75635e5b172fff0ad60a5a816d3bd4591b103353223434b2e30785064"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00078.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00078.png",
+      "crop": [
+        804,
+        444,
+        1591,
+        1010
+      ],
+      "foot": [
+        1045.0,
+        1010
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "85f8de26ab38b6b5abaeec15d50a20d5eb20120886e3954583e54a60372bf5f4"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00079.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00079.png",
+      "crop": [
+        797,
+        426,
+        1528,
+        1009
+      ],
+      "foot": [
+        1017.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "078ea0ec4d4487913db9e87e58c43fe02b6051e272976781de41108b862a6010"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00080.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00080.png",
+      "crop": [
+        780,
+        397,
+        1362,
+        1008
+      ],
+      "foot": [
+        1004.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ddda1956c36d08fcc92c989d516584c96f9ee50baff9dcfb56f47f3e60059816"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00081.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00081.png",
+      "crop": [
+        778,
+        398,
+        1260,
+        1008
+      ],
+      "foot": [
+        988.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "486bb871115537665a963490424d203f73832b845c7e7bb693390b24fd299561"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00082.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00082.png",
+      "crop": [
+        814,
+        416,
+        1233,
+        1008
+      ],
+      "foot": [
+        1015.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "5bf6bd93d945255c7a05593b5fe8bd5cfd8d8983dc844450383e88be9e2bbf3f"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00083.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00083.png",
+      "crop": [
+        575,
+        445,
+        1284,
+        1008
+      ],
+      "foot": [
+        1074.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ffd3fdbadb4061ffecf6a6077b621f28fb5cd0cc8f1f016e032c50eaa1d285e4"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00084.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00084.png",
+      "crop": [
+        642,
+        453,
+        1348,
+        1007
+      ],
+      "foot": [
+        1144.0,
+        1006
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "70bcaa0b43b1e7e744af1ad8425e2790bf5ebc209d9b6233fdf173da1b106ed4"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00085.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00085.png",
+      "crop": [
+        836,
+        401,
+        1364,
+        1009
+      ],
+      "foot": [
+        1152.0,
+        1009
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "dfddbbaf7b3d6cd2384579001f9fd8816256532443f510dba85027893022decf"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00086.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00086.png",
+      "crop": [
+        886,
+        399,
+        1368,
+        1011
+      ],
+      "foot": [
+        1152.0,
+        1010
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "fb9cdc027d4a746b1b6f54aae9d2217225e5d4c31622f3a7a8d755f5ab0933fc"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00087.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00087.png",
+      "crop": [
+        927,
+        408,
+        1344,
+        1011
+      ],
+      "foot": [
+        1141.0,
+        1010
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "afdeb4dbc029b973935bc6aa87ebd0aebe0dc860caee6f74d5304f35227f86b0"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00088.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00088.png",
+      "crop": [
+        899,
+        423,
+        1579,
+        1011
+      ],
+      "foot": [
+        1118.5,
+        1010
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "b4b5087e74c8d8fd7ed2e1f7c292c8144f2a259b98a548c6f80ed672f360d9f9"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00089.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00089.png",
+      "crop": [
+        830,
+        443,
+        1636,
+        1010
+      ],
+      "foot": [
+        1077.0,
+        1009
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7d1650d8c01313a3133a5db278a57cb8ddfc75edb60a260cf9dfae01af9bb53d"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00090.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00090.png",
+      "crop": [
+        822,
+        442,
+        1637,
+        1009
+      ],
+      "foot": [
+        1072.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7aa1ee38c759fde66c271300ff209e0945fc47b029342062c2bbac547163a81b"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00091.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00091.png",
+      "crop": [
+        821,
+        441,
+        1636,
+        1008
+      ],
+      "foot": [
+        1071.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "94beeb09b43ba2bd54141e95eb7a59f6e00ec6253764a24be7ce96df4b757a25"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00092.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00092.png",
+      "crop": [
+        832,
+        433,
+        1623,
+        1008
+      ],
+      "foot": [
+        1075.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "8a0289301b4bd54d8bba1a04fc07d6321757a7143e12330f22cd39f22b6be037"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00093.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00093.png",
+      "crop": [
+        959,
+        396,
+        1442,
+        1009
+      ],
+      "foot": [
+        1178.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "41c09accb37e52c68bbc6effc1f96b3a394a79c21de707042845ecdd9a1cfe1f"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00094.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00094.png",
+      "crop": [
+        961,
+        392,
+        1443,
+        1009
+      ],
+      "foot": [
+        1182.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "c580be372a2f3c401cd96a60c03638e479bce40914340c01cfd34a969c48b7df"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00095.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00095.png",
+      "crop": [
+        967,
+        403,
+        1389,
+        1008
+      ],
+      "foot": [
+        1177.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "ffe14e3ba4043e0642150fc4df6b8313699cfe0b3eda0334c77c01c2198b10c9"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00096.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00096.png",
+      "crop": [
+        695,
+        424,
+        1395,
+        1009
+      ],
+      "foot": [
+        1180.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "93832600e9e26f61c93e4aee7527ed6ef0b328db0a804065233b669da330e4c7"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00097.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00097.png",
+      "crop": [
+        655,
+        441,
+        1461,
+        1009
+      ],
+      "foot": [
+        1218.0,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "e67dd31e938c098676e462867b14d3fc188ed708987356b3f526f9daa4d88f87"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00098.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00098.png",
+      "crop": [
+        655,
+        441,
+        1464,
+        1009
+      ],
+      "foot": [
+        1219.5,
+        1008
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "312dfd26c426d9f0901b567a60852bccf42c0f658d8888c3f67d0f2750b38dbf"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00099.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00099.png",
+      "crop": [
+        655,
+        441,
+        1464,
+        1008
+      ],
+      "foot": [
+        1219.5,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "aa89a56141dfe6a5c90922f4ff39458d203c1e9a3c2db548c7a9b1c9e8e5cbd0"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00100.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00100.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "f5a9e8735c45f0ee7a7a4d5feb0993d9fa7601c78c152a22e7d9f6dea038077e"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00101.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00101.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "0458a5541cb3a821bf1d29f329acf11a422bf0cad688de48a942cb19bfdfef18"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00102.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00102.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "80221af2892c72536eaf70a2096f821b8b2b8a48fb2e01d81ce0298f4f82e7b3"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00103.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00103.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "558c15923ecb90d43cb4ef335f58ee24de192653f363e8e3ddc0a2d5992eeaa2"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00104.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00104.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "8ae4f0312c76430cf7dbe5f7f6bc4956a73d2aaae2585ae4b48bc7145c144aed"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00105.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00105.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "f5dbf13445ee139090ef8a27353ed1ab6194d68ca4c6c29a9187cd035b48280a"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00106.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00106.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7888f107cbaadb46e8b7b1689dd88a76b67424c12bcd77e224badb8f5f92770c"
+    },
+    {
+      "source": "art/game-ready-sequences/locomotion-first4/frame_00107.png",
+      "asset": "image/selected-original/locomotion-first4/frame_00107.png",
+      "crop": [
+        654,
+        441,
+        1463,
+        1008
+      ],
+      "foot": [
+        1219.0,
+        1007
+      ],
+      "displayScale": 0.23333333333333334,
+      "sha256": "7faa091c8bff53f1b8071d6d47be2311fc6d1edb59e378fc9d329ff517513e6e"
+    }
+  ]
+}

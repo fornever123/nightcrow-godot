@@ -3,7 +3,7 @@
   "metadata": {
     "name": "夜鸦 · 木桩训练场",
     "engine": "Godot",
-    "description": "Godot 木桩训练场；已接入用户修改的非3px原版动作，跑步跳跃沿用现有素材。"
+    "description": "Godot 木桩训练场；非3px原版攻击及前4秒跑步、起跳、下落、落地。"
   },
   "settings": {
     "designWidth": 1280,
@@ -309,1214 +309,215 @@
             "description": "开场待机，单独保留。"
           },
           "run": {
-            "fps": 24,
+            "name": "跑步",
+            "fps": 16,
             "loop": true,
             "holdLast": true,
+            "effectsBaked": true,
+            "source": {
+              "collection": "locomotion-first4-20261018",
+              "animation": "mmh3_前4秒_试跑",
+              "firstFrame": 67,
+              "lastFrame": 71
+            },
             "frames": [
               {
-                "asset": "image/cleaned/nightcrow/run/frame_0001.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0002.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0003.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0004.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0005.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0006.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0007.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0008.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0009.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0010.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0011.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0012.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0013.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0014.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0015.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0016.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0017.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0018.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0019.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0020.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0021.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0022.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0023.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0024.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0025.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0026.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0027.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0028.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0029.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0030.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0031.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0032.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0033.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0034.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0035.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0036.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0037.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0038.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0039.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0040.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0041.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0042.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0043.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0044.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0045.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0046.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0047.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0048.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0049.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0050.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0051.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0052.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0053.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0054.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0055.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0056.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0057.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0058.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0059.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0060.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0061.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0062.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0063.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0064.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0065.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0066.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0067.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0068.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0069.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              },
-              {
-                "asset": "image/cleaned/nightcrow/run/frame_0070.png",
-                "width": 206,
-                "height": 173,
-                "pivotX": 131.466,
-                "pivotY": 169.661
-              }
-            ],
-            "loopFrame": 8
-          },
-          "jump": {
-            "fps": 85.714,
-            "loop": false,
-            "holdLast": true,
-            "frames": [
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0001.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0002.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0003.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0004.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0005.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0006.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0007.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0008.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0009.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0010.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0011.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0012.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0013.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0014.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0015.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0016.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0017.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0018.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0019.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0020.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0021.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0022.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0023.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0024.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0025.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0026.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0027.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0028.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0029.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0030.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0031.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0032.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0033.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0034.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0035.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0036.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0037.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0038.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0039.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0040.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0041.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0042.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0043.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0044.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0045.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0046.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0047.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0048.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0049.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0050.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0051.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0052.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0053.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/jump/frame_0054.png",
-                "width": 213,
-                "height": 172,
-                "pivotX": 114.03,
-                "pivotY": 169.107
+                "asset": "image/selected-original/locomotion-first4/frame_00067.png",
+                "width": 178.2667,
+                "height": 131.8333,
+                "pivotX": 126.2333,
+                "pivotY": 131.8333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00068.png",
+                "width": 182,
+                "height": 133,
+                "pivotX": 128.2167,
+                "pivotY": 133,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00069.png",
+                "width": 180.8333,
+                "height": 128.8,
+                "pivotX": 120.1667,
+                "pivotY": 128.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00070.png",
+                "width": 182.4667,
+                "height": 129.9667,
+                "pivotX": 120.75,
+                "pivotY": 129.9667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00071.png",
+                "width": 183.8667,
+                "height": 123.2,
+                "pivotX": 114.6833,
+                "pivotY": 123.2,
+                "durationTicks": 1
               }
             ]
           },
-          "fall": {
-            "fps": 48,
+          "jump": {
+            "name": "起跳",
+            "fps": 24,
             "loop": false,
             "holdLast": true,
+            "effectsBaked": true,
+            "source": {
+              "collection": "locomotion-first4-20261018",
+              "animation": "mmh3_前4秒_试跑",
+              "firstFrame": 37,
+              "lastFrame": 42
+            },
             "frames": [
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0001.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00037.png",
+                "width": 119.2333,
+                "height": 158.6667,
+                "pivotX": 36.5167,
+                "pivotY": 148.4,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0002.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00038.png",
+                "width": 115.9667,
+                "height": 165.4333,
+                "pivotX": 39.2,
+                "pivotY": 154.4667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0003.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00039.png",
+                "width": 116.4333,
+                "height": 169.6333,
+                "pivotX": 38.9667,
+                "pivotY": 157.7333,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0004.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00040.png",
+                "width": 116.4333,
+                "height": 169.8667,
+                "pivotX": 39.0833,
+                "pivotY": 157.5,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0005.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00041.png",
+                "width": 119,
+                "height": 167.7667,
+                "pivotX": 39.0833,
+                "pivotY": 154.7,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0006.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00042.png",
+                "width": 137.4333,
+                "height": 154.9333,
+                "pivotX": 41.0667,
+                "pivotY": 150.2667,
+                "durationTicks": 1
+              }
+            ],
+            "fullSequence": false
+          },
+          "fall": {
+            "name": "下落",
+            "fps": 20,
+            "loop": false,
+            "holdLast": true,
+            "effectsBaked": true,
+            "source": {
+              "collection": "locomotion-first4-20261018",
+              "animation": "mmh3_前4秒_试跑",
+              "firstFrame": 43,
+              "lastFrame": 46
+            },
+            "frames": [
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00043.png",
+                "width": 156.3333,
+                "height": 141.1667,
+                "pivotX": 42.5833,
+                "pivotY": 140.9333,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0007.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00044.png",
+                "width": 159.6,
+                "height": 136.5,
+                "pivotX": 45.2667,
+                "pivotY": 136.2667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0008.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00045.png",
+                "width": 161.9333,
+                "height": 119,
+                "pivotX": 47.25,
+                "pivotY": 118.7667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/fall/frame_0009.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0010.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0011.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0012.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0013.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0014.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0015.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0016.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0017.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0018.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0019.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0020.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0021.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0022.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0023.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0024.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0025.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0026.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0027.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0028.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0029.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0030.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0031.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0032.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0033.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0034.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0035.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0036.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
-              },
-              {
-                "asset": "image/cleaned/nightcrow/fall/frame_0037.png",
-                "width": 171,
-                "height": 170,
-                "pivotX": 114.03,
-                "pivotY": 168
+                "asset": "image/selected-original/locomotion-first4/frame_00046.png",
+                "width": 168.2333,
+                "height": 116.2,
+                "pivotX": 52.3833,
+                "pivotY": 116.2,
+                "durationTicks": 1
               }
             ]
           },
           "land": {
-            "fps": 53.333,
+            "name": "落地",
+            "fps": 26.666666666666668,
             "loop": false,
             "holdLast": true,
+            "effectsBaked": true,
+            "source": {
+              "collection": "locomotion-first4-20261018",
+              "animation": "mmh3_前4秒_试跑",
+              "firstFrame": 47,
+              "lastFrame": 50
+            },
             "frames": [
               {
-                "asset": "image/cleaned/nightcrow/land/frame_0001.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
+                "asset": "image/selected-original/locomotion-first4/frame_00047.png",
+                "width": 165.2,
+                "height": 114.8,
+                "pivotX": 52.2667,
+                "pivotY": 114.5667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/land/frame_0002.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
+                "asset": "image/selected-original/locomotion-first4/frame_00048.png",
+                "width": 163.3333,
+                "height": 111.3,
+                "pivotX": 48.5333,
+                "pivotY": 111.0667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/land/frame_0003.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
+                "asset": "image/selected-original/locomotion-first4/frame_00049.png",
+                "width": 143.2667,
+                "height": 137.9,
+                "pivotX": 44.6833,
+                "pivotY": 126.4667,
+                "durationTicks": 1
               },
               {
-                "asset": "image/cleaned/nightcrow/land/frame_0004.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/land/frame_0005.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/land/frame_0006.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/land/frame_0007.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
-              },
-              {
-                "asset": "image/cleaned/nightcrow/land/frame_0008.png",
-                "width": 132,
-                "height": 169,
-                "pivotX": 50.096,
-                "pivotY": 169.107
+                "asset": "image/selected-original/locomotion-first4/frame_00050.png",
+                "width": 139.3,
+                "height": 140,
+                "pivotX": 42.2333,
+                "pivotY": 126.2333,
+                "durationTicks": 1
               }
             ]
           },
@@ -11410,6 +10411,873 @@
               }
             ],
             "playDuringParry": true
+          },
+          "原版_前4秒完整预览": {
+            "fps": 24,
+            "loop": true,
+            "holdLast": true,
+            "effectsBaked": true,
+            "source": {
+              "animation": "mmh3_前4秒_试跑"
+            },
+            "frames": [
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00001.png",
+                "width": 117.3667,
+                "height": 167.7667,
+                "pivotX": 38.7333,
+                "pivotY": 157.5,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00002.png",
+                "width": 117.3667,
+                "height": 167.7667,
+                "pivotX": 38.5,
+                "pivotY": 156.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00003.png",
+                "width": 117.3667,
+                "height": 168.7,
+                "pivotX": 38.9667,
+                "pivotY": 157.0333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00004.png",
+                "width": 117.8333,
+                "height": 168.7,
+                "pivotX": 39.7833,
+                "pivotY": 155.6333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00005.png",
+                "width": 118.3,
+                "height": 168.7,
+                "pivotX": 39.6667,
+                "pivotY": 154.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00006.png",
+                "width": 118.3,
+                "height": 166.1333,
+                "pivotX": 40.1333,
+                "pivotY": 153.5333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00007.png",
+                "width": 153.3,
+                "height": 143.0333,
+                "pivotX": 41.4167,
+                "pivotY": 142.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00008.png",
+                "width": 157.5,
+                "height": 136.9667,
+                "pivotX": 43.75,
+                "pivotY": 136.9667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00009.png",
+                "width": 160.3,
+                "height": 132.3,
+                "pivotX": 46.4333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00010.png",
+                "width": 162.6333,
+                "height": 124.8333,
+                "pivotX": 47.25,
+                "pivotY": 124.6,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00011.png",
+                "width": 166.1333,
+                "height": 130.9,
+                "pivotX": 56,
+                "pivotY": 130.9,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00012.png",
+                "width": 170.5667,
+                "height": 102.4333,
+                "pivotX": 54.1333,
+                "pivotY": 102.2,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00013.png",
+                "width": 170.8,
+                "height": 102.2,
+                "pivotX": 54.0167,
+                "pivotY": 102.2,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00014.png",
+                "width": 165.2,
+                "height": 96.6,
+                "pivotX": 51.8,
+                "pivotY": 96.3667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00015.png",
+                "width": 160.3,
+                "height": 100.1,
+                "pivotX": 40.95,
+                "pivotY": 100.1,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00016.png",
+                "width": 158.9,
+                "height": 110.1333,
+                "pivotX": 37.9167,
+                "pivotY": 109.9,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00017.png",
+                "width": 159.8333,
+                "height": 117.1333,
+                "pivotX": 38.6167,
+                "pivotY": 116.9,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00018.png",
+                "width": 160.3,
+                "height": 128.3333,
+                "pivotX": 39.2,
+                "pivotY": 128.1,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00019.png",
+                "width": 161.2333,
+                "height": 133.7,
+                "pivotX": 42,
+                "pivotY": 133.7,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00020.png",
+                "width": 160.0667,
+                "height": 134.6333,
+                "pivotX": 43.6333,
+                "pivotY": 134.4,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00021.png",
+                "width": 144.9,
+                "height": 133,
+                "pivotX": 44.2167,
+                "pivotY": 132.7667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00022.png",
+                "width": 140.9333,
+                "height": 141.6333,
+                "pivotX": 43.1667,
+                "pivotY": 131.6,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00023.png",
+                "width": 133.7,
+                "height": 146.5333,
+                "pivotX": 41.1833,
+                "pivotY": 133.2333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00024.png",
+                "width": 117.8333,
+                "height": 160.0667,
+                "pivotX": 38.7333,
+                "pivotY": 148.1667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00025.png",
+                "width": 115.7333,
+                "height": 164.5,
+                "pivotX": 39.0833,
+                "pivotY": 154.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00026.png",
+                "width": 116.2,
+                "height": 168,
+                "pivotX": 38.85,
+                "pivotY": 156.3333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00027.png",
+                "width": 117.1333,
+                "height": 167.5333,
+                "pivotX": 39.2,
+                "pivotY": 155.6333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00028.png",
+                "width": 118.7667,
+                "height": 165.6667,
+                "pivotX": 41.4167,
+                "pivotY": 152.3667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00029.png",
+                "width": 144.9,
+                "height": 148.4,
+                "pivotX": 41.4167,
+                "pivotY": 145.8333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00030.png",
+                "width": 151.4333,
+                "height": 138.3667,
+                "pivotX": 42.7,
+                "pivotY": 137.6667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00031.png",
+                "width": 157.2667,
+                "height": 128.5667,
+                "pivotX": 46.6667,
+                "pivotY": 128.3333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00032.png",
+                "width": 164.0333,
+                "height": 129.0333,
+                "pivotX": 49.35,
+                "pivotY": 129.0333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00033.png",
+                "width": 166.8333,
+                "height": 117.6,
+                "pivotX": 52.15,
+                "pivotY": 117.3667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00034.png",
+                "width": 158.9,
+                "height": 126.4667,
+                "pivotX": 47.3667,
+                "pivotY": 126.2333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00035.png",
+                "width": 145.3667,
+                "height": 142.1,
+                "pivotX": 43.75,
+                "pivotY": 133.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00036.png",
+                "width": 136.7333,
+                "height": 145.6,
+                "pivotX": 43.1667,
+                "pivotY": 133.4667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00037.png",
+                "width": 119.2333,
+                "height": 158.6667,
+                "pivotX": 36.5167,
+                "pivotY": 148.4,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00038.png",
+                "width": 115.9667,
+                "height": 165.4333,
+                "pivotX": 39.2,
+                "pivotY": 154.4667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00039.png",
+                "width": 116.4333,
+                "height": 169.6333,
+                "pivotX": 38.9667,
+                "pivotY": 157.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00040.png",
+                "width": 116.4333,
+                "height": 169.8667,
+                "pivotX": 39.0833,
+                "pivotY": 157.5,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00041.png",
+                "width": 119,
+                "height": 167.7667,
+                "pivotX": 39.0833,
+                "pivotY": 154.7,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00042.png",
+                "width": 137.4333,
+                "height": 154.9333,
+                "pivotX": 41.0667,
+                "pivotY": 150.2667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00043.png",
+                "width": 156.3333,
+                "height": 141.1667,
+                "pivotX": 42.5833,
+                "pivotY": 140.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00044.png",
+                "width": 159.6,
+                "height": 136.5,
+                "pivotX": 45.2667,
+                "pivotY": 136.2667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00045.png",
+                "width": 161.9333,
+                "height": 119,
+                "pivotX": 47.25,
+                "pivotY": 118.7667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00046.png",
+                "width": 168.2333,
+                "height": 116.2,
+                "pivotX": 52.3833,
+                "pivotY": 116.2,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00047.png",
+                "width": 165.2,
+                "height": 114.8,
+                "pivotX": 52.2667,
+                "pivotY": 114.5667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00048.png",
+                "width": 163.3333,
+                "height": 111.3,
+                "pivotX": 48.5333,
+                "pivotY": 111.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00049.png",
+                "width": 143.2667,
+                "height": 137.9,
+                "pivotX": 44.6833,
+                "pivotY": 126.4667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00050.png",
+                "width": 139.3,
+                "height": 140,
+                "pivotX": 42.2333,
+                "pivotY": 126.2333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00051.png",
+                "width": 128.8,
+                "height": 154,
+                "pivotX": 38.15,
+                "pivotY": 140.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00052.png",
+                "width": 116.6667,
+                "height": 167.3,
+                "pivotX": 38.3833,
+                "pivotY": 154.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00053.png",
+                "width": 117.1333,
+                "height": 168.2333,
+                "pivotX": 41.0667,
+                "pivotY": 156.1,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00054.png",
+                "width": 120.1667,
+                "height": 167.7667,
+                "pivotX": 41.65,
+                "pivotY": 154.7,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00055.png",
+                "width": 125.0667,
+                "height": 165.4333,
+                "pivotX": 42,
+                "pivotY": 152.1333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00056.png",
+                "width": 132.3,
+                "height": 159.3667,
+                "pivotX": 43.2833,
+                "pivotY": 148.6333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00057.png",
+                "width": 149.3333,
+                "height": 139.5333,
+                "pivotX": 47.4833,
+                "pivotY": 132.3,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00058.png",
+                "width": 155.1667,
+                "height": 131.6,
+                "pivotX": 45.6167,
+                "pivotY": 131.3667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00059.png",
+                "width": 164.5,
+                "height": 129.2667,
+                "pivotX": 48.1833,
+                "pivotY": 129.0333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00060.png",
+                "width": 173.1333,
+                "height": 138.1333,
+                "pivotX": 51.3333,
+                "pivotY": 138.1333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00061.png",
+                "width": 170.8,
+                "height": 130.9,
+                "pivotX": 57.6333,
+                "pivotY": 130.9,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00062.png",
+                "width": 138.1333,
+                "height": 143.7333,
+                "pivotX": 48.7667,
+                "pivotY": 143.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00063.png",
+                "width": 108.2667,
+                "height": 143.9667,
+                "pivotX": 49.1167,
+                "pivotY": 143.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00064.png",
+                "width": 109.2,
+                "height": 143.7333,
+                "pivotX": 49.5833,
+                "pivotY": 143.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00065.png",
+                "width": 156.3333,
+                "height": 136.9667,
+                "pivotX": 107.1,
+                "pivotY": 136.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00066.png",
+                "width": 174.7667,
+                "height": 132.0667,
+                "pivotX": 124.1333,
+                "pivotY": 131.8333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00067.png",
+                "width": 178.2667,
+                "height": 131.8333,
+                "pivotX": 126.2333,
+                "pivotY": 131.8333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00068.png",
+                "width": 182,
+                "height": 133,
+                "pivotX": 128.2167,
+                "pivotY": 133,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00069.png",
+                "width": 180.8333,
+                "height": 128.8,
+                "pivotX": 120.1667,
+                "pivotY": 128.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00070.png",
+                "width": 182.4667,
+                "height": 129.9667,
+                "pivotX": 120.75,
+                "pivotY": 129.9667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00071.png",
+                "width": 183.8667,
+                "height": 123.2,
+                "pivotX": 114.6833,
+                "pivotY": 123.2,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00072.png",
+                "width": 129.2667,
+                "height": 140.9333,
+                "pivotX": 86.2167,
+                "pivotY": 140.9333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00073.png",
+                "width": 114.1,
+                "height": 143.5,
+                "pivotX": 66.15,
+                "pivotY": 143.2667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00074.png",
+                "width": 105,
+                "height": 143.7333,
+                "pivotX": 57.4,
+                "pivotY": 143.5,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00075.png",
+                "width": 111.5333,
+                "height": 138.3667,
+                "pivotX": 48.65,
+                "pivotY": 138.1333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00076.png",
+                "width": 163.8,
+                "height": 134.6333,
+                "pivotX": 48.3,
+                "pivotY": 134.4,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00077.png",
+                "width": 177.3333,
+                "height": 132.7667,
+                "pivotX": 52.15,
+                "pivotY": 132.7667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00078.png",
+                "width": 183.6333,
+                "height": 132.0667,
+                "pivotX": 56.2333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00079.png",
+                "width": 170.5667,
+                "height": 136.0333,
+                "pivotX": 51.3333,
+                "pivotY": 135.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00080.png",
+                "width": 135.8,
+                "height": 142.5667,
+                "pivotX": 52.2667,
+                "pivotY": 142.5667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00081.png",
+                "width": 112.4667,
+                "height": 142.3333,
+                "pivotX": 49.1167,
+                "pivotY": 142.3333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00082.png",
+                "width": 97.7667,
+                "height": 138.1333,
+                "pivotX": 47.0167,
+                "pivotY": 138.1333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00083.png",
+                "width": 165.4333,
+                "height": 131.3667,
+                "pivotX": 116.4333,
+                "pivotY": 131.3667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00084.png",
+                "width": 164.7333,
+                "height": 129.2667,
+                "pivotX": 117.1333,
+                "pivotY": 129.0333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00085.png",
+                "width": 123.2,
+                "height": 141.8667,
+                "pivotX": 73.7333,
+                "pivotY": 141.8667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00086.png",
+                "width": 112.4667,
+                "height": 142.8,
+                "pivotX": 62.0667,
+                "pivotY": 142.5667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00087.png",
+                "width": 97.3,
+                "height": 140.7,
+                "pivotX": 49.9333,
+                "pivotY": 140.4667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00088.png",
+                "width": 158.6667,
+                "height": 137.2,
+                "pivotX": 51.2167,
+                "pivotY": 136.9667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00089.png",
+                "width": 188.0667,
+                "height": 132.3,
+                "pivotX": 57.6333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00090.png",
+                "width": 190.1667,
+                "height": 132.3,
+                "pivotX": 58.45,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00091.png",
+                "width": 190.1667,
+                "height": 132.3,
+                "pivotX": 58.45,
+                "pivotY": 132.3,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00092.png",
+                "width": 184.5667,
+                "height": 134.1667,
+                "pivotX": 56.7,
+                "pivotY": 134.1667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00093.png",
+                "width": 112.7,
+                "height": 143.0333,
+                "pivotX": 51.1,
+                "pivotY": 142.8,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00094.png",
+                "width": 112.4667,
+                "height": 143.9667,
+                "pivotX": 51.5667,
+                "pivotY": 143.7333,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00095.png",
+                "width": 98.4667,
+                "height": 141.1667,
+                "pivotX": 49,
+                "pivotY": 141.1667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00096.png",
+                "width": 163.3333,
+                "height": 136.5,
+                "pivotX": 113.1667,
+                "pivotY": 136.2667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00097.png",
+                "width": 188.0667,
+                "height": 132.5333,
+                "pivotX": 131.3667,
+                "pivotY": 132.3,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00098.png",
+                "width": 188.7667,
+                "height": 132.5333,
+                "pivotX": 131.7167,
+                "pivotY": 132.3,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00099.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.7167,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00100.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00101.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00102.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00103.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00104.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00105.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00106.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              },
+              {
+                "asset": "image/selected-original/locomotion-first4/frame_00107.png",
+                "width": 188.7667,
+                "height": 132.3,
+                "pivotX": 131.8333,
+                "pivotY": 132.0667,
+                "durationTicks": 1
+              }
+            ]
           }
         },
         "effects": {

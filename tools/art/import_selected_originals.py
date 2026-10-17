@@ -145,7 +145,7 @@ def main():
                     activeStart=begin/fps, activeEnd=(end+1)/fps, chainOpen=chain/fps)
     # Physics remains responsible for movement; filmed canvas translation was removed
     # from pivots. The normal 168px player and its collision geometry are unchanged.
-    config['metadata']['description'] = 'Godot 木桩训练场；已接入用户修改的非3px原版动作，跑步跳跃沿用现有素材。'
+    config['metadata']['description'] = 'Godot 木桩训练场；已接入用户修改的非3px原版动作。'
     CONFIG.write_text(json.dumps(config, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     report = {'source': 'art/game-ready-sequences', 'pixelation': 'none', 'runtimeCopies': len(transforms),
               'sourceFrames': source_manifest['logical_frames'], 'libraryClips': len(library),

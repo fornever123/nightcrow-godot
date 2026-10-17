@@ -1,0 +1,34 @@
+[
+  {
+    "asset": "image/selected-original/locomotion-first4/frame_00068.png",
+    "clip": "run",
+    "frame": 1,
+    "label": "run",
+    "onFloor": true,
+    "velocity": "(430.0, 0.0)"
+  },
+  {
+    "asset": "image/selected-original/locomotion-first4/frame_00039.png",
+    "clip": "jump",
+    "frame": 2,
+    "label": "jump",
+    "onFloor": false,
+    "velocity": "(0.0, -707.4826)"
+  },
+  {
+    "asset": "image/selected-original/locomotion-first4/frame_00043.png",
+    "clip": "fall",
+    "frame": 0,
+    "label": "fall",
+    "onFloor": false,
+    "velocity": "(0.0, 121.5987)"
+  },
+  {
+    "asset": "image/selected-original/locomotion-first4/frame_00047.png",
+    "clip": "land",
+    "frame": 0,
+    "label": "land",
+    "onFloor": true,
+    "velocity": "(430.0, 0.0)"
+  }
+]

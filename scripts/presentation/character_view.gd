@@ -37,12 +37,13 @@ func _physics_process(delta: float) -> void:
 	elif actor.is_charging():
 		wanted = String(setup.get("chargeAnimation", "attack_3"))
 	elif not actor.is_on_floor():
-		# The jump clip already contains the rise, the air transitions, and the landing.
-		# Switching to fall here would restart the clock and skip the rest of them.
-		if clip_name == "jump":
+		# Legacy clips contain a full jump. Split clips follow actual velocity.
+		if clip_name == "jump" and _full_jump_sequence():
 			wanted = "jump"
 		else:
 			wanted = "fall" if actor.velocity.y > 0.0 else "jump"
+	elif landing > 0.0 and not _full_jump_sequence():
+		wanted = "land"
 	elif absf(actor.velocity.x) > 12.0:
 		wanted = "run"
 	elif landing > 0.0 and clip_name == "jump":
@@ -98,11 +99,16 @@ func _draw_frame() -> void:
 func _on_jumped(_double: bool) -> void:
 	clock = 0.0
 	landing = 0.0
+	if not _full_jump_sequence():
+		clip_name = "jump"
+
+func _full_jump_sequence() -> bool:
+	return bool(setup.get("animations", {}).get("jump", {}).get("fullSequence", true))
 
 func _on_landed() -> void:
 	landing = 0.15
 	# Keep the jump clock so the landing frames at the end of that clip still play.
-	if clip_name != "jump":
+	if clip_name != "jump" or not _full_jump_sequence():
 		clock = 0.0
 
 func _start(move: Resource, _index: int) -> void:
