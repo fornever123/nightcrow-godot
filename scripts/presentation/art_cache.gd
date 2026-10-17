@@ -6,12 +6,23 @@ static var pending: Array[String] = []
 static func reset(sprite: Dictionary) -> void:
 	pending.clear()
 	var used: Dictionary = {}
-	for group in [sprite.get("animations", {}), sprite.get("effects", {})]:
-		for clip in group.values():
+	var animations: Dictionary = sprite.get("animations", {})
+	var effects: Dictionary = sprite.get("effects", {})
+	var preload_keys: Array = sprite.get("preloadAnimations", [])
+	var preload_effects: Dictionary = {}
+	for key in preload_keys:
+		var effect_key := String(animations.get(key, {}).get("overlayEffect", ""))
+		if not effect_key.is_empty():
+			preload_effects[effect_key] = true
+	for group_index in 2:
+		var group: Dictionary = animations if group_index == 0 else effects
+		for key in group:
+			var clip: Dictionary = group[key]
+			var should_preload := preload_keys.is_empty() or (preload_keys.has(key) if group_index == 0 else preload_effects.has(key))
 			for f in clip.get("frames", []):
 				var path := String(f.get("asset", ""))
 				used[path] = true
-				if not path.is_empty() and not textures.has(path) and not pending.has(path):
+				if should_preload and not path.is_empty() and not textures.has(path) and not pending.has(path):
 					pending.append(path)
 	for path in textures.keys():
 		if not used.has(path):

@@ -4,7 +4,7 @@
   "version_date": "2026-10-17",
   "pixelation": "none",
   "variant": "original_edited",
-  "runtime_bound": false,
+  "runtime_bound": true,
   "logical_frames": 880,
   "png_files": 2640,
   "layers": {

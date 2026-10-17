@@ -20,7 +20,7 @@ func _ready() -> void:
 	actor.jumped.connect(_on_jumped)
 	actor.landed.connect(_on_landed)
 	actor.tree_exiting.connect(_clear_trail)
-	_draw_frame()
+	_draw_frame.call_deferred()
 
 func _process(_delta: float) -> void:
 	Art.warm()
@@ -30,10 +30,12 @@ func _physics_process(delta: float) -> void:
 		clock += delta
 		landing = maxf(0.0, landing - delta)
 	var wanted := "idle"
-	if actor.state == 1 and actor.current_move != null:
+	if actor.state == actor.State.DEAD and not setup.get("animations", {}).get("death", {}).get("frames", []).is_empty():
+		wanted = "death"
+	elif actor.state == 1 and actor.current_move != null:
 		wanted = actor.current_move.animation
 	elif actor.is_charging():
-		wanted = "attack_3"
+		wanted = String(setup.get("chargeAnimation", "attack_3"))
 	elif not actor.is_on_floor():
 		# The jump clip already contains the rise, the air transitions, and the landing.
 		# Switching to fall here would restart the clock and skip the rest of them.
@@ -70,14 +72,20 @@ func _draw_frame() -> void:
 	if actor.state == 1 and actor.current_move != null:
 		fps = actor.current_move.animation_fps
 		time = float(actor.move_frame) / 60.0
-	frame_index = Timeline.frame_at(clip, time, fps)
+	frame_index = Timeline.frame_at(clip, time, fps, true, actor.state != actor.State.DEAD)
 	if actor.is_charging():
-		frame_index = 2
-	elif actor.is_in_parry():
+		frame_index = int(setup.get("chargeFrame", 2))
+	elif actor.is_in_parry() and not bool(clip.get("playDuringParry", false)):
 		frame_index = 0
 	frame_index = clampi(frame_index, 0, frames.size() - 1)
 	Art.apply(self, frames[frame_index], float(setup.get("displayScale", 1.0)))
-	_draw_overlay(clip, time, fps)
+	var overlay_time := Timeline.ticks_before(frames, frame_index) / fps if actor.is_charging() else time
+	if not actor.is_charging() and actor.state != actor.State.DEAD and bool(clip.get("loop", false)):
+		var total := Timeline.ticks_before(frames, frames.size())
+		var before := Timeline.ticks_before(frames, clampi(int(clip.get("loopFrame", 0)), 0, frames.size() - 1))
+		if time * fps >= total:
+			overlay_time = (before + fposmod(time * fps - before, total - before)) / fps
+	_draw_overlay(clip, overlay_time, fps)
 	if actor.is_in_parry():
 		var pose := Vector2(1.08,0.93) if actor.is_parrying() else Vector2(0.93,1.07)
 		scale *= Vector2.ONE + (pose - Vector2.ONE) * actor.squash_strength

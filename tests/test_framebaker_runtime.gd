@@ -2,6 +2,7 @@ extends SceneTree
 const Config := preload("res://scripts/core/configuration.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const Buffer := preload("res://scripts/core/input_buffer.gd")
+const Art := preload("res://scripts/presentation/art_cache.gd")
 var stage: Node2D
 var p: CharacterBody2D
 var failures: Array[String] = []
@@ -27,6 +28,32 @@ func step(count: int, attack: bool = false) -> void:
 		await process_frame
 
 func run() -> void:
+	var cache_setup := {
+		"animations": {
+			"idle": {"frames": [{"asset": "cache_idle.png"}], "overlayEffect": "idle_fx"},
+			"library": {"frames": [{"asset": "cache_library.png"}]},
+			"cached_library": {"frames": [{"asset": "cache_retained.png"}]}
+		},
+		"effects": {
+			"idle_fx": {"frames": [{"asset": "cache_overlay.png"}]},
+			"unused_fx": {"frames": [{"asset": "cache_unused_fx.png"}]}
+		},
+		"preloadAnimations": ["idle"]
+	}
+	var cached_texture := ImageTexture.new()
+	Art.textures["cache_retained.png"] = cached_texture
+	Art.reset(cache_setup)
+	check(Art.pending.has("cache_idle.png") and Art.pending.has("cache_overlay.png"), "指定预加载动作包含同步特效")
+	check(not Art.pending.has("cache_library.png") and not Art.pending.has("cache_unused_fx.png"), "未绑定动作库与特效不进入预加载队列")
+	check(Art.textures.get("cache_retained.png") == cached_texture, "按需加载的可选动作缓存仍被保留")
+	check(Art.get_texture("cache_retained.png") == cached_texture, "非预加载动作仍可按需取纹理")
+	cache_setup.preloadAnimations = []
+	Art.reset(cache_setup)
+	check(Art.pending.has("cache_library.png") and Art.pending.has("cache_unused_fx.png"), "空预加载列表保留全部预热行为")
+	cache_setup.erase("preloadAnimations")
+	Art.reset(cache_setup)
+	check(Art.pending.has("cache_library.png") and Art.pending.has("cache_overlay.png"), "旧配置缺省仍预加载全部动作")
+	Art.reset({})
 	var config := Config.read().duplicate(true)
 	var sprite: Dictionary = Config.character(config, "player").sprite
 	var original: Dictionary = sprite.animations.attack_1.frames[0]
@@ -67,6 +94,20 @@ func run() -> void:
 	p = stage.player
 	await step(6)
 	var view: Sprite2D = p.get_node("Visual/ActorSprite")
+	# A separate actor enters the tree with an explicit idle overlay fixture.
+	# This exercises _ready ordering even when production idle has no effect.
+	var fixture: CharacterBody2D = load("res://scenes/actors/player.tscn").instantiate()
+	fixture.set_meta("character", {"sprite": {
+		"animations": {"idle": {"fps": 24.0, "frames": [original.duplicate(true)], "overlayEffect": "fixture_fx"}},
+		"effects": {"fixture_fx": {"fps": 24.0, "frames": [original.duplicate(true)]}}
+	}})
+	root.add_child(fixture)
+	fixture.set_physics_process(false)
+	var fixture_view: Sprite2D = fixture.get_node("Visual/ActorSprite")
+	fixture_view.set_physics_process(false)
+	await process_frame
+	check(is_instance_valid(fixture_view.overlay) and fixture_view.overlay.get_parent() == fixture_view.get_parent(), "初始待机同步层在节点就绪后成功挂载")
+	fixture.free()
 	var dummy: CharacterBody2D = stage.dummy
 	view.setup = sprite
 	# Two effect frames have their own 3/2 tick timing, sped up with the move.
@@ -136,6 +177,62 @@ func run() -> void:
 	view.clip_name = "attack_1"
 	view._draw_frame()
 	check(not view.visible and not view.overlay.visible, "空角色片段不会残留上一层特效")
+	# Presentation options use only this in-memory setup, never the saved config.
+	var pose_frames: Array = [original.duplicate(true), original.duplicate(true), original.duplicate(true)]
+	for f in pose_frames:
+		f.durationTicks = 1.0
+	sprite.animations.test_loop = {"fps": 10.0, "frames": pose_frames, "loop": true, "loopFrame": 1, "overlayEffect": "test_loop_fx"}
+	sprite.effects.test_loop_fx = {"fps": 10.0, "frames": pose_frames}
+	p.state = p.State.NEUTRAL
+	p.current_move = null
+	p.charge_frames = -1
+	view.clip_name = "test_loop"
+	for cycle_time in [0.35, 0.55]:
+		view.clock = cycle_time
+		view._draw_frame()
+		check(view.frame_index == 1 and view.overlay_frame_index == 1 and view.overlay.visible, "循环第二三轮特效保留相同片段位置")
+	sprite.animations.test_parry = {"fps": 10.0, "frames": pose_frames, "playDuringParry": true}
+	var parry: Resource = p.parry_move.duplicate()
+	parry.animation = "test_parry"
+	parry.animation_fps = 10.0
+	p.charge_frames = -1
+	p.hitstop_frames = 0
+	p._start_move(parry, false)
+	p.move_frame = 7
+	view._physics_process(0.0)
+	check(view.clip_name == "test_parry" and view.frame_index == 1, "独立格挡动画按招式时间推进")
+	sprite.animations.test_parry.erase("playDuringParry")
+	view._draw_frame()
+	check(view.frame_index == 0, "未配置独立格挡播放时保留旧首帧姿态")
+	sprite.effects.test_charge_fx = {"fps": 10.0, "frames": pose_frames}
+	sprite.animations.test_charge = {"fps": 10.0, "frames": pose_frames, "overlayEffect": "test_charge_fx"}
+	sprite.chargeAnimation = "test_charge"
+	sprite.chargeFrame = 1
+	p.state = p.State.NEUTRAL
+	p.current_move = null
+	p.charge_frames = 1
+	view._physics_process(0.0)
+	check(view.clip_name == "test_charge" and view.frame_index == 1, "蓄力使用配置的动作与准备帧")
+	view.clock = 20.0
+	view._draw_frame()
+	check(view.overlay.visible and view.overlay_frame_index == 1, "长时间蓄力的特效停留在角色准备帧")
+	sprite.erase("chargeAnimation")
+	sprite.erase("chargeFrame")
+	view._physics_process(0.0)
+	check(view.clip_name == "attack_3" and view.frame_index == 2, "旧配置保持第三刀第三帧蓄力姿态")
+	sprite.animations.death = {"fps": 10.0, "frames": pose_frames, "loop": true}
+	p.set_meta("character", {"sprite": sprite})
+	p._die()
+	view._physics_process(0.0)
+	check(view.clip_name == "death" and view.frame_index == 0, "死亡状态切换并从首帧开始")
+	check(p.get_node("Visual").scale.is_equal_approx(Vector2(p.facing, 1.0)), "独立死亡动画不被旧剪影压扁")
+	view._physics_process(0.15)
+	check(view.frame_index == 1, "死亡动画继续推进")
+	view._physics_process(1.0)
+	check(view.frame_index == 2, "死亡动画即使标记循环也只播放一次并保持末帧")
+	sprite.animations.erase("death")
+	p._die()
+	check(absf(p.get_node("Visual").scale.y - 1.0) > 0.01, "无死亡动画时保留旧死亡形变")
 	print("FRAMEBAKER_RUNTIME_TESTS: %d checks / %d failures" % [checks, failures.size()])
 	stage.free()
 	OS.delay_msec(100)

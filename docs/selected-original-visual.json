@@ -1,0 +1,101 @@
+[
+  {
+    "clip": "idle",
+    "frame": 0,
+    "hits": 0,
+    "label": "idle",
+    "legacy_trail": false,
+    "overlay": -1,
+    "texture": "(396.0, 346.0)"
+  },
+  {
+    "clip": "attack_1",
+    "frame": 5,
+    "hits": 1,
+    "label": "light_1",
+    "legacy_trail": false,
+    "overlay": 5,
+    "texture": "(430.0, 292.0)"
+  },
+  {
+    "clip": "attack_2",
+    "frame": 3,
+    "hits": 1,
+    "label": "light_2",
+    "legacy_trail": false,
+    "overlay": 3,
+    "texture": "(369.0, 230.0)"
+  },
+  {
+    "clip": "attack_3",
+    "frame": 1,
+    "hits": 1,
+    "label": "light_3",
+    "legacy_trail": false,
+    "overlay": 1,
+    "texture": "(582.0, 230.0)"
+  },
+  {
+    "clip": "charge_slash",
+    "frame": 11,
+    "hits": 1,
+    "label": "charge_1",
+    "legacy_trail": false,
+    "overlay": 11,
+    "texture": "(441.0, 274.0)"
+  },
+  {
+    "clip": "attack_up",
+    "frame": 11,
+    "hits": 1,
+    "label": "up_strike",
+    "legacy_trail": false,
+    "overlay": 11,
+    "texture": "(394.0, 381.0)"
+  },
+  {
+    "clip": "air_slash",
+    "frame": 9,
+    "hits": 1,
+    "label": "air_up",
+    "legacy_trail": false,
+    "overlay": 9,
+    "texture": "(327.0, 491.0)"
+  },
+  {
+    "clip": "parry",
+    "frame": 8,
+    "hits": 0,
+    "label": "parry_1",
+    "legacy_trail": false,
+    "overlay": 8,
+    "texture": "(510.0, 694.0)"
+  },
+  {
+    "clip": "run",
+    "frame": 3,
+    "hits": 0,
+    "label": "run",
+    "legacy_trail": false,
+    "overlay": -1,
+    "texture": "(206.0, 173.0)"
+  },
+  {
+    "clip": "jump",
+    "frame": 11,
+    "hits": 0,
+    "label": "jump",
+    "legacy_trail": false,
+    "overlay": -1,
+    "texture": "(213.0, 172.0)"
+  },
+  {
+    "clip": "death",
+    "frame": 110,
+    "hits": 0,
+    "label": "death",
+    "legacy_trail": false,
+    "overlay": 110,
+    "texture": "(1179.0, 485.0)"
+  }
+]

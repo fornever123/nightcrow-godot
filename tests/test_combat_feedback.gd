@@ -2,6 +2,7 @@ extends SceneTree
 ## Real collision/input regressions for the feedback lost during the migration.
 const Config := preload("res://scripts/core/configuration.gd")
 const Buffer := preload("res://scripts/core/input_buffer.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 var stage: Node2D
 var p: CharacterBody2D
 var d: CharacterBody2D
@@ -61,9 +62,18 @@ func run() -> void:
 	view = p.get_node("Visual/ActorSprite")
 	await step(6)
 	check(stage.audio._clips.size()==13,"13 个 C 盘音效槽均加载真实声音")
-	check(view.texture_filter==CanvasItem.TEXTURE_FILTER_NEAREST,"保留角色清晰显示")
-	check(stage.moves.parry_1.active_frames==11 and stage.moves.parry_1.total_frames()==25,"招架窗口没有浮点误差多一帧")
-	check(stage.moves.parry_1.cancel_frame==1,"招架后摇可及时接招")
+	var expected_filter := CanvasItem.TEXTURE_FILTER_NEAREST if view.setup.get("filter", "linear") == "nearest" else CanvasItem.TEXTURE_FILTER_LINEAR
+	check(view.texture_filter==expected_filter,"角色遵循配置的图片显示方式")
+	var parry_source: Dictionary = {}
+	for source in stage.config.moves:
+		if source.id == "parry_1":
+			parry_source = source
+	var parry_clip: Dictionary = view.setup.animations[parry_source.animation]
+	var parry_fps: float = parry_clip.fps * parry_source.animationSpeed
+	var expected_start := ceili(Timeline.ticks_before(parry_clip.frames, parry_source.activeFrameStart) / parry_fps * 60.0 - 0.0001)
+	var expected_end := ceili(Timeline.ticks_before(parry_clip.frames, parry_source.activeFrameEnd + 1) / parry_fps * 60.0 - 0.0001)
+	check(stage.moves.parry_1.startup_frames==expected_start and stage.moves.parry_1.active_frames==expected_end-expected_start,"招架窗口匹配配置的逐帧时长")
+	check(stage.moves.parry_1.cancel_frame < stage.moves.parry_1.recovery_frames,"招架后摇可及时接招")
 	check(stage.moves.charge_1.cancel_frame < stage.moves.charge_1.recovery_frames,"蓄力收刀恢复提前接招窗口")
 	check(stage.moves.up_strike.direction==1 and stage.moves.air_up.direction==1,"地面/空中上挑方向恢复")
 	check(stage.moves.light_1.movement_scale==1,"轻攻击走位保留 C 盘速度")
@@ -78,7 +88,11 @@ func run() -> void:
 	check(stage.camera._trauma>0,"命中产生镜头冲击")
 	check(stage.audio.last_event=="blade_hit" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
 	check(stage.fx.last_hit_plan.size()==6 and stage.fx.get_child_count()>=6,"实际生成六层错时命中反馈")
-	check(view.frame_index==3,"第一刀实际停在剑身向前刺出的第 4 张动作图片")
+	var first_source: Dictionary = {}
+	for source in stage.config.moves:
+		if source.id == "light_1":
+			first_source = source
+	check(view.frame_index==int(first_source.activeFrameStart),"第一刀真实碰撞停在配置的起始命中图片")
 	check(has_text("-8"),"浮动数字使用实际结算伤害")
 	var cursor: int = p.move_frame
 	var image_frame: int = view.frame_index
@@ -125,7 +139,7 @@ func run() -> void:
 	check(p.last_charge_frames==72,"满蓄力自动释放沿用 C 盘时长")
 	check(await wait_hit(d.max_hp),"满蓄力真实命中")
 	check(p.hitstop_frames==19,"满蓄力为角色停顿添加 6 帧重量")
-	check(view.frame_index==7,"重击实际停在下劈的第 8 张动作图片")
+	check(view.frame_index==11,"重击实际停在新素材第 12 张命中图片")
 	check(d.last_hit_damage>26,"满蓄力造成加成伤害")
 	check(stage.audio.last_event=="launch","重击击飞使用不同命中声音")
 	p._start_move(stage.moves.light_1,false)
@@ -146,11 +160,11 @@ func run() -> void:
 	check(d.juggle_count>0 and d.last_hit_damage>stage.moves.air_up.damage,"浮空追击伤害递增仍生效")
 	await reset()
 	await step(1,[&"parry"],[&"parry"])
-	for tick in 12:
+	for tick in stage.moves.parry_1.startup_frames + 2:
 		if p.is_parrying():
 			break
 		await step(1)
-	check(p.is_parrying() and view.frame_index==0,"弹刀判定期间稳定使用防守姿态")
+	check(p.is_parrying() and view.frame_index==Timeline.frame_at(parry_clip, float(p.move_frame)/60.0, parry_fps),"弹刀判定期间播放同步防守动作")
 	var hp: float = p.hp
 	var parried: bool = p.take_hit(stage.moves.light_1,-1,p.global_position,0,false,1,d)
 	check(parried and p.hp==hp and d.state==4,"弹刀零伤害并让来袭者后仰硬直")

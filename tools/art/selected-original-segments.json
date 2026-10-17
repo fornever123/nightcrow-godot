@@ -1,0 +1,198 @@
+{
+  "groups": [
+    {
+      "source": "空中a",
+      "segments": [
+        {
+          "name": "空中a_普攻01",
+          "start": 1,
+          "end": 18,
+          "description": "第一刀：开场空中姿态到第一次挥斩收尾。"
+        },
+        {
+          "name": "空中a_普攻02",
+          "start": 19,
+          "end": 30,
+          "description": "第二刀：反向上挑、弧形剑气与接续姿态。"
+        },
+        {
+          "name": "空中a_普攻03",
+          "start": 31,
+          "end": 56,
+          "description": "第三刀：回旋挥斩，完整收剑回到开场空中姿态。"
+        }
+      ]
+    },
+    {
+      "source": "mmh3_冲刺攻击_v2",
+      "segments": [
+        {
+          "name": "冲刺攻击_向左",
+          "start": 1,
+          "end": 21,
+          "direction": "left",
+          "description": "向左冲刺起手、挥斩和回收；挥剑时身体会转向。"
+        },
+        {
+          "name": "冲刺攻击_向右",
+          "start": 22,
+          "end": 56,
+          "direction": "right",
+          "description": "向右冲刺起手、挥斩和回收；保留结尾转身向左离开的动作。方向按本段起手冲刺判断。"
+        }
+      ]
+    },
+    {
+      "source": "mmh3_左侧格挡_v5",
+      "segments": [
+        {
+          "name": "格挡_前组01",
+          "start": 1,
+          "end": 51,
+          "description": "含起架和25–31帧演示火花；43–46帧第一次明显白色来袭，随后恢复格挡。"
+        },
+        {
+          "name": "格挡_前组02",
+          "start": 52,
+          "end": 64,
+          "description": "第二次来袭与恢复格挡。"
+        },
+        {
+          "name": "格挡_前组03",
+          "start": 65,
+          "end": 142,
+          "description": "第三次来袭、收剑回待机；99–142为保留的待机尾段。"
+        },
+        {
+          "name": "格挡_后组01",
+          "start": 143,
+          "end": 158,
+          "description": "起架、受击、反击及收尾。"
+        },
+        {
+          "name": "格挡_后组02",
+          "start": 159,
+          "end": 175,
+          "description": "第二次起架、受击和反击收尾。"
+        },
+        {
+          "name": "格挡_后组03",
+          "start": 176,
+          "end": 226,
+          "description": "第三次起架、受击和反击收尾；194–226为保留的待机尾段。"
+        }
+      ]
+    },
+    {
+      "source": "mmh3_action_00014",
+      "segments": [
+        {
+          "name": "action_00014_待机01",
+          "start": 1,
+          "end": 19,
+          "description": "开场待机，单独保留。"
+        },
+        {
+          "name": "action_00014_普攻01",
+          "start": 20,
+          "end": 32,
+          "description": "抬剑蓄势，向右前方下切。"
+        },
+        {
+          "name": "action_00014_普攻02",
+          "start": 33,
+          "end": 50,
+          "description": "低姿向右横扫。"
+        },
+        {
+          "name": "action_00014_普攻03",
+          "start": 51,
+          "end": 80,
+          "description": "向右横扫，转腕收剑回待机。"
+        },
+        {
+          "name": "action_00014_待机02",
+          "start": 81,
+          "end": 107,
+          "description": "两组连段之间的待机。"
+        },
+        {
+          "name": "action_00014_普攻04",
+          "start": 108,
+          "end": 120,
+          "description": "第二组起手下切。"
+        },
+        {
+          "name": "action_00014_普攻05",
+          "start": 121,
+          "end": 129,
+          "description": "第二组低姿横扫。"
+        },
+        {
+          "name": "action_00014_普攻06",
+          "start": 130,
+          "end": 160,
+          "description": "提身转体回旋斩，完整回收。"
+        },
+        {
+          "name": "action_00014_待机03",
+          "start": 161,
+          "end": 169,
+          "description": "最后一组攻击前的短待机。"
+        },
+        {
+          "name": "action_00014_普攻07",
+          "start": 170,
+          "end": 186,
+          "description": "快速横斩。原素材172到173帧起手较突然，保留现有全部前摇。"
+        },
+        {
+          "name": "action_00014_普攻08",
+          "start": 187,
+          "end": 216,
+          "description": "身体前压，经头顶上挑后向前下斩，再完整收剑。"
+        },
+        {
+          "name": "action_00014_待机04",
+          "start": 217,
+          "end": 260,
+          "description": "结束待机，单独保留。"
+        }
+      ]
+    },
+    {
+      "source": "mmh3_拔刀40",
+      "segments": [
+        {
+          "name": "拔刀40_拔刀演示",
+          "start": 1,
+          "end": 48,
+          "description": "起始持剑姿态、拔刀展示和挥剑，回到持剑待机。"
+        },
+        {
+          "name": "拔刀40_持剑待机",
+          "start": 49,
+          "end": 124,
+          "description": "两次动作之间的持剑待机，单独保留。"
+        },
+        {
+          "name": "拔刀40_收刀动作",
+          "start": 125,
+          "end": 158,
+          "description": "从持剑待机转腕、收刀，回到腰侧起始姿态。"
+        }
+      ]
+    },
+    {
+      "source": "mmh3_死亡_v1",
+      "segments": [
+        {
+          "name": "死亡_完整动作",
+          "start": 1,
+          "end": 124,
+          "description": "完整死亡过程作为一个动作保留，不从倒地过程中硬切。"
+        }
+      ]
+    }
+  ]
+}

@@ -122,7 +122,7 @@ func run() -> void:
 	check(d.hp<start_hp,"远程弹丸能够命中")
 	await reset()
 	await step(1,frame([&"parry"],[&"parry"]))
-	for tick in 12:
+	for tick in stage.moves.parry_1.startup_frames + 2:
 		if p.is_parrying():
 			break
 		await step(1)
@@ -140,9 +140,9 @@ func run() -> void:
 	await reset()
 	p._start_move(stage.moves.light_3,false)
 	await step(12)
-	check(is_instance_valid(view.trail),"第三刀生成 E 盘刀光")
-	await step(65)
-	check(not is_instance_valid(view.trail),"刀光尾部能够消散并释放")
+	check(is_instance_valid(view.overlay) and view.overlay.visible and not is_instance_valid(view.trail),"第三刀同步显示新分层刀光且不叠加旧刀光")
+	await step(stage.moves.light_3.total_frames() + 30)
+	check(view.clip_name != stage.moves.light_3.animation and not is_instance_valid(view.trail),"第三刀结束后退出攻击特效且无旧刀光残留")
 	await reset()
 	check(d.hp==d.max_hp and stage.total_hits==0,"重置恢复血量及计数")
 	print("TRAINING_TESTS: %d checks / %d failures" %[checks,failures.size()])

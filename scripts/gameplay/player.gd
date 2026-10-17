@@ -1083,7 +1083,8 @@ func _die() -> void:
 	hitstop_frames = 0
 	charge_frames = -1
 	_charge_accum = 0.0
-	_set_visual_scale(Vector2(1.40, 0.45))
+	var death_frames: Array = get_meta("character", {}).get("sprite", {}).get("animations", {}).get("death", {}).get("frames", [])
+	_set_visual_scale(Vector2.ONE if not death_frames.is_empty() else Vector2(1.40, 0.45))
 	died.emit()
 
 
