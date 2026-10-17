@@ -7,6 +7,7 @@ const fs = require('node:fs/promises');
 const {existsSync, statSync} = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
+const {importFrameBaker} = require('./framebaker-import');
 
 const DEFAULT_ROOT = path.resolve(__dirname, '..', '..');
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
@@ -246,13 +247,16 @@ function validateConfig(config) {
             for(const key of ['jumpTimeToPeak','jumpTimeToDescent']) addNumberRule(errors,actor[key],key,0.05,2);
         }
         for(const group of [actor.sprite?.animations||{},actor.sprite?.effects||{}]) for(const [name,clip] of Object.entries(group)) {
-            addNumberRule(errors,clip.fps,`${name} 播放帧率`,1,180);
+            addNumberRule(errors,clip.fps,`${name} 播放帧率`,Number.MIN_VALUE,240);
+            addBooleanRule(errors,clip.effectsBaked,`${name} effectsBaked`);
+            if(clip.overlayEffect !== undefined && (typeof clip.overlayEffect !== 'string' || (clip.overlayEffect !== '' && !Object.prototype.hasOwnProperty.call(actor.sprite?.effects||{},clip.overlayEffect)))) errors.push(`${name} overlayEffect 必须引用当前角色的特效`);
             if(!Array.isArray(clip.frames)||!clip.frames.length) errors.push(`${name} 缺少动作帧`);
             for(const frame of clip.frames||[]) {
+                if(frame.durationTicks !== undefined && (!isFiniteNumber(frame.durationTicks) || frame.durationTicks <= 0)) errors.push(`${name} durationTicks 必须是正数`);
                 if(frame.blank) continue;
                 if(!safeRelativePath(frame.asset)||!existsSync(resolveInside(assetsRoot,frame.asset)||'')) errors.push(`${name} 图片不存在：${frame.asset}`);
                 if(!/\.(png|jpe?g)$/i.test(frame.asset||'')) errors.push(`${name} 动作图片须为 PNG/JPG`);
-                for(const k of ['width','height']) addNumberRule(errors,frame[k],`${name} ${k}`,1,10000);
+                for(const k of ['width','height']) addNumberRule(errors,frame[k],`${name} ${k}`,1,16384);
                 for(const k of ['pivotX','pivotY']) addNumberRule(errors,frame[k],`${name} ${k}`,-20000,20000);
                 if(frame.region) for(const k of ['x','y','width','height']) addNumberRule(errors,frame.region[k],`${name} 图集 ${k}`,k==='width'||k==='height'?1:0,32768);
             }
@@ -443,6 +447,11 @@ function decodeUploadData(value) {
 }
 
 async function handleApi(request, response, pathname) {
+    if (request.method === 'POST' && pathname === '/api/framebaker/import') {
+        try { sendJson(response, 200, await importFrameBaker(request, assetsRoot)); }
+        catch (error) { fail(response, 400, `FrameBaker 导入失败：${error.message}`); }
+        return;
+    }
     if (request.method === 'GET' && pathname === '/api/backups') {
         const names = await fs.readdir(backupRoot).catch(() => []);
         const backups = await Promise.all(names.filter((name) => /^(battle|editor-project|project)-.*\.json$/.test(name)).map(async (name) => ({name, modifiedAt: (await fs.stat(path.join(backupRoot, name))).mtime.toISOString()})));

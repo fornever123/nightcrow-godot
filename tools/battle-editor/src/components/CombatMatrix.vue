@@ -2,14 +2,15 @@
 import {computed} from 'vue';
 import PanelShell from './PanelShell.vue';
 import EditorField from './EditorField.vue';
-import {syncTimings} from '../core/timing';
+import {syncTimings, animationDuration, clampMoveFrames} from '../core/timing';
 import type {JsonObject} from '../types';
 const props=defineProps<{config:JsonObject;selectedIndex?:number}>();
 const emit=defineEmits<{changed:[];selected:[index:number]}>();
 const current=computed(()=>props.config.moves?.[props.selectedIndex||0]||{});
 const clips=computed(()=>props.config.characters?.find((c:JsonObject)=>c.id==='player')?.sprite?.animations||{});
 function change(){syncTimings(props.config);emit('changed');}
-function seconds(m:JsonObject){return m.syncAnimation?(clips.value[m.animation]?.frames.length||0)/(Number(clips.value[m.animation]?.fps||36)*Number(m.animationSpeed||1)):m.duration;}
+function changeAnimation(){clampMoveFrames(current.value,clips.value[current.value.animation]||{});change();}
+function seconds(m:JsonObject){return m.syncAnimation?animationDuration(clips.value[m.animation]||{},Number(m.animationSpeed||1)):m.duration;}
 function frame(key:string,e:Event){current.value[key]=Math.max(0,Number((e.target as HTMLInputElement).value)-1);change();}
 </script>
 <template>
@@ -20,7 +21,7 @@ function frame(key:string,e:Event){current.value[key]=Math.max(0,Number((e.targe
     <div class="studio-layout" v-if="current.id">
       <PanelShell :title="current.name+' · 出刀时间'" eyebrow="攻击窗口">
         <p class="notice">第几帧开始能打中、第几帧结束、第几帧允许接下一招。显示从第 1 帧开始计数。</p>
-        <div class="field-grid"><label class="editor-field"><span>对应角色动作</span><select v-model="current.animation" @change="change"><option v-for="(_,name) in clips" :key="name" :value="name">{{name}}</option></select></label><EditorField label="按动作帧同步" type="checkbox" :model-value="current.syncAnimation" @update="current.syncAnimation=$event" @changed="change"/></div>
+        <div class="field-grid"><label class="editor-field"><span>对应角色动作</span><select v-model="current.animation" @change="changeAnimation"><option v-for="(item,name) in clips" :key="name" :value="name">{{item.label||name}}</option></select></label><EditorField label="按动作帧同步" type="checkbox" :model-value="current.syncAnimation" @update="current.syncAnimation=$event" @changed="change"/></div>
         <div v-if="current.syncAnimation" class="field-grid"><label v-for="(label,key) in {activeFrameStart:'开始命中帧',activeFrameEnd:'结束命中帧',chainFrame:'允许接招帧'}" :key="key" class="editor-field"><span>{{label}}</span><input type="number" :value="Number(current[key])+1" min="1" :max="(clips[current.animation]?.frames.length||1)+(key==='chainFrame'?1:0)" @change="frame(key,$event)"></label></div>
         <div v-else class="field-grid"><EditorField v-for="(label,key) in {duration:'完整时长（秒）',activeStart:'开始生效（秒）',activeEnd:'结束生效（秒）',chainOpen:'允许接招（秒）'}" :key="key" :label="label" type="number" :model-value="current[key]" min="0" step="0.01667" @update="current[key]=$event" @changed="change"/></div>
         <p class="notice">预备 {{current.activeStart?.toFixed(3)}} 秒 → 生效 {{(current.activeEnd-current.activeStart).toFixed(3)}} 秒 → 收刀 {{Math.max(0,seconds(current)-current.activeEnd).toFixed(3)}} 秒。命中停顿另计。</p>

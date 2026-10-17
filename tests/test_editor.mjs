@@ -33,15 +33,20 @@ try {
   const saved=await request('/api/project/save',{config:changed,project});
   check(saved.ok&&saved.backup,'保存及自动备份');
   check((await request('/api/config')).config.moves[0].animationSpeed===1.25,'新配置写入正式工程');
+  const clip=original.characters[0].sprite.animations[original.moves[0].animation||'idle'];
+  const clipTicks=clip.frames.reduce((sum,f)=>sum+((typeof f.durationTicks==='number'&&f.durationTicks>0)?f.durationTicks:1),0);
+  const framesAt=speed=>Math.ceil(clipTicks/(clip.fps*speed)*60-0.0001);
+  const fastFrames=framesAt(1.25),baseFrames=framesAt(1);
+  check(baseFrames>0&&fastFrames<baseFrames,'测试用例确实缩短了动作时长');
   const start=await request('/api/game/start',{});
   check(start.ok&&start.status.process_alive,'修改器直接启动 Godot');
   let marker;
-  for(let n=0;n<25;n++){await new Promise(r=>setTimeout(r,100));try{marker=JSON.parse(await fs.readFile(path.join(root,'.runtime/game.json'),'utf8'));if(marker.moveFrames.light_1===30)break;}catch{}}
-  check(marker?.moveFrames.light_1===30,'Godot 实际读取了修改后的动作速度');
+  const readLight=async()=>{try{marker=JSON.parse(await fs.readFile(path.join(root,'.runtime/game.json'),'utf8'));return marker?.moveFrames?.light_1;}catch{return undefined;}};
+  const waitLight=async expected=>{for(let n=0;n<60;n++){await new Promise(r=>setTimeout(r,100));if(await readLight()===expected)return expected;}return await readLight();};
+  check(await waitLight(fastFrames)===fastFrames,'Godot 实际读取了修改后的动作速度');
   const reset=await request('/api/project/save',{config:original,project});
   check(reset.ok,'恢复测试前配置');
-  for(let n=0;n<25;n++){await new Promise(r=>setTimeout(r,100));try{marker=JSON.parse(await fs.readFile(path.join(root,'.runtime/game.json'),'utf8'));if(marker.moveFrames.light_1===37)break;}catch{}}
-  check(marker?.moveFrames.light_1===37,'保存后 Godot 自动应用，不需重新启动');
+  check(await waitLight(baseFrames)===baseFrames,'保存后 Godot 自动应用，不需重新启动');
   const removed=await request('/api/asset/delete',{path:uploaded});
   check(removed.ok,'不用的测试素材进入回收站');uploaded='';
   const status=await request('/api/game/status');

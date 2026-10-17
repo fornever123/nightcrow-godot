@@ -39,6 +39,8 @@ GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever1
 
 每次保存都有备份。改错可用撤销，或者进入“备份与回收站”恢复历史版本，再保存。正在使用的动作图片不能直接删除，先替换并保存。
 
+FrameBaker 手调入口：双击 `E:\00game\打开FrameBaker.bat`，打开[已准备好的夜鸦项目](http://127.0.0.1:3210/project/3758d524-8b9c-4b32-8732-81255f1dd72a)。导出 ZIP 后，在修改器“动作工坊”的“导入 FrameBaker 手调结果”中导入；默认新增独立动作，绑定招式并保存后才用于游戏。角色和刀光可合成导出，也可分层同步播放。详见 [FrameBaker 手调与导入](docs/FrameBaker手调与导入.md)。现有游戏动作和原图保留。
+
 ## 这次整理了什么
 
 - 使用 Godot 本地运行，去掉 Maker 启动和运行依赖。

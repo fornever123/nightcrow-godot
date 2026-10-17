@@ -1,6 +1,7 @@
 extends Sprite2D
 const Art := preload("res://scripts/presentation/art_cache.gd")
 const Trail := preload("res://scripts/presentation/trail_view.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 var actor: CharacterBody2D
 var setup: Dictionary = {}
 var clip_name: String = "idle"
@@ -8,6 +9,8 @@ var frame_index: int = 0
 var clock: float = 0.0
 var landing: float = 0.0
 var trail: Node2D
+var overlay: Sprite2D
+var overlay_frame_index: int = -1
 
 func _ready() -> void:
 	actor = get_parent().get_parent()
@@ -54,6 +57,9 @@ func _physics_process(delta: float) -> void:
 		trail.tick(delta, actor.is_in_hitstop())
 
 func _draw_frame() -> void:
+	overlay_frame_index = -1
+	if is_instance_valid(overlay):
+		overlay.visible = false
 	var clip: Dictionary = setup.get("animations", {}).get(clip_name, setup.get("animations", {}).get("idle", {}))
 	var frames: Array = clip.get("frames", [])
 	if frames.is_empty():
@@ -64,21 +70,14 @@ func _draw_frame() -> void:
 	if actor.state == 1 and actor.current_move != null:
 		fps = actor.current_move.animation_fps
 		time = float(actor.move_frame) / 60.0
-	frame_index = int(time * fps)
+	frame_index = Timeline.frame_at(clip, time, fps)
 	if actor.is_charging():
 		frame_index = 2
 	elif actor.is_in_parry():
 		frame_index = 0
-	elif bool(clip.get("loop", false)):
-		var loop_from := int(clip.get("loopFrame", 0))
-		if frame_index >= loop_from:
-			var cycle := frames.size() - loop_from
-			if cycle > 0:
-				frame_index = loop_from + (frame_index - loop_from) % cycle
-		frame_index = mini(frame_index, frames.size() - 1)
-	else:
-		frame_index = mini(frame_index, frames.size() - 1)
+	frame_index = clampi(frame_index, 0, frames.size() - 1)
 	Art.apply(self, frames[frame_index], float(setup.get("displayScale", 1.0)))
+	_draw_overlay(clip, time, fps)
 	if actor.is_in_parry():
 		var pose := Vector2(1.08,0.93) if actor.is_parrying() else Vector2(0.93,1.07)
 		scale *= Vector2.ONE + (pose - Vector2.ONE) * actor.squash_strength
@@ -101,6 +100,10 @@ func _on_landed() -> void:
 func _start(move: Resource, _index: int) -> void:
 	clock = 0.0
 	landing = 0.0
+	var clip: Dictionary = setup.get("animations", {}).get(move.animation, {})
+	if bool(clip.get("effectsBaked", false)) or not String(clip.get("overlayEffect", "")).is_empty():
+		_clear_trail()
+		return
 	if move.effect != "" and setup.get("effects", {}).has(move.effect):
 		_clear_trail()
 		trail = Node2D.new()
@@ -110,6 +113,29 @@ func _start(move: Resource, _index: int) -> void:
 		actor.get_parent().add_child(trail)
 		trail.global_position = actor.global_position + Vector2(0, actor.foot_offset)
 		trail.scale.x = actor.facing
+
+func _draw_overlay(clip: Dictionary, time: float, fps: float) -> void:
+	overlay_frame_index = -1
+	if is_instance_valid(overlay):
+		overlay.visible = false
+	if bool(clip.get("effectsBaked", false)):
+		return
+	var key := String(clip.get("overlayEffect", ""))
+	var effect: Dictionary = setup.get("effects", {}).get(key, {})
+	if key.is_empty() or effect.is_empty():
+		return
+	var speed := fps / maxf(float(clip.get("fps", 24.0)), 0.000001)
+	overlay_frame_index = Timeline.frame_at(effect, time * speed, -1.0, false, false)
+	if overlay_frame_index < 0:
+		return
+	if not is_instance_valid(overlay):
+		overlay = Sprite2D.new()
+		overlay.name = "ActionOverlay"
+		overlay.texture_filter = texture_filter
+		get_parent().add_child(overlay)
+	# A sibling shares Visual's facing/squash and the actor sprite's foot origin.
+	overlay.position = position
+	Art.apply(overlay, effect.frames[overlay_frame_index], float(setup.get("displayScale", 1.0)))
 
 func _clear_trail() -> void:
 	if is_instance_valid(trail):

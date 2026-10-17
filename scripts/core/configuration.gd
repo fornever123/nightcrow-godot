@@ -1,5 +1,6 @@
 extends RefCounted
 const Move := preload("res://scripts/core/move_definition.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const PATH := "res://assets/data/battle.json"
 
 static func read() -> Dictionary:
@@ -28,10 +29,11 @@ static func moves(config: Dictionary) -> Dictionary:
 		var chain := float(source.get("chainOpen", end))
 		if bool(source.get("syncAnimation", false)) and animations.has(m.animation):
 			var clip: Dictionary = animations[m.animation]
-			duration = float(clip["frames"].size()) / maxf(m.animation_fps, 1.0)
-			start = float(source.get("activeFrameStart", 2)) / m.animation_fps
-			end = (float(source.get("activeFrameEnd", 12)) + 1.0) / m.animation_fps
-			chain = float(source.get("chainFrame", clip["frames"].size())) / m.animation_fps
+			var frames: Array = clip.get("frames", [])
+			duration = Timeline.ticks_before(frames, frames.size()) / m.animation_fps
+			start = Timeline.ticks_before(frames, int(source.get("activeFrameStart", 2))) / m.animation_fps
+			end = Timeline.ticks_before(frames, int(source.get("activeFrameEnd", 12)) + 1) / m.animation_fps
+			chain = Timeline.ticks_before(frames, int(source.get("chainFrame", frames.size()))) / m.animation_fps
 		m.startup_frames = maxi(0, ceili(start * 60.0 - 0.0001))
 		var end_tick := maxi(m.startup_frames + 1, ceili(end * 60.0 - 0.0001))
 		m.active_frames = end_tick - m.startup_frames
