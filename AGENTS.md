@@ -12,4 +12,4 @@ Read docs/开发交接.md before changes. Use tests/test_training.gd for mechani
 
 ## GitHub version control
 
-This folder is an independent Git repository. Its GitHub origin is fornever123/nightcrow-godot (private), separate from the parent Maker repository. Scope staging and commits to this folder. Do not change the parent remote or upload parent files. Use tools/github-sync.ps1 for user-requested GitHub updates; never force-push or overwrite unfinished merge/rebase work. Keep engine binaries, caches, backups and credentials excluded. See docs/GitHub更新说明.md.
+This folder is an independent Git repository. Its GitHub origin is fornever123/nightcrow-godot (public by user request), separate from the parent Maker repository. Scope staging and commits to this folder. Do not change the parent remote or upload parent files. Use tools/github-sync.ps1 for user-requested GitHub updates; never force-push or overwrite unfinished merge/rebase work. Keep engine binaries, caches, backups and credentials excluded. See docs/GitHub更新说明.md.

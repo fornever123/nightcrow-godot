@@ -16,7 +16,7 @@
 
 ## 首次发布
 
-仓库： https://github.com/fornever123/nightcrow-godot 。默认设为私有，仅你和你授权的人可以访问。
+仓库： https://github.com/fornever123/nightcrow-godot 。已按用户要求改为公开，其他人可以浏览和下载已上传的工程。
 
 本机使用 Git Credential Manager 已有的 GitHub 登录完成身份验证。首次仓库创建和上传由 AI 执行；之后更新入口使用 Git 的已有登录。新电脑需要在 GitHub 官方页面登录。
 
