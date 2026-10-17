@@ -1,4 +1,4 @@
-param([switch]$NoBrowser, [switch]$SkipBuild)
+﻿param([switch]$NoBrowser, [switch]$SkipBuild)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $nodePath = 'E:\node.exe'
