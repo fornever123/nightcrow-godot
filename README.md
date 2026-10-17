@@ -2,6 +2,8 @@
 
 GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever123/nightcrow-godot)。双击根目录 `上传更新到GitHub.bat` 上传已保存的代码、素材与配置。操作说明见 [GitHub更新说明](docs/GitHub更新说明.md)。引擎安装文件、依赖缓存和本地备份不提交。
 
+**游戏要用的序列帧**：[查看已选定的原版素材](art/game-ready-sequences/README.md)。2026-10-17 修改完成，非 3px 版本；6 段动作、880 帧，角色、特效、合成三套共 2640 张透明 PNG。已标记为后续游戏开发使用，当前游戏动作尚未替换。
+
 这是现在要使用的正式工程。E 盘旧角色素材和动作保留，战斗使用 C 盘 Godot 的基础；场景清空，只留下训练木桩。旧工程保留作备份。
 
 ## 你只需要双击这两个文件
