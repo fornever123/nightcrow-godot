@@ -58,19 +58,30 @@ static func moves(config: Dictionary) -> Dictionary:
 		m.startup_movement_scale = m.movement_scale * (1.0 if light else 0.6)
 		m.recovery_movement_scale = m.movement_scale * (1.0 if light else 0.75)
 		m.effect = String(source.get("effect", ""))
+		m.dash_distance = float(source.get("dashDistance", 0.0))
+		m.movement_timeline = source.get("movementTimeline", [])
+		m.air_gravity_scale = float(source.get("airGravityScale", 1.0))
+		m.air_suspend_frames = maxi(0, int(source.get("airSuspendFrames", 0)))
 		var box: Dictionary = source.get("hitbox", {})
 		m.hitbox = Rect2(Vector2(box.get("x", 100), box.get("y", -90)), Vector2(box.get("width", 200), box.get("height", 136)))
 		m.command = &"light"
 		m.is_charge = String(source.get("input", "")) == "J_HOLD"
 		m.is_parry = String(source.get("input", "")) == "L"
-		m.is_air = String(source.get("input", "")) == "AIR_J"
-		m.direction = 1 if String(source.get("input", "")) in ["W+J", "AIR_J"] else 0
+		m.is_air = String(source.get("input", "")).begins_with("AIR_J")
+		m.direction = 1 if String(source.get("input", "")) == "W+J" or String(m.id) == "air_up" or bool(source.get("upward", false)) else 0
 		if m.is_charge:
 			m.command = &"charge"
 		elif m.is_parry:
 			m.command = &"parry"
 		if String(source.get("input", "")) == "K":
 			m.command = &"ranged"
+		elif String(source.get("input", "")) == "SHIFT+J":
+			m.command = &"dash"
+		elif m.is_air:
+			m.command = &"air_light"
+		elif String(m.id).begins_with("guard_hit_") or String(m.id).begins_with("parry_react_"):
+			m.command = &"guard_reaction"
+			m.is_parry = true
 		m.min_charge_frames = roundi(float(source.get("minHold", 0.36)) * 60.0)
 		m.max_charge_frames = roundi(float(source.get("maxHold", 0.8)) * 60.0)
 		m.charge_damage_bonus = float(source.get("chargeDamageBonus", 1.9))

@@ -48,7 +48,9 @@ func run() -> void:
 	view = p.get_node("Visual/ActorSprite")
 	await step(10)
 	for key in ["run", "jump", "fall", "land"]:
-		check(view.setup.animations[key].get("source", {}).get("animation", "") == "mmh3_前4秒_试跑", key + " uses first-four-second source")
+		var source: Dictionary = view.setup.animations[key].get("source", {})
+		var expected_source := {"run":"跑步","jump":"跳向上","fall":"在空中下坠期间动画","land":"跳落地动作"}
+		check(source.get("animation", "") == expected_source[key] and source.get("collection", "") == "desktop-actions-20261018", key + " uses the selected desktop source")
 	await step(6, false, true)
 	check(view.clip_name == "run", "movement plays running")
 	await shot("run")
@@ -73,13 +75,14 @@ func run() -> void:
 	await step(1, false, true)
 	check(view.clip_name == "land", "landing plays even with movement held")
 	await shot("land")
-	await step(12, false, true)
+	var landing_clip: Dictionary = view.setup.animations.land
+	await step(ceili(float(landing_clip.frames.size())/float(landing_clip.fps)*60)+2, false, true)
 	check(view.clip_name == "run", "running resumes after landing")
 	await step(20)
-	check(view.clip_name == "idle", "release returns to idle")
+	check(view.clip_name in ["idle", "draw"], "release returns to an idle stance")
 	view.setup.animations.jump.fullSequence = true
 	await step(1, true)
-	await step(22)
+	await step(ceili(p.jump_time_to_peak*60)+3)
 	check(p.velocity.y > 0 and view.clip_name == "jump", "legacy full jump keeps its continuous clock")
 	if not evidence.is_empty():
 		var record := FileAccess.open("res://docs/first4-locomotion-visual.json", FileAccess.WRITE)

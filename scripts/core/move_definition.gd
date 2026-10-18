@@ -128,3 +128,24 @@ func knockback_velocity(facing: int) -> Vector2:
 @export var startup_movement_scale: float = 0.372
 @export var recovery_movement_scale: float = 0.465
 @export var effect: String = ""
+
+## Optional desktop action mechanics. Times are normalized animation progress,
+## distances are cumulative pixels; physics applies each delta through collision.
+@export var dash_distance: float = 0.0
+@export var movement_timeline: Array = []
+@export var air_gravity_scale: float = 1.0
+@export var air_suspend_frames: int = 0
+
+func distance_at(progress: float) -> float:
+	var t := clampf(progress, 0.0, 1.0)
+	var previous_time := 0.0
+	var previous_distance := 0.0
+	for point in movement_timeline:
+		var end_time := clampf(float(point.get("time", 1.0)), previous_time, 1.0)
+		var end_distance := float(point.get("distance", dash_distance))
+		if t <= end_time:
+			var weight := clampf((t - previous_time) / maxf(end_time - previous_time, 0.00001), 0.0, 1.0)
+			return lerpf(previous_distance, end_distance, weight)
+		previous_time = end_time
+		previous_distance = end_distance
+	return previous_distance if not movement_timeline.is_empty() else dash_distance * t

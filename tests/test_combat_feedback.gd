@@ -139,7 +139,11 @@ func run() -> void:
 	check(p.last_charge_frames==72,"满蓄力自动释放沿用 C 盘时长")
 	check(await wait_hit(d.max_hp),"满蓄力真实命中")
 	check(p.hitstop_frames==19,"满蓄力为角色停顿添加 6 帧重量")
-	check(view.frame_index==11,"重击实际停在新素材第 12 张命中图片")
+	var charge_source: Dictionary = {}
+	for source in stage.config.moves:
+		if source.id == "charge_1":
+			charge_source = source
+	check(view.frame_index==int(charge_source.activeFrameStart),"重击实际停在当前素材配置的起始命中图片")
 	check(d.last_hit_damage>26,"满蓄力造成加成伤害")
 	check(stage.audio.last_event=="launch","重击击飞使用不同命中声音")
 	p._start_move(stage.moves.light_1,false)

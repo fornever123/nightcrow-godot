@@ -140,7 +140,9 @@ func run() -> void:
 	await reset()
 	p._start_move(stage.moves.light_3,false)
 	await step(12)
-	check(is_instance_valid(view.overlay) and view.overlay.visible and not is_instance_valid(view.trail),"第三刀同步显示新分层刀光且不叠加旧刀光")
+	var slash_clip: Dictionary = view.setup.animations[stage.moves.light_3.animation]
+	var correct_fx: bool = (not is_instance_valid(view.overlay) or not view.overlay.visible) if bool(slash_clip.get("effectsBaked",false)) else (is_instance_valid(view.overlay) and view.overlay.visible)
+	check(correct_fx and not is_instance_valid(view.trail),"第三刀遵循当前合成/分层素材方式且不叠加旧刀光")
 	await step(stage.moves.light_3.total_frames() + 30)
 	check(view.clip_name != stage.moves.light_3.animation and not is_instance_valid(view.trail),"第三刀结束后退出攻击特效且无旧刀光残留")
 	await reset()

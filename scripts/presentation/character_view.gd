@@ -11,6 +11,12 @@ var landing: float = 0.0
 var trail: Node2D
 var overlay: Sprite2D
 var overlay_frame_index: int = -1
+var stance_clip: String = ""
+var stance_clock: float = 0.0
+var idle_clock: float = 0.0
+var stance_drawn: bool = true
+var airborne_seen: bool = false
+var stance_initialized: bool = false
 
 func _ready() -> void:
 	actor = get_parent().get_parent()
@@ -20,12 +26,21 @@ func _ready() -> void:
 	actor.jumped.connect(_on_jumped)
 	actor.landed.connect(_on_landed)
 	actor.tree_exiting.connect(_clear_trail)
+	if bool(setup.get("drawSheathe", {}).get("enabled", false)):
+		stance_clip = String(setup.drawSheathe.get("drawAnimation", "draw"))
 	_draw_frame.call_deferred()
 
 func _process(_delta: float) -> void:
 	Art.warm()
 
 func _physics_process(delta: float) -> void:
+	if not actor.is_on_floor() and int(actor.air_frames) > int(actor.coyote_frames):
+		airborne_seen = true
+	if actor.is_on_floor() and not stance_initialized:
+		stance_initialized = true
+		if bool(setup.get("drawSheathe", {}).get("enabled", false)):
+			stance_clip = String(setup.drawSheathe.get("drawAnimation", "draw"))
+			stance_clock = 0.0
 	if not actor.is_in_hitstop():
 		clock += delta
 		landing = maxf(0.0, landing - delta)
@@ -36,12 +51,16 @@ func _physics_process(delta: float) -> void:
 		wanted = actor.current_move.animation
 	elif actor.is_charging():
 		wanted = String(setup.get("chargeAnimation", "attack_3"))
+	elif actor.has_method("is_guarding") and actor.is_guarding():
+		wanted = actor.guard_animation
 	elif not actor.is_on_floor():
 		# Legacy clips contain a full jump. Split clips follow actual velocity.
 		if clip_name == "jump" and _full_jump_sequence():
 			wanted = "jump"
 		else:
 			wanted = "fall" if actor.velocity.y > 0.0 else "jump"
+	elif not String(actor.get("locomotion_animation")).is_empty() and actor.get("locomotion_animation") != null:
+		wanted = actor.locomotion_animation
 	elif landing > 0.0 and not _full_jump_sequence():
 		wanted = "land"
 	elif absf(actor.velocity.x) > 12.0:
@@ -50,6 +69,15 @@ func _physics_process(delta: float) -> void:
 		wanted = "jump"
 	elif landing > 0.0:
 		wanted = "land"
+	if wanted == "land" and bool(setup.get("locomotion", {}).get("enabled", false)):
+		var land_clip: Dictionary = setup.get("animations", {}).get("land", {})
+		var elapsed := _clip_duration(land_clip) - landing
+		var cancel_index := int(setup.locomotion.get("landingCancelFrame", land_clip.get("frames", []).size()))
+		var cancel_time := Timeline.ticks_before(land_clip.get("frames", []), cancel_index) / maxf(float(land_clip.get("fps", 24)), 0.001)
+		if absf(actor.velocity.x) > 12.0 and elapsed >= cancel_time:
+			landing = 0.0
+			wanted = "run"
+	wanted = _stance_animation(wanted, delta)
 	if wanted != clip_name:
 		clip_name = wanted
 		clock = 0.0
@@ -73,6 +101,12 @@ func _draw_frame() -> void:
 	if actor.state == 1 and actor.current_move != null:
 		fps = actor.current_move.animation_fps
 		time = float(actor.move_frame) / 60.0
+	elif actor.has_method("is_guarding") and actor.is_guarding() and clip_name == actor.guard_animation:
+		time = actor.guard_clock
+	elif actor.get("locomotion_animation") == clip_name and not clip_name.is_empty():
+		time = actor.locomotion_clock
+	elif not stance_clip.is_empty() and clip_name == stance_clip:
+		time = stance_clock
 	frame_index = Timeline.frame_at(clip, time, fps, true, actor.state != actor.State.DEAD)
 	if actor.is_charging():
 		frame_index = int(setup.get("chargeFrame", 2))
@@ -80,6 +114,11 @@ func _draw_frame() -> void:
 		frame_index = 0
 	frame_index = clampi(frame_index, 0, frames.size() - 1)
 	Art.apply(self, frames[frame_index], float(setup.get("displayScale", 1.0)))
+	# Turn clips already turn the body in their pixels. Cancel the parent flip.
+	if bool(clip.get("authoredTurn", false)):
+		scale.x *= float(actor.facing)
+	else:
+		scale.x *= float(clip.get("sourceFacing", 1))
 	var overlay_time := Timeline.ticks_before(frames, frame_index) / fps if actor.is_charging() else time
 	if not actor.is_charging() and actor.state != actor.State.DEAD and bool(clip.get("loop", false)):
 		var total := Timeline.ticks_before(frames, frames.size())
@@ -97,6 +136,7 @@ func _draw_frame() -> void:
 		self_modulate = Color.WHITE
 
 func _on_jumped(_double: bool) -> void:
+	airborne_seen = true
 	clock = 0.0
 	landing = 0.0
 	if not _full_jump_sequence():
@@ -106,7 +146,10 @@ func _full_jump_sequence() -> bool:
 	return bool(setup.get("animations", {}).get("jump", {}).get("fullSequence", true))
 
 func _on_landed() -> void:
-	landing = 0.15
+	if bool(setup.get("locomotion", {}).get("enabled", false)) and not airborne_seen:
+		return
+	airborne_seen = false
+	landing = _clip_duration(setup.get("animations", {}).get("land", {})) if bool(setup.get("locomotion", {}).get("enabled", false)) else 0.15
 	# Keep the jump clock so the landing frames at the end of that clip still play.
 	if clip_name != "jump" or not _full_jump_sequence():
 		clock = 0.0
@@ -114,6 +157,9 @@ func _on_landed() -> void:
 func _start(move: Resource, _index: int) -> void:
 	clock = 0.0
 	landing = 0.0
+	stance_clip = ""
+	idle_clock = 0.0
+	stance_drawn = true
 	var clip: Dictionary = setup.get("animations", {}).get(move.animation, {})
 	if bool(clip.get("effectsBaked", false)) or not String(clip.get("overlayEffect", "")).is_empty():
 		_clear_trail()
@@ -158,3 +204,47 @@ func _clear_trail() -> void:
 
 func set_identity_color(_c: Color) -> void:
 	pass
+
+func reset_presentation() -> void:
+	_clear_trail()
+	clock = 0.0
+	landing = 0.0
+	stance_clip = ""
+	stance_clock = 0.0
+	idle_clock = 0.0
+	stance_drawn = true
+	stance_initialized = false
+	airborne_seen = false
+
+func _clip_duration(clip: Dictionary) -> float:
+	return Timeline.ticks_before(clip.get("frames", []), clip.get("frames", []).size()) / maxf(float(clip.get("fps", 24)), 0.001)
+
+func _stance_animation(wanted: String, delta: float) -> String:
+	var options: Dictionary = setup.get("drawSheathe", {})
+	if not bool(options.get("enabled", false)):
+		return wanted
+	if wanted != "idle":
+		stance_clip = ""
+		stance_clock = 0.0
+		idle_clock = 0.0
+		stance_drawn = true
+		return wanted
+	if not actor.is_in_hitstop():
+		idle_clock += delta
+		stance_clock += delta
+	var draw_key := String(options.get("drawAnimation", "draw"))
+	var sheathe_key := String(options.get("sheatheAnimation", "sheathe"))
+	if stance_clip == draw_key:
+		if stance_clock < _clip_duration(setup.get("animations", {}).get(draw_key, {})):
+			return draw_key
+		stance_clip = ""
+		stance_drawn = true
+		idle_clock = 0.0
+	if stance_clip == sheathe_key:
+		stance_drawn = false
+		return sheathe_key
+	if stance_drawn and idle_clock >= float(options.get("idleDelay", 4.0)):
+		stance_clip = sheathe_key
+		stance_clock = 0.0
+		return sheathe_key
+	return wanted

@@ -1,0 +1,221 @@
+{
+  "collection": "desktop-actions-20261018",
+  "sourcePngs": 734,
+  "sourceDirectories": 24,
+  "animations": 57,
+  "runtimeCalibration": {
+    "idle": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "run": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "turn_left_right": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "turn_right_left": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "jump": {
+      "scale": 1.0,
+      "anchor": "tracked visible feet"
+    },
+    "fall": {
+      "scale": 0.4164969450101833,
+      "anchor": "tracked visible feet"
+    },
+    "land": {
+      "scale": 1.0,
+      "anchor": "tracked visible feet"
+    },
+    "attack_1": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "attack_2": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "attack_3": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "attack_2_start": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "attack_2_recovery": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "strong_attack": {
+      "scale": 1.188953488372093,
+      "anchor": "authored export origin"
+    },
+    "air_attack_1": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "air_attack_2": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "air_attack_3": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "dash_left": {
+      "scale": 1.0,
+      "anchor": "tracked visible feet"
+    },
+    "dash_right": {
+      "scale": 1.0,
+      "anchor": "tracked visible feet"
+    },
+    "guard_start": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "guard_hold": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "guard_hit_1": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "guard_hit_2": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "guard_hit_3": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "parry_react_1": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "parry_react_2": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "parry_react_3": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "draw": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "sheathe": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    },
+    "death": {
+      "scale": 1.0,
+      "anchor": "authored export origin"
+    }
+  },
+  "bindings": {
+    "light_1": {
+      "animation": "attack_1",
+      "input": "J",
+      "duration": 0.5416666666666666
+    },
+    "light_2": {
+      "animation": "attack_2",
+      "input": "J",
+      "duration": 0.75
+    },
+    "light_3": {
+      "animation": "attack_3",
+      "input": "J",
+      "duration": 1.25
+    },
+    "charge_1": {
+      "animation": "charge_slash",
+      "input": "J_HOLD",
+      "duration": 1.2916666666666667
+    },
+    "up_strike": {
+      "animation": "attack_up",
+      "input": "W+J",
+      "duration": 1.2916666666666667
+    },
+    "air_up": {
+      "animation": "air_slash",
+      "input": "AIR_J",
+      "duration": 0.75
+    },
+    "ranged_1": {
+      "animation": "attack_1",
+      "input": "K",
+      "duration": 0.616667
+    },
+    "parry_1": {
+      "animation": "parry",
+      "input": "L",
+      "duration": 0.5
+    },
+    "air_light_1": {
+      "animation": "air_attack_1",
+      "input": "AIR_J_1",
+      "duration": 0.75
+    },
+    "air_light_2": {
+      "animation": "air_attack_2",
+      "input": "AIR_J_2",
+      "duration": 0.5
+    },
+    "air_light_3": {
+      "animation": "air_attack_3",
+      "input": "AIR_J_3",
+      "duration": 1.0833333333333333
+    },
+    "dash_slash": {
+      "animation": "dash_right",
+      "input": "SHIFT+J",
+      "duration": 1.4583333333333333
+    },
+    "dash_slash_left": {
+      "animation": "dash_left",
+      "input": "SHIFT+J",
+      "duration": 0.875
+    },
+    "guard_hit_1": {
+      "animation": "guard_hit_1",
+      "input": "GUARD_HIT",
+      "duration": 0.375
+    },
+    "guard_hit_2": {
+      "animation": "guard_hit_2",
+      "input": "GUARD_HIT",
+      "duration": 0.5416666666666666
+    },
+    "guard_hit_3": {
+      "animation": "guard_hit_3",
+      "input": "GUARD_HIT",
+      "duration": 1.5
+    },
+    "parry_react_1": {
+      "animation": "parry_react_1",
+      "input": "PARRY_SUCCESS",
+      "duration": 0.6666666666666666
+    },
+    "parry_react_2": {
+      "animation": "parry_react_2",
+      "input": "PARRY_SUCCESS",
+      "duration": 0.6666666666666666
+    },
+    "parry_react_3": {
+      "animation": "parry_react_3",
+      "input": "PARRY_SUCCESS",
+      "duration": 0.8333333333333334
+    }
+  }
+}

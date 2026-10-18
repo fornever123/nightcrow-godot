@@ -1,0 +1,391 @@
+{
+  "axisName": "冲刺攻击",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "5a5f0b0b-cca6-4386-919b-8b44ed0180ce",
+  "fps": 24,
+  "count": 56,
+  "cellWidth": 5145,
+  "cellHeight": 980,
+  "originX": 2569,
+  "originY": 836,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -1032.5,
+      "offset_y": -350.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1030.84,
+      "offset_y": -354.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1028.34,
+      "offset_y": -355.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1028.34,
+      "offset_y": -355.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1025.83,
+      "offset_y": -351.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1020.83,
+      "offset_y": -348.33,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1019.17,
+      "offset_y": -350.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -995.83,
+      "offset_y": -342.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -992.5,
+      "offset_y": -350.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -973.33,
+      "offset_y": -344.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -900.83,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -887.5,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -887.5,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -886.67,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -885.0,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -884.17,
+      "offset_y": -346.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -884.17,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -882.5,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -881.67,
+      "offset_y": -346.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -879.17,
+      "offset_y": -346.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -876.67,
+      "offset_y": -348.33,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -875.84,
+      "offset_y": -349.17,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -875.83,
+      "offset_y": -350.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -746.67,
+      "offset_y": -349.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -620.0,
+      "offset_y": -345.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -405.83,
+      "offset_y": -348.33,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -400.83,
+      "offset_y": -349.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -393.33,
+      "offset_y": -349.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -382.5,
+      "offset_y": -346.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -160.83,
+      "offset_y": -346.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -145.83,
+      "offset_y": -339.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -14.16,
+      "offset_y": -348.33,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 84.17,
+      "offset_y": -350.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 313.34,
+      "offset_y": -350.83,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 451.67,
+      "offset_y": -340.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 466.67,
+      "offset_y": -339.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 471.67,
+      "offset_y": -339.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 669.17,
+      "offset_y": -336.66,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 711.67,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 793.34,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 909.17,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 955.17,
+      "offset_y": -346.67,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 957.5,
+      "offset_y": -347.5,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 991.67,
+      "offset_y": -345.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1010.84,
+      "offset_y": -344.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1011.68,
+      "offset_y": -344.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1030.0,
+      "offset_y": -344.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1035.84,
+      "offset_y": -345.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1035.84,
+      "offset_y": -344.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1036.67,
+      "offset_y": -344.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1037.5,
+      "offset_y": -345.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1039.17,
+      "offset_y": -344.99,
+      "scale": 1.0,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 1040.0,
+      "offset_y": -344.16,
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "冲刺攻击_000.png",
+    "冲刺攻击_001.png",
+    "冲刺攻击_002.png",
+    "冲刺攻击_003.png",
+    "冲刺攻击_004.png",
+    "冲刺攻击_005.png",
+    "冲刺攻击_006.png",
+    "冲刺攻击_007.png",
+    "冲刺攻击_008.png",
+    "冲刺攻击_009.png",
+    "冲刺攻击_010.png",
+    "冲刺攻击_011.png",
+    "冲刺攻击_012.png",
+    "冲刺攻击_013.png",
+    "冲刺攻击_014.png",
+    "冲刺攻击_015.png",
+    "冲刺攻击_016.png",
+    "冲刺攻击_017.png",
+    "冲刺攻击_018.png",
+    "冲刺攻击_019.png",
+    "冲刺攻击_020.png",
+    "冲刺攻击_021.png",
+    "冲刺攻击_022.png",
+    "冲刺攻击_023.png",
+    "冲刺攻击_024.png",
+    "冲刺攻击_025.png",
+    "冲刺攻击_026.png",
+    "冲刺攻击_027.png",
+    "冲刺攻击_028.png",
+    "冲刺攻击_029.png",
+    "冲刺攻击_030.png",
+    "冲刺攻击_031.png",
+    "冲刺攻击_032.png",
+    "冲刺攻击_033.png",
+    "冲刺攻击_034.png",
+    "冲刺攻击_035.png",
+    "冲刺攻击_036.png",
+    "冲刺攻击_037.png",
+    "冲刺攻击_038.png",
+    "冲刺攻击_039.png",
+    "冲刺攻击_040.png",
+    "冲刺攻击_041.png",
+    "冲刺攻击_042.png",
+    "冲刺攻击_043.png",
+    "冲刺攻击_044.png",
+    "冲刺攻击_045.png",
+    "冲刺攻击_046.png",
+    "冲刺攻击_047.png",
+    "冲刺攻击_048.png",
+    "冲刺攻击_049.png",
+    "冲刺攻击_050.png",
+    "冲刺攻击_051.png",
+    "冲刺攻击_052.png",
+    "冲刺攻击_053.png",
+    "冲刺攻击_054.png",
+    "冲刺攻击_055.png"
+  ]
+}

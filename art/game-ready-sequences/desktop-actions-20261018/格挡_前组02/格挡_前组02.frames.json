@@ -1,0 +1,36 @@
+{
+  "axisName": "格挡_前组02",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "90573d6f-3a32-409d-8830-df03983d9db1",
+  "fps": 24,
+  "count": 13,
+  "cellWidth": 1076,
+  "cellHeight": 692,
+  "originX": 541,
+  "originY": 638,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -3.3,
+      "offset_y": -291.67,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "格挡_前组02_000.png",
+    "格挡_前组02_001.png",
+    "格挡_前组02_002.png",
+    "格挡_前组02_003.png",
+    "格挡_前组02_004.png",
+    "格挡_前组02_005.png",
+    "格挡_前组02_006.png",
+    "格挡_前组02_007.png",
+    "格挡_前组02_008.png",
+    "格挡_前组02_009.png",
+    "格挡_前组02_010.png",
+    "格挡_前组02_011.png",
+    "格挡_前组02_012.png"
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "axisName": "左向转右",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "04b12293-da3f-44a3-ad91-d7fdcbf95121",
+  "fps": 4,
+  "count": 13,
+  "cellWidth": 1572,
+  "cellHeight": 703,
+  "originX": 644,
+  "originY": 612,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -10.25,
+      "offset_y": -257.99,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -4.27,
+      "offset_y": -261.41,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 21.36,
+      "offset_y": -258.85,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 27.34,
+      "offset_y": -258.85,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 34.17,
+      "offset_y": -259.7,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 35.88,
+      "offset_y": -259.7,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 165.73,
+      "offset_y": -257.14,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 197.34,
+      "offset_y": -255.43,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 269.1,
+      "offset_y": -255.43,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 283.62,
+      "offset_y": -265.68,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 291.31,
+      "offset_y": -263.12,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 291.31,
+      "offset_y": -257.14,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 293.87,
+      "offset_y": -258.85,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "左向转右_000.png",
+    "左向转右_001.png",
+    "左向转右_002.png",
+    "左向转右_003.png",
+    "左向转右_004.png",
+    "左向转右_005.png",
+    "左向转右_006.png",
+    "左向转右_007.png",
+    "左向转右_008.png",
+    "左向转右_009.png",
+    "左向转右_010.png",
+    "左向转右_011.png",
+    "左向转右_012.png"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "axisName": "右向转左",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "fcdebca0-236f-4184-ac8a-2d4819d3c222",
+  "fps": 4,
+  "count": 5,
+  "cellWidth": 1304,
+  "cellHeight": 694,
+  "originX": 740,
+  "originY": 608,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -105.93,
+      "offset_y": -260.56,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -105.08,
+      "offset_y": -261.41,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -104.22,
+      "offset_y": -261.41,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -95.68,
+      "offset_y": -262.27,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -70.05,
+      "offset_y": -261.41,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "右向转左_00.png",
+    "右向转左_01.png",
+    "右向转左_02.png",
+    "右向转左_03.png",
+    "右向转左_04.png"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "axisName": "跑步",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "dd9156a1-2685-4551-bc46-42e7f70563d9",
+  "fps": 4,
+  "count": 6,
+  "cellWidth": 1552,
+  "cellHeight": 704,
+  "originX": 627,
+  "originY": 607,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": 6.96,
+      "offset_y": -260.62,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 41.61,
+      "offset_y": -258.02,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 93.97,
+      "offset_y": -248.6,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 186.17,
+      "offset_y": -251.35,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 223.82,
+      "offset_y": -258.85,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": 291.12,
+      "offset_y": -257.35,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "跑步_00.png",
+    "跑步_01.png",
+    "跑步_02.png",
+    "跑步_03.png",
+    "跑步_04.png",
+    "跑步_05.png"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "axisName": "格挡_后组03",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "66bafd26-fcad-4dd2-aa9d-ac0e5f730725",
+  "fps": 24,
+  "count": 20,
+  "cellWidth": 1077,
+  "cellHeight": 693,
+  "originX": 541,
+  "originY": 639,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -3.3,
+      "offset_y": -291.67,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -1.63,
+      "offset_y": -292.5,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "格挡_后组03_000.png",
+    "格挡_后组03_001.png",
+    "格挡_后组03_002.png",
+    "格挡_后组03_003.png",
+    "格挡_后组03_004.png",
+    "格挡_后组03_005.png",
+    "格挡_后组03_006.png",
+    "格挡_后组03_007.png",
+    "格挡_后组03_008.png",
+    "格挡_后组03_009.png",
+    "格挡_后组03_010.png",
+    "格挡_后组03_011.png",
+    "格挡_后组03_012.png",
+    "格挡_后组03_013.png",
+    "格挡_后组03_014.png",
+    "格挡_后组03_015.png",
+    "格挡_后组03_016.png",
+    "格挡_后组03_017.png",
+    "格挡_后组03_018.png",
+    "格挡_后组03_019.png"
+  ]
+}

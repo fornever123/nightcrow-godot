@@ -30,15 +30,17 @@ signal wall_slam(impact_speed: float, damage: float, point: Vector2)
 ## 【为什么把 attacker 一起发出来】表现层要在"打我的那个人"身上落火花/音效，
 ## 而 take_hit 只把 attacker 交给了防守方 —— 不转发出去，外面永远拿不到。
 signal parry_success(attacker: Node, point: Vector2)
+signal block_success(attacker: Node, point: Vector2)
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const ProjectileScene := preload("res://scenes/actors/projectile.tscn")
 
 enum State { NEUTRAL, ATTACK, LAUNCHED, DOWN, DEAD }
 
 const TRACKED_ACTIONS: Array[StringName] = [
 	&"jump", &"attack_light", &"attack_ranged", &"aim_up",
-	&"move_left", &"move_right", &"parry",
+	&"move_left", &"move_right", &"parry", &"dash_modifier",
 ]
 const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up", &"move_down"]
 ## J 连续按住多少帧才认定是"蓄力"而不是"点按"。
@@ -147,6 +149,11 @@ var input_source: Object = null
 ## L 键的招架（弹刀）。判定帧内被打到 → 弹开来招、自己不吃伤害。
 ## 窗口有多宽由 data/moves/parry_1.tres 的 active_frames 决定。
 @export var parry_move: Resource
+@export var air_combo: Array = []
+@export var dash_move: Resource
+@export var dash_left_move: Resource
+@export var guard_reactions: Array = []
+@export var parry_reactions: Array = []
 
 @export_group("远程")
 ## 弹丸飞行速度 px/s
@@ -165,6 +172,31 @@ var input_source: Object = null
 
 var state: State = State.NEUTRAL
 var facing: int = 1
+## Stable presentation interface; facing remains the combat/hitbox direction.
+var input_direction: int = 0
+var movement_direction: int = 0
+var display_facing: int = 1
+var locomotion_animation: String = ""
+var locomotion_clock: float = 0.0
+var locomotion_frame: int = 0
+var locomotion_source_facing: int = 1
+var air_combo_index: int = 0
+var air_suspend_used: int = 0
+var guard_animation: String = ""
+var guard_clock: float = 0.0
+var action_serial: int = 0
+var action_idle_frames: int = 0
+var _turn_target: int = 1
+var _turn_clip: Dictionary = {}
+var _turn_options: Dictionary = {}
+var _guard_active: bool = false
+var _guard_frames: int = 0
+var _guard_parried: bool = false
+var _guard_variant: int = 0
+var _parry_variant: int = 0
+var _dash_facing: int = 1
+var _pending_dash_direction: int = 1
+var _reaction_guard_held: bool = false
 var hp: float = 100.0
 var hitstop_frames: int = 0
 var hitstop_this_tick: bool = false
@@ -395,6 +427,13 @@ func _physics_process(delta: float) -> void:
 	# 出招期间也要更新，否则"出招中能不能跳"的判断会用到过期数据。
 	# 但跳跃缓冲的计数只在允许自由行动时消耗（见 _try_buffered_jump）。
 	_update_ground_air()
+	input_direction = int(signf(frame.axis.x)) if absf(frame.axis.x) > 0.15 else 0
+	movement_direction = int(signf(velocity.x)) if absf(velocity.x) > 1.0 else 0
+	_advance_locomotion(delta)
+	if is_combat_action_active():
+		action_idle_frames = 0
+	else:
+		action_idle_frames += 1
 	# J 的"按住了几帧"计时器也必须每帧更新（含顿帧期间的输入）
 	_update_attack_hold(frame)
 
@@ -423,6 +462,10 @@ func _update_ground_air() -> void:
 		_air_jumps_left = extra_air_jumps
 		_air_light_left = air_light_uses
 		if ground_frames == 1:
+			if not air_combo.is_empty():
+				if current_move != null and air_combo.has(current_move):
+					_end_attack()
+				_reset_air_combo()
 			landed.emit()
 	else:
 		air_frames += 1
@@ -433,6 +476,14 @@ func _update_ground_air() -> void:
 # ---------------------------------------------------------------- NEUTRAL
 
 func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
+	if _guard_active and _process_guard(delta, frame):
+		return
+	if not locomotion_animation.is_empty() and not _turn_can_cancel():
+		_buffer_jump(frame)
+		_move_horizontal(delta, frame, 1.0)
+		_apply_gravity(delta, _gravity)
+		move_and_slide()
+		return
 	# 【顺序很重要】先判跳跃，再判出招。
 	# 反过来的话，缓冲里一条还没过期的攻击边沿会在每帧抢先起手，
 	# 然后把跳跃输入一直压在缓冲里 —— 表现就是"按跳没反应"。
@@ -494,6 +545,10 @@ func _try_buffered_jump(frame: InputBuffer.Frame) -> bool:
 
 
 func _do_jump() -> void:
+	if not locomotion_animation.is_empty():
+		_set_facing(input_direction if input_direction != 0 else _turn_target)
+	_cancel_locomotion()
+	_stop_guard()
 	var is_double := ground_frames == 0 and not (air_frames > 0 and air_frames <= coyote_frames)
 	_jump_buffer_counter = 0
 	ground_frames = 0
@@ -555,10 +610,15 @@ func _depenetrate() -> void:
 func _move_horizontal(delta: float, frame: InputBuffer.Frame, move_scale: float) -> void:
 	var axis := frame.axis
 	var target := axis.x * speed * move_scale
+	if state == State.NEUTRAL and is_on_floor() and locomotion_animation.is_empty() \
+			and absf(velocity.x) > speed * 0.1 and absf(axis.x) > 0.15 and int(signf(axis.x)) != facing:
+		_start_turn(int(signf(axis.x)))
+	if not locomotion_animation.is_empty():
+		target = 0.0 if facing != _turn_target else float(_turn_target) * absf(axis.x) * speed * move_scale
 	if not is_on_floor():
 		target = velocity.x + (target - velocity.x) * air_control
 	velocity.x = move_toward(velocity.x, target, acceleration * delta)
-	if absf(axis.x) > 0.15:
+	if absf(axis.x) > 0.15 and locomotion_animation.is_empty():
 		_set_facing(1 if axis.x > 0.0 else -1)
 
 
@@ -582,8 +642,19 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 		return &"parry"
 	var aim_up := frame.actions.has(&"aim_up") or _held_within(&"aim_up", attack_buffer_frames)
 	var airborne := not is_on_floor() and air_frames > coyote_frames
+	if not air_combo.is_empty():
+		airborne = not is_on_floor()
+	var light_edge := _unconsumed_edge_frame(&"attack_light")
+	if not airborne and dash_move != null and light_edge != null and light_edge.actions.has(&"dash_modifier"):
+		_pending_dash_direction = int(signf(light_edge.axis.x)) if absf(light_edge.axis.x) > 0.15 else facing
+		return &"dash"
 
 	if airborne and _has_edge(&"attack_light"):
+		if not air_combo.is_empty():
+			if air_combo_index == 0:
+				return &"air_combo"
+			_take_edge(&"attack_light")
+			return &""
 		if _air_light_left > 0:
 			return &"air_up"
 		# 没次数时也消费这次按键，避免之后被 K 重置后自动补出一刀。
@@ -620,12 +691,17 @@ func _take_edge(action: StringName) -> bool:
 
 
 func _has_edge(action: StringName) -> bool:
+	return _unconsumed_edge_frame(action) != null
+
+
+## Modifiers belong to the same sampled edge as the command, even across hitstop.
+func _unconsumed_edge_frame(action: StringName) -> InputBuffer.Frame:
 	for i in mini(attack_buffer_frames, input_buffer.frame_count()):
 		var f := input_buffer.frame_at(i)
 		if f != null and f.pressed_this_frame.has(action):
 			# 只看最新一条匹配边沿；若它已消费，就不能让更老的边沿复活。
-			return f.seq != _consumed_edge.get(action, -1)
-	return false
+			return f if f.seq != _consumed_edge.get(action, -1) else null
+	return null
 
 
 func _held_within(action: StringName, n: int) -> bool:
@@ -636,9 +712,18 @@ func _held_within(action: StringName, n: int) -> bool:
 
 func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 	match cmd:
+		&"dash":
+			_take_edge(&"attack_light")
+			var direction := _pending_dash_direction
+			_cancel_locomotion()
+			_set_facing(direction)
+			_start_move(dash_left_move if direction < 0 and dash_left_move != null else dash_move, false)
+		&"air_combo":
+			_take_edge(&"attack_light")
+			_start_air_combo_move()
 		&"parry":
 			_take_edge(&"parry")
-			_start_move(parry_move, false)
+			_begin_guard_or_parry()
 		&"ranged":
 			_take_edge(&"attack_ranged")
 			_start_ranged()
@@ -662,6 +747,14 @@ func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 func _start_move(mv: Resource, is_up: bool) -> void:
 	if mv == null:
 		return
+	if not locomotion_animation.is_empty():
+		_set_facing(input_direction if input_direction != 0 else _turn_target)
+	_cancel_locomotion()
+	_stop_guard()
+	_reaction_guard_held = false
+	action_serial += 1
+	action_idle_frames = 0
+	_dash_facing = facing
 	current_move = mv
 	if not mv.is_charge:
 		_charge_t = 0.0
@@ -677,7 +770,7 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	link_open = false
 	last_swing_hit = false
 	_hit_this_swing.clear()
-	if _is_light_finisher(mv):
+	if _is_light_finisher(mv) and air_combo.is_empty():
 		_air_light_left = maxi(_air_light_left, 1)
 	# 前摇反向蓄力（设计文档 §8.4 Anticipation）
 	var windup := Vector2(0.90, 1.12)
@@ -694,6 +787,10 @@ func _start_charge() -> void:
 	_take_edge(&"attack_light")
 	if not is_on_floor() and air_frames > coyote_frames:
 		return
+	_cancel_locomotion()
+	_stop_guard()
+	action_serial += 1
+	action_idle_frames = 0
 	charge_frames = 0
 	_charge_accum = 0.0
 	velocity.x = 0.0
@@ -708,7 +805,10 @@ func _start_charge() -> void:
 func _start_ranged() -> void:
 	if ranged_move == null:
 		return
-	_air_light_left = maxi(_air_light_left, 1)
+	action_serial += 1
+	action_idle_frames = 0
+	if air_combo.is_empty():
+		_air_light_left = maxi(_air_light_left, 1)
 	var p := ProjectileScene.instantiate()
 	p.move = ranged_move
 	p.facing = facing
@@ -802,8 +902,19 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 	if mv == null:
 		state = State.NEUTRAL
 		return
+	if _reaction_guard_held:
+		if not frame.actions.has(&"parry"):
+			_reaction_guard_held = false
+		elif _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or frame.pressed_this_frame.has(&"jump"):
+			_reaction_guard_held = false
+			_end_attack()
+			_process_neutral(delta, frame)
+			return
 
 	var phase: StringName = mv.phase_at(move_frame)
+	if mv == dash_move or mv == dash_left_move:
+		_process_dash_attack(delta, mv, phase)
+		return
 
 	if phase == &"startup":
 		# 前摇：能走位，但不能取消
@@ -813,7 +924,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		# 弹刀【不做攻击判定】—— 它是防守动作，"谁在窗口里打我我就弹谁"
 		# 这条判定在 take_hit 那一侧。让它顺手打一下的话，0 伤害 0 击退的一击
 		# 仍然会把怪推进 LAUNCHED → 倒地 26 帧，等于白送一个击倒。
-		if not _is_parry_move(mv):
+		if not _is_parry_move(mv) and not guard_reactions.has(mv) and not parry_reactions.has(mv):
 			_do_hit_check(mv)
 			if hitstop_this_tick:
 				return
@@ -838,7 +949,8 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			# K 随时能补一发远程，且不影响连段指针（"存连段"的中转）
 			if _has_edge(&"attack_ranged"):
 				_link_into(&"attack_ranged")
-				return
+				if air_combo.is_empty() or not air_combo.has(mv):
+					return
 			# J：按住 → 蓄力斩；点按 → 推进连段
 			if _resolve_light_press():
 				return
@@ -849,8 +961,12 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		if _try_buffered_jump(frame):
 			return
 
-	_apply_gravity(delta, _gravity)
+	_apply_air_attack_gravity(delta, mv)
 	move_and_slide()
+	if not air_combo.is_empty() and air_combo.has(mv) and is_on_floor():
+		_end_attack()
+		_reset_air_combo()
+		return
 
 	move_frame += 1
 	if move_frame >= mv.total_frames():
@@ -913,6 +1029,14 @@ func _update_attack_hold(frame: InputBuffer.Frame) -> void:
 ## `_attack_hold_frames` 每帧数：新按下置 1，继续按着 +1，松开归 0。
 ## 达到 HOLD_TO_CHARGE_FRAMES 就是"按住" → 蓄力斩；否则按点按处理。
 func _resolve_light_press() -> bool:
+	if not air_combo.is_empty() and not is_on_floor():
+		if not _has_edge(&"attack_light"):
+			return false
+		_take_edge(&"attack_light")
+		if current_move != null and air_combo.has(current_move) and air_combo_index < air_combo.size():
+			_start_air_combo_move()
+			return true
+		return false
 	if _should_charge_on_hold():
 		# 两种情况都算"按住"：
 		#   a) 边沿还在（还没出过招）→ 直接消费边沿进蓄力
@@ -944,7 +1068,7 @@ func _link_into(action: StringName) -> void:
 		return
 	if action == &"parry":
 		_take_edge(&"parry")
-		_start_move(parry_move, false)
+		_begin_guard_or_parry()
 		return
 	_take_edge(&"attack_light")
 	var frame_ctx := input_buffer.frame_at(0)
@@ -959,6 +1083,8 @@ func _link_into(action: StringName) -> void:
 
 
 func _end_attack() -> void:
+	var guard_reaction := guard_reactions.has(current_move) or parry_reactions.has(current_move)
+	_reaction_guard_held = false
 	current_move = null
 	current_is_up = false
 	state = State.NEUTRAL
@@ -970,6 +1096,9 @@ func _end_attack() -> void:
 	if not last_swing_hit:
 		combo_index = 0
 	link_open = false
+	var last_input := input_buffer.frame_at(0)
+	if guard_reaction and last_input != null and last_input.actions.has(&"parry"):
+		_start_guard(false)
 
 
 func _do_hit_check(mv: Resource) -> void:
@@ -1077,6 +1206,7 @@ func _wall_damage_for(impact_speed: float) -> float:
 ## 真正的死亡。只有 can_die = true 时才走到这里（PVP）。
 ## DEAD 状态下 _physics_process 什么都不做 —— 尸体不会滑动、不会被打。
 func _die() -> void:
+	_interrupt_action_flow()
 	state = State.DEAD
 	hp = 0.0
 	velocity = Vector2.ZERO
@@ -1089,6 +1219,7 @@ func _die() -> void:
 
 
 func _enter_down() -> void:
+	_interrupt_action_flow()
 	state = State.DOWN
 	down_frames = 26
 	velocity = Vector2.ZERO
@@ -1138,9 +1269,21 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 	# 【为什么还要求 has_method(&"on_parried")】attacker 只是个 Node（也可能是
 	# 弹丸、是别的东西）。弹不动的东西就【不消耗】判定窗口，按普通受击处理 ——
 	# 否则"打到一个弹不动的东西"反而让自己白吃一顿打，玩家读不出来为什么。
-	if attacker != null and attacker.has_method(&"on_parried") and is_parrying():
+	if attacker != null and attacker.has_method(&"on_parried") and is_parrying() \
+			and (not _guard_active or from_facing == -facing):
 		_do_parry(attacker, _point)
 		return true
+	if is_guarding() and from_facing == -facing:
+		hp -= mv.damage * damage_mul * clampf(float(_guard_config().get("damageMultiplier", 0.0)), 0.0, 1.0)
+		if hp <= 0.0:
+			if can_die:
+				_die()
+			else:
+				_enter_down()
+		else:
+			_do_block(attacker, _point)
+		return true
+	_interrupt_action_flow()
 	hitstop_frames = maxi(hitstop_frames, mv.victim_hitstop_frames)
 	# damage_mul 让"怪物原型倍率 / PVP 全局伤害缩放 / 突然死亡"三者能在
 	# 不改招式数据的前提下叠乘。默认 1.0 → 既有 PVE 调用完全不受影响。
@@ -1168,6 +1311,10 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 ## 走的又是 MoveDefinition.is_parry_move()，所以"哪种招式算招架"
 ## 全项目只有一个来源（加"上段弹刀"不用改这里）。
 func is_parrying() -> bool:
+	if _guard_active:
+		return not _guard_parried and _guard_frames < maxi(int(_guard_config().get("parryWindowFrames", 0)), 0)
+	if guard_reactions.has(current_move) or parry_reactions.has(current_move):
+		return false
 	if state != State.ATTACK or current_move == null:
 		return false
 	if not _is_parry_move(current_move):
@@ -1183,6 +1330,8 @@ func is_parrying() -> bool:
 ## attack_1 ×3 → parry ×4 → attack_1 ×12）。而 is_parrying() 仍然只回答
 ## "判定窗口开没开"，两件事各归各的接口。
 func is_in_parry() -> bool:
+	if _guard_active:
+		return true
 	if state != State.ATTACK or current_move == null:
 		return false
 	return _is_parry_move(current_move)
@@ -1202,6 +1351,9 @@ func _is_parry_move(mv: Resource) -> bool:
 ## 【为什么要给自己顿帧】没有这一下，弹开的"实感"全靠音效撑；
 ## 而且顿帧期间玩家也动不了 —— 挡住的那一瞬间本就该有一拍静止。
 func _do_parry(attacker: Node, point: Vector2) -> void:
+	if _guard_active:
+		_guard_parried = true
+		_play_guard_reaction(parry_reactions, true)
 	hitstop_frames = maxi(hitstop_frames, parry_hitstop_frames)
 	hitstop_this_tick = hitstop_frames > 0
 	set(&"velocity", Vector2(velocity.x * 0.2, velocity.y))
@@ -1222,6 +1374,7 @@ func _do_parry(attacker: Node, point: Vector2) -> void:
 func on_parried(cause: Node = null) -> void:
 	if state == State.DEAD:
 		return
+	_interrupt_action_flow()
 	# 蓄力中被打断时【必须清掉】charge_frames：_physics_process 里蓄力分支
 	# 排在状态机之前，不清的话人会一边被弹飞一边继续蓄力。
 	charge_frames = -1
@@ -1246,6 +1399,8 @@ func on_parried(cause: Node = null) -> void:
 
 
 func reset_state(pos: Vector2) -> void:
+	_interrupt_action_flow()
+	action_idle_frames = 0
 	global_position = pos
 	velocity = Vector2.ZERO
 	hp = max_hp
@@ -1312,6 +1467,7 @@ func is_charging() -> bool:
 func _set_facing(dir: int) -> void:
 	if dir == 0:
 		return
+	display_facing = dir
 	if dir == facing:
 		# 【为什么"方向没变"也要贴一次判定盒】facing 是个公开 var，
 		# 任何一处裸写（`player.facing = 1`）都会绕开这个函数 ——
@@ -1372,3 +1528,200 @@ func _lerp_visual_scale(t: float) -> void:
 func _sync_visual_pivot() -> void:
 	# Stretch around the foot position, so the detailed sprite does not slide through the floor.
 	_visual.position.y = foot_offset * (1.0 - _visual.scale.y)
+
+
+# ------------------------------------------------------- Desktop action flow
+func _sprite_config() -> Dictionary:
+	return get_meta("character", {}).get("sprite", {})
+
+func _start_turn(target: int) -> void:
+	var sprite := _sprite_config()
+	var config: Dictionary = sprite.get("locomotion", {})
+	if not bool(config.get("enabled", false)):
+		return
+	var raw: Variant = config.get("turnRight" if target > 0 else "turnLeft", "")
+	var options: Dictionary = raw if raw is Dictionary else {"animation": str(raw)}
+	var animation := str(options.get("animation", ""))
+	var clip: Dictionary = sprite.get("animations", {}).get(animation, {})
+	if clip.get("frames", []).is_empty():
+		return
+	_turn_target = target
+	_turn_clip = clip
+	_turn_options = options
+	locomotion_source_facing = facing
+	locomotion_animation = animation
+	locomotion_clock = 0.0
+	locomotion_frame = 0
+
+func _advance_locomotion(delta: float) -> void:
+	if locomotion_animation.is_empty():
+		return
+	if state != State.NEUTRAL or not is_on_floor():
+		_cancel_locomotion()
+		return
+	locomotion_clock += delta
+	locomotion_frame = Timeline.frame_at(_turn_clip, locomotion_clock, -1.0, true, false)
+	var flip := int(_turn_options.get("flipFrame", _turn_clip.get("flipFrame", 0)))
+	if locomotion_frame >= flip:
+		_set_facing(_turn_target)
+	if _turn_can_cancel() and input_direction != 0 and input_direction != _turn_target:
+		_cancel_locomotion()
+		if input_direction != facing:
+			_start_turn(input_direction)
+			# A missing reverse transition must not retain the obsolete intent.
+			if locomotion_animation.is_empty():
+				_set_facing(input_direction)
+		return
+	var duration := Timeline.ticks_before(_turn_clip.get("frames", []), _turn_clip.get("frames", []).size()) / maxf(float(_turn_clip.get("fps", 24)), 0.001)
+	if locomotion_clock + 0.000001 >= duration:
+		_set_facing(_turn_target)
+		_cancel_locomotion()
+
+func _turn_can_cancel() -> bool:
+	return locomotion_frame >= int(_turn_options.get("cancelFrame", _turn_clip.get("cancelFrame", 0)))
+
+func _cancel_locomotion() -> void:
+	locomotion_animation = ""
+	locomotion_clock = 0.0
+	locomotion_frame = 0
+	_turn_clip = {}
+	_turn_options = {}
+
+func _reset_air_combo() -> void:
+	air_combo_index = 0
+	air_suspend_used = 0
+
+func _start_air_combo_move() -> void:
+	if is_on_floor() or air_combo_index >= air_combo.size():
+		return
+	var mv: Resource = air_combo[air_combo_index]
+	air_combo_index += 1
+	_start_move(mv, false)
+
+func _apply_air_attack_gravity(delta: float, mv: Resource) -> void:
+	if air_combo.is_empty() or not air_combo.has(mv) or is_on_floor():
+		_apply_gravity(delta, _gravity)
+		return
+	var budget := maxi(int(_sprite_config().get("airCombo", {}).get("maxSuspendFrames", 180)), 0)
+	if air_suspend_used < budget:
+		air_suspend_used += 1
+		if move_frame < maxi(mv.air_suspend_frames, 0):
+			velocity.y = 0.0
+			return
+		_apply_gravity(delta, _fall_gravity * clampf(mv.air_gravity_scale, 0.0, 1.0))
+	else:
+		_apply_gravity(delta, _fall_gravity)
+
+func _process_dash_attack(delta: float, mv: Resource, phase: StringName) -> void:
+	if phase == &"active":
+		_do_hit_check(mv)
+		if hitstop_this_tick:
+			return
+	var total := float(maxi(mv.total_frames(), 1))
+	var before: float = mv.distance_at(float(move_frame) / total)
+	var after: float = mv.distance_at(float(move_frame + 1) / total)
+	velocity.x = (after - before) * float(_dash_facing) / maxf(delta, 0.000001)
+	_set_facing(_dash_facing)
+	_apply_gravity(delta, _gravity)
+	move_and_slide()
+	move_frame += 1
+	if move_frame >= mv.total_frames():
+		_end_attack()
+		velocity.x = 0.0
+
+func _guard_config() -> Dictionary:
+	var character: Dictionary = get_meta("character", {})
+	return character.get("sprite", {}).get("guard", character.get("guard", {}))
+
+func _begin_guard_or_parry() -> void:
+	if bool(_guard_config().get("enabled", false)):
+		# Recovery cancel must actually leave the previous attack.
+		current_move = null
+		state = State.NEUTRAL
+		_start_guard(true)
+	else:
+		_start_move(parry_move, false)
+
+func _start_guard(precise: bool) -> void:
+	_cancel_locomotion()
+	_guard_active = true
+	_guard_frames = 0 if precise else int(_guard_config().get("parryWindowFrames", 0)) + 1
+	_guard_parried = not precise
+	guard_clock = 0.0
+	guard_animation = str(_guard_config().get("startupAnimation", "")) if precise else str(_guard_config().get("holdAnimation", ""))
+	action_serial += 1
+
+func _stop_guard() -> void:
+	_guard_active = false
+	guard_animation = ""
+	guard_clock = 0.0
+
+func is_guarding() -> bool:
+	if _guard_active and state == State.NEUTRAL:
+		return true
+	if not _reaction_guard_held or state != State.ATTACK \
+			or not (guard_reactions.has(current_move) or parry_reactions.has(current_move)):
+		return false
+	var latest := input_buffer.frame_at(0)
+	return latest != null and latest.actions.has(&"parry")
+
+func _process_guard(delta: float, frame: InputBuffer.Frame) -> bool:
+	if _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or frame.pressed_this_frame.has(&"jump"):
+		_stop_guard()
+		return false
+	_guard_frames += 1
+	# A tap grants the same precise window as a hold. Release ends defense only
+	# after that local window expires; continued holding then becomes ordinary guard.
+	if not frame.actions.has(&"parry") and not is_parrying():
+		_stop_guard()
+		return false
+	guard_clock += delta
+	var config := _guard_config()
+	var startup := str(config.get("startupAnimation", ""))
+	var clip: Dictionary = _sprite_config().get("animations", {}).get(startup, {})
+	var startup_frames: Array = clip.get("frames", [])
+	var startup_done := _guard_frames > int(config.get("parryWindowFrames", 0))
+	if not startup_frames.is_empty() and guard_animation == startup:
+		var duration := Timeline.ticks_before(startup_frames, startup_frames.size()) / maxf(float(clip.get("fps", 24)), 0.001)
+		startup_done = guard_clock + 0.000001 >= duration
+	if startup_done:
+		var hold := str(config.get("holdAnimation", ""))
+		if guard_animation != hold:
+			guard_animation = hold
+			guard_clock = 0.0
+	_move_horizontal(delta, frame, float(config.get("movementScale", 0.25)))
+	_apply_gravity(delta, _gravity)
+	move_and_slide()
+	return true
+
+func _do_block(attacker: Node, point: Vector2) -> void:
+	var config := _guard_config()
+	# Presentation is event-only; an empty L press never reaches this method.
+	hitstop_frames = maxi(hitstop_frames, int(config.get("blockHitstopFrames", parry_hitstop_frames)))
+	_play_guard_reaction(guard_reactions, false)
+	block_success.emit(attacker, point)
+
+func _play_guard_reaction(reactions: Array, parried: bool) -> void:
+	if reactions.is_empty():
+		return
+	var latest := input_buffer.frame_at(0)
+	var keep_guard := is_guarding() and latest != null and latest.actions.has(&"parry")
+	var index := _parry_variant if parried else _guard_variant
+	var mv: Resource = reactions[index % reactions.size()]
+	if parried:
+		_parry_variant += 1
+	else:
+		_guard_variant += 1
+	_start_move(mv, false)
+	_reaction_guard_held = keep_guard
+
+func _interrupt_action_flow() -> void:
+	_reaction_guard_held = false
+	_cancel_locomotion()
+	_stop_guard()
+	_reset_air_combo()
+	charge_frames = -1
+	_charge_accum = 0.0
+
+func is_combat_action_active() -> bool:
+	return state == State.ATTACK or charge_frames >= 0 or _guard_active

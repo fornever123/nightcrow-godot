@@ -1,0 +1,36 @@
+{
+  "axisName": "action_00014_a1",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "95c49c02-66bd-4ff5-8aa7-c4a09a58a2e2",
+  "fps": 24,
+  "count": 13,
+  "cellWidth": 2113,
+  "cellHeight": 1153,
+  "originX": 487,
+  "originY": 736,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": 569.17,
+      "offset_y": -159.17,
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "action_00014_a1_000.png",
+    "action_00014_a1_001.png",
+    "action_00014_a1_002.png",
+    "action_00014_a1_003.png",
+    "action_00014_a1_004.png",
+    "action_00014_a1_005.png",
+    "action_00014_a1_006.png",
+    "action_00014_a1_007.png",
+    "action_00014_a1_008.png",
+    "action_00014_a1_009.png",
+    "action_00014_a1_010.png",
+    "action_00014_a1_011.png",
+    "action_00014_a1_012.png"
+  ]
+}

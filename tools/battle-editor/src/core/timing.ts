@@ -53,4 +53,4 @@ export function syncTimings(config: JsonObject) {
     m.chainOpen = frameStartTime(clip,m.chainFrame,speed);
   }
 }
-export const clipLabels: Record<string,string> = {idle:'待机',run:'跑步',jump:'起跳',fall:'下落',land:'落地',attack_1:'第一刀',attack_up:'上挑',attack_2:'第二刀',attack_3:'第三刀',feather_slash:'羽毛刀光'};
+export const clipLabels: Record<string,string> = {idle:'待机',run:'跑步',jump:'起跳',fall:'下落',land:'落地',turn_left_right:'左转右',turn_right_left:'右转左',guard_start:'举起防守',guard_hold:'持续防守',draw:'拔刀',sheathe:'收刀',attack_1:'第一刀',attack_up:'上挑',attack_2:'第二刀',attack_3:'第三刀',air_light_1:'空中第一刀',air_light_2:'空中第二刀',air_light_3:'空中第三刀',dash_slash:'冲刺斩',guard_hit_1:'格挡受击一',guard_hit_2:'格挡受击二',guard_hit_3:'格挡受击三',parry_react_1:'弹刀反馈一',parry_react_2:'弹刀反馈二',parry_react_3:'弹刀反馈三',feather_slash:'羽毛刀光'};

@@ -1,0 +1,136 @@
+{
+  "axisName": "跳",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "562cc12b-0d30-4301-bb42-a1b11ef09d85",
+  "fps": 17,
+  "count": 17,
+  "cellWidth": 1303,
+  "cellHeight": 846,
+  "originX": 897,
+  "originY": 602,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": -262.5,
+      "offset_y": -127.5,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -261.41,
+      "offset_y": -228.95,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -261.41,
+      "offset_y": -130.71,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -261.41,
+      "offset_y": -118.75,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -261.41,
+      "offset_y": -104.22,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -261.41,
+      "offset_y": -102.51,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -260.56,
+      "offset_y": -150.35,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -259.7,
+      "offset_y": -180.25,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -257.5,
+      "offset_y": -190.0,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -246.89,
+      "offset_y": -255.43,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -246.89,
+      "offset_y": -246.89,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -246.03,
+      "offset_y": -252.01,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -242.62,
+      "offset_y": -254.58,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -233.33,
+      "offset_y": -252.5,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -231.67,
+      "offset_y": -255.83,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -231.67,
+      "offset_y": -254.17,
+      "scale": 0.6,
+      "rotation": 0.0
+    },
+    {
+      "offset_x": -228.33,
+      "offset_y": -251.67,
+      "scale": 0.6,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "跳_000.png",
+    "跳_001.png",
+    "跳_002.png",
+    "跳_003.png",
+    "跳_004.png",
+    "跳_005.png",
+    "跳_006.png",
+    "跳_007.png",
+    "跳_008.png",
+    "跳_009.png",
+    "跳_010.png",
+    "跳_011.png",
+    "跳_012.png",
+    "跳_013.png",
+    "跳_014.png",
+    "跳_015.png",
+    "跳_016.png"
+  ]
+}

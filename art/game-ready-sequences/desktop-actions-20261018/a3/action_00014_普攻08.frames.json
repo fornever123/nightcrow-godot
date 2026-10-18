@@ -1,0 +1,53 @@
+{
+  "axisName": "action_00014_普攻08",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "c1176f24-44a6-4242-89ce-39f731b9e701",
+  "fps": 24,
+  "count": 30,
+  "cellWidth": 2113,
+  "cellHeight": 1153,
+  "originX": 1016,
+  "originY": 737,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": 40.84,
+      "offset_y": -160.01,
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "action_00014_普攻08_000.png",
+    "action_00014_普攻08_001.png",
+    "action_00014_普攻08_002.png",
+    "action_00014_普攻08_003.png",
+    "action_00014_普攻08_004.png",
+    "action_00014_普攻08_005.png",
+    "action_00014_普攻08_006.png",
+    "action_00014_普攻08_007.png",
+    "action_00014_普攻08_008.png",
+    "action_00014_普攻08_009.png",
+    "action_00014_普攻08_010.png",
+    "action_00014_普攻08_011.png",
+    "action_00014_普攻08_012.png",
+    "action_00014_普攻08_013.png",
+    "action_00014_普攻08_014.png",
+    "action_00014_普攻08_015.png",
+    "action_00014_普攻08_016.png",
+    "action_00014_普攻08_017.png",
+    "action_00014_普攻08_018.png",
+    "action_00014_普攻08_019.png",
+    "action_00014_普攻08_020.png",
+    "action_00014_普攻08_021.png",
+    "action_00014_普攻08_022.png",
+    "action_00014_普攻08_023.png",
+    "action_00014_普攻08_024.png",
+    "action_00014_普攻08_025.png",
+    "action_00014_普攻08_026.png",
+    "action_00014_普攻08_027.png",
+    "action_00014_普攻08_028.png",
+    "action_00014_普攻08_029.png"
+  ]
+}

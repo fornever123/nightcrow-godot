@@ -1,0 +1,138 @@
+[
+  {
+    "clip": "idle",
+    "facing": 1,
+    "frame": 6,
+    "label": "idle",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "attack_1",
+    "facing": 1,
+    "frame": 0,
+    "label": "light_1_prepare",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.488372, 0.488372)"
+  },
+  {
+    "clip": "attack_1",
+    "facing": 1,
+    "frame": 5,
+    "label": "light_1",
+    "position": "(430.0, 496.0)",
+    "spriteScale": "(0.488372, 0.488372)"
+  },
+  {
+    "clip": "attack_2",
+    "facing": 1,
+    "frame": 3,
+    "label": "light_2",
+    "position": "(430.0, 496.0)",
+    "spriteScale": "(0.488372, 0.488372)"
+  },
+  {
+    "clip": "attack_3",
+    "facing": 1,
+    "frame": 1,
+    "label": "light_3",
+    "position": "(430.0, 496.0)",
+    "spriteScale": "(0.488372, 0.488372)"
+  },
+  {
+    "clip": "attack_up",
+    "facing": 1,
+    "frame": 9,
+    "label": "up_strike",
+    "position": "(430.1669, 495.9339)",
+    "spriteScale": "(0.488372, 0.488372)"
+  },
+  {
+    "clip": "dash_right",
+    "facing": 1,
+    "frame": 6,
+    "label": "dash_slash",
+    "position": "(503.0153, 495.9337)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "dash_left",
+    "facing": -1,
+    "frame": 6,
+    "label": "dash_slash_left",
+    "position": "(384.0984, 495.9334)",
+    "spriteScale": "(-0.410758, 0.410758)"
+  },
+  {
+    "clip": "jump",
+    "facing": -1,
+    "frame": 3,
+    "label": "jump",
+    "position": "(450.0, 389.7293)",
+    "spriteScale": "(-0.410758, 0.410758)"
+  },
+  {
+    "clip": "fall",
+    "facing": -1,
+    "frame": 2,
+    "label": "fall",
+    "position": "(450.0, 333.396)",
+    "spriteScale": "(-0.171079, 0.171079)"
+  },
+  {
+    "clip": "run",
+    "facing": 1,
+    "frame": 0,
+    "label": "run",
+    "position": "(479.5005, 495.9331)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "turn_right_left",
+    "facing": 1,
+    "frame": 1,
+    "label": "turn",
+    "position": "(481.1672, 495.9338)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "guard_start",
+    "facing": 1,
+    "frame": 2,
+    "label": "guard_start",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.422259, 0.400694)"
+  },
+  {
+    "clip": "guard_hold",
+    "facing": 1,
+    "frame": 0,
+    "label": "guard_hold",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.400694, 0.420822)"
+  },
+  {
+    "clip": "fall",
+    "facing": 1,
+    "frame": 6,
+    "label": "air_light_1",
+    "position": "(500.0, 373.0033)",
+    "spriteScale": "(-0.171079, 0.171079)"
+  },
+  {
+    "clip": "air_attack_2",
+    "facing": 1,
+    "frame": 3,
+    "label": "air_light_2",
+    "position": "(500.248, 280.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "air_attack_3",
+    "facing": 1,
+    "frame": 1,
+    "label": "air_light_3",
+    "position": "(500.248, 280.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  }
+]

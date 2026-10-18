@@ -144,3 +144,8 @@ body { background: #0f0f23; font-family: "Cascadia Code", "Microsoft YaHei UI", 
 @media(max-width:1100px) {.studio-layout,.stage-layout {grid-template-columns:1fr;}.topbar {flex-wrap:wrap;height:auto;}}
 
 .editor-field > span {font-size:13px;} .editor-field input,.editor-field select,.button {font-size:13px;} .pixi-stage-host canvas,.asset-card img,.asset-mini-card img,.media-canvas {image-rendering:auto;} .topbar {border-bottom-color:#765aa0;} .brand-mark {background:#7044a4;} .nav-item.active {border-color:#ac86da;background:#2b2040;} .sidebar {min-width:175px;}
+.source-details { margin-bottom: 12px; }
+.source-details h4 { margin: 0 0 8px; }
+.source-details p { margin: 4px 0; }
+.movement-point { align-items: end; margin: 8px 0; }
+.input-bindings { margin-top: 14px; }

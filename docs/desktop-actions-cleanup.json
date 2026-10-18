@@ -1,0 +1,3790 @@
+{
+  "groups": [
+    "a1",
+    "a2",
+    "a2加前摇",
+    "a2加后摇",
+    "a3",
+    "a3挑飞加后摇（强普）"
+  ],
+  "sourceFrameCount": 139,
+  "changedFrameCount": 96,
+  "unchangedFrameCount": 43,
+  "removedComponentCount": 100,
+  "opencvVersion": "4.11.0",
+  "numpyVersion": "1.26.4",
+  "pillowVersion": "12.3.0",
+  "alphaThreshold": 32,
+  "policy": "Delete only detached small near-white/gray components or isolated, thin, long canvas-border lines; ambiguous colored and large components are preserved.",
+  "frames": [
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00001.png",
+      "changed": true,
+      "width": 576,
+      "height": 720,
+      "sourceSha256": "75251e52fef0b236d9f58cf3332ce4e5d638c1c36ce363d34fb4dec44341c856",
+      "cleanedSha256": "89f78f7e10f83fcb9def88a98540ed10bea662b09d3d008701cd370b61dae8b0",
+      "primaryBbox": [
+        168,
+        373,
+        406,
+        347
+      ],
+      "primaryArea": 44747,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 650,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 370.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        },
+        {
+          "bbox": [
+            50,
+            155,
+            20,
+            98
+          ],
+          "area": 1219,
+          "nearWhiteOrGrayRatio": 0.895,
+          "distanceFromPrimaryPx": 154.93,
+          "reason": "detached_small_near_white_or_gray_component",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00002.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00002.png",
+      "changed": true,
+      "width": 576,
+      "height": 719,
+      "sourceSha256": "32a269d64b3b5968b7d67e4175e06df709eaf02caf5327adec6d3a23752b7389",
+      "cleanedSha256": "e3094e3072a8c2560248cd51145ddb8e318674d7e1e8ca40fe2a0e30b8334a81",
+      "primaryBbox": [
+        160,
+        373,
+        416,
+        346
+      ],
+      "primaryArea": 45042,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 650,
+          "nearWhiteOrGrayRatio": 0.0123,
+          "distanceFromPrimaryPx": 370.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00003.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00003.png",
+      "changed": true,
+      "width": 576,
+      "height": 720,
+      "sourceSha256": "5368379a3bf463a6a3378d14c64b2285b2312b70dfc7b7ed96f265a04cab21c5",
+      "cleanedSha256": "3277c3b1eb109928ae2fe0a030fc53f30835224d61bc994ca30eae86b38e8433",
+      "primaryBbox": [
+        180,
+        374,
+        380,
+        346
+      ],
+      "primaryArea": 44779,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 642,
+          "nearWhiteOrGrayRatio": 0.0125,
+          "distanceFromPrimaryPx": 371.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00004.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00004.png",
+      "changed": true,
+      "width": 570,
+      "height": 719,
+      "sourceSha256": "0e367499895a8535f025ef473a60fba4349a8478df87326a290dc4291e09285e",
+      "cleanedSha256": "2b1826497f811bce678f0b04a77df2ecb171b6feb9e24adcae7c0eb6599bd365",
+      "primaryBbox": [
+        228,
+        372,
+        342,
+        347
+      ],
+      "primaryArea": 44681,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 644,
+          "nearWhiteOrGrayRatio": 0.0124,
+          "distanceFromPrimaryPx": 369.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00005.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00005.png",
+      "changed": true,
+      "width": 576,
+      "height": 719,
+      "sourceSha256": "34f778d91682d3905880eee23684c512ebe6a02e7c488a49bd80d03328622e94",
+      "cleanedSha256": "848fcff112020340686442693988d030a581242f0d2636d931995d380eef1a2f",
+      "primaryBbox": [
+        178,
+        335,
+        398,
+        384
+      ],
+      "primaryArea": 50610,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 652,
+          "nearWhiteOrGrayRatio": 0.0123,
+          "distanceFromPrimaryPx": 332.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00006.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00006.png",
+      "changed": true,
+      "width": 1092,
+      "height": 721,
+      "sourceSha256": "82015c887318c6fabfc546b7523a7cb0f0905f4837e46e0f7f557bffcd3a5442",
+      "cleanedSha256": "ddff0d01f278bcb85f7e79f019f0ed1c03543e2a743957aeef79159d34c29409",
+      "primaryBbox": [
+        252,
+        303,
+        840,
+        418
+      ],
+      "primaryArea": 139650,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 641,
+          "nearWhiteOrGrayRatio": 0.0296,
+          "distanceFromPrimaryPx": 300.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00007.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00007.png",
+      "changed": true,
+      "width": 1088,
+      "height": 721,
+      "sourceSha256": "1cb2b24663cc1f48694925c39821da510a1adab51c979faa56ab922aa32ad03f",
+      "cleanedSha256": "8fb16061057f5c1114eb372d0778f6b8dce5459b700db9b38883d0430185ff74",
+      "primaryBbox": [
+        380,
+        303,
+        708,
+        418
+      ],
+      "primaryArea": 138595,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 639,
+          "nearWhiteOrGrayRatio": 0.0297,
+          "distanceFromPrimaryPx": 300.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00008.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00008.png",
+      "changed": true,
+      "width": 1072,
+      "height": 721,
+      "sourceSha256": "023739c2deb409e375806f56b195eed7af63c1002161c5a7292f3e02c1adef43",
+      "cleanedSha256": "d7706012d0900330dce809badf65b7c15b0850f568fa6ea247dc20576a759f71",
+      "primaryBbox": [
+        386,
+        413,
+        686,
+        308
+      ],
+      "primaryArea": 84668,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 656,
+          "nearWhiteOrGrayRatio": 0.029,
+          "distanceFromPrimaryPx": 410.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00009.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00009.png",
+      "changed": true,
+      "width": 993,
+      "height": 721,
+      "sourceSha256": "a19f21555cc5e38b66c4113ce6e36275af6bc67be92716a2b0046761f18553a3",
+      "cleanedSha256": "8ab3971b5a8135970a914c6450d4ca58736831cf7756b05a884f29eda1a4f203",
+      "primaryBbox": [
+        386,
+        478,
+        572,
+        243
+      ],
+      "primaryArea": 45285,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 663,
+          "nearWhiteOrGrayRatio": 0.0166,
+          "distanceFromPrimaryPx": 475.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00010.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00010.png",
+      "changed": true,
+      "width": 824,
+      "height": 721,
+      "sourceSha256": "c7405c8dabd86d4768d1fe83307beabc528360e84cb881fd491c2d6c65ac0874",
+      "cleanedSha256": "ec825d94d51b1975b6e8e112d904a8defee6e8da7a54bd0dbfd5e796c9417628",
+      "primaryBbox": [
+        384,
+        472,
+        440,
+        249
+      ],
+      "primaryArea": 42616,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 655,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 469.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00011.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00011.png",
+      "changed": true,
+      "width": 905,
+      "height": 721,
+      "sourceSha256": "aeb123841b5c7e73214d8063c06dc4e0fc2e9e04400aacf5e57c6fc9da45c9a0",
+      "cleanedSha256": "45f0272af3f665f74b9a0e360b62248ba1004b2031e3d5e5c0fff5ee397b7c77",
+      "primaryBbox": [
+        384,
+        471,
+        431,
+        250
+      ],
+      "primaryArea": 42429,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 654,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 468.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00012.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00012.png",
+      "changed": true,
+      "width": 690,
+      "height": 721,
+      "sourceSha256": "642965e23eba34db44eef0275dc95a67604d770f5a71b7060099210215345a38",
+      "cleanedSha256": "1ae9225652891162e08706ce21992fb9e31c4350c6c24c1940adc34666c5afae",
+      "primaryBbox": [
+        384,
+        471,
+        306,
+        250
+      ],
+      "primaryArea": 37569,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 656,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 468.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        },
+        {
+          "bbox": [
+            54,
+            156,
+            16,
+            89
+          ],
+          "area": 884,
+          "nearWhiteOrGrayRatio": 0.8597,
+          "distanceFromPrimaryPx": 386.87,
+          "reason": "detached_small_near_white_or_gray_component",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a1/frame_00013.png",
+      "cleaned": "assets/image/desktop-actions-clean/a1/frame_00013.png",
+      "changed": true,
+      "width": 686,
+      "height": 721,
+      "sourceSha256": "593b38a90d7dd38fe7769bcf512097851b7c771073a2301312cbc98f05b16e44",
+      "cleanedSha256": "c61cc2bd0221be56c224062c0d0d7ff52b04d3a8999915a1e0dd52bc201e3461",
+      "primaryBbox": [
+        384,
+        475,
+        302,
+        246
+      ],
+      "primaryArea": 37403,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 666,
+          "nearWhiteOrGrayRatio": 0.0195,
+          "distanceFromPrimaryPx": 472.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        },
+        {
+          "bbox": [
+            55,
+            207,
+            13,
+            23
+          ],
+          "area": 219,
+          "nearWhiteOrGrayRatio": 0.863,
+          "distanceFromPrimaryPx": 399.85,
+          "reason": "detached_small_near_white_or_gray_component",
+          "alphaThreshold": 32
+        },
+        {
+          "bbox": [
+            63,
+            231,
+            7,
+            13
+          ],
+          "area": 78,
+          "nearWhiteOrGrayRatio": 0.8462,
+          "distanceFromPrimaryPx": 389.82,
+          "reason": "detached_small_near_white_or_gray_component",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00001.png",
+      "changed": true,
+      "width": 682,
+      "height": 721,
+      "sourceSha256": "12d8004f10641d12efc196a448fc0cdd0fb722309c1d8bbf8ee406b5e1f421e6",
+      "cleanedSha256": "737b48e1c984c48d6addb15588a8a2bc8a524e7ca69e4cf6cc8eccfae1affdb6",
+      "primaryBbox": [
+        375,
+        477,
+        307,
+        244
+      ],
+      "primaryArea": 39636,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 660,
+          "nearWhiteOrGrayRatio": 0.0182,
+          "distanceFromPrimaryPx": 474.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00002.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00002.png",
+      "changed": true,
+      "width": 682,
+      "height": 721,
+      "sourceSha256": "f1ba177e5080efd1b44bcdd1a88d49545007d1aff7dc42c7d667f436e8b1441d",
+      "cleanedSha256": "631ea526ea4400960aa374f016433087931d7803a06e135f82d57a3030eb26ac",
+      "primaryBbox": [
+        377,
+        477,
+        305,
+        244
+      ],
+      "primaryArea": 38652,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 667,
+          "nearWhiteOrGrayRatio": 0.021,
+          "distanceFromPrimaryPx": 474.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00003.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00003.png",
+      "changed": true,
+      "width": 880,
+      "height": 721,
+      "sourceSha256": "8be7b2e65991dad2e32350fee40b3d37482636a1ae0e39cc41fa659e5d2471ed",
+      "cleanedSha256": "be024ddb00044625d5272921ee6062d8f8b104c7fa4844881eaea8d622027408",
+      "primaryBbox": [
+        526,
+        431,
+        354,
+        290
+      ],
+      "primaryArea": 45344,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 648,
+          "nearWhiteOrGrayRatio": 0.017,
+          "distanceFromPrimaryPx": 428.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00004.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00004.png",
+      "changed": true,
+      "width": 1299,
+      "height": 721,
+      "sourceSha256": "4a73690051e375cdd3939abfe6632a2175077cf9e092c8bc62894ecec458a865",
+      "cleanedSha256": "b70902aae90e96afb70b7e832cbb74e1ca665572597aed7786accc2a64aee1ea",
+      "primaryBbox": [
+        304,
+        367,
+        995,
+        354
+      ],
+      "primaryArea": 157533,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 674,
+          "nearWhiteOrGrayRatio": 0.0163,
+          "distanceFromPrimaryPx": 364.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00005.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00005.png",
+      "changed": true,
+      "width": 1292,
+      "height": 721,
+      "sourceSha256": "9c62a0dffe68125430dbed3a863c1d1ac7048f01886a93e08b068bb6623ef8cb",
+      "cleanedSha256": "ef515b4f8a104c913b9329590924ed7ea3c1e69ea221423213764dc8886dc090",
+      "primaryBbox": [
+        318,
+        367,
+        974,
+        354
+      ],
+      "primaryArea": 135300,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 647,
+          "nearWhiteOrGrayRatio": 0.017,
+          "distanceFromPrimaryPx": 364.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00006.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00006.png",
+      "changed": true,
+      "width": 1196,
+      "height": 721,
+      "sourceSha256": "92e937cc1b340d0011e7760a2a3bba2812991808fed23d61d1a98706e8c13467",
+      "cleanedSha256": "f3099d3f6c547fa76c1a0079dc948d65ec7e93affe0ea8d3d44bd4f82bfa1190",
+      "primaryBbox": [
+        404,
+        367,
+        792,
+        354
+      ],
+      "primaryArea": 104024,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 665,
+          "nearWhiteOrGrayRatio": 0.0165,
+          "distanceFromPrimaryPx": 364.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00007.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00007.png",
+      "changed": true,
+      "width": 912,
+      "height": 721,
+      "sourceSha256": "96e7087d6c9681b8b5ad19231682fd4111feedcf6d1e94642ada527aabd16152",
+      "cleanedSha256": "0e4e04d629e6e1a12736e371320b8cf03a07a8013999a0af443360768122673c",
+      "primaryBbox": [
+        335,
+        362,
+        577,
+        359
+      ],
+      "primaryArea": 80465,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 653,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 359.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00008.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00008.png",
+      "changed": true,
+      "width": 896,
+      "height": 721,
+      "sourceSha256": "62c316371e2c6eae977226cab8baec9c41d4344e36bdfc9096c721e196c058c0",
+      "cleanedSha256": "a6508f28431a8a4bb4625ad491fa2379da768b4ea75a4268f21d071f2d62b1b3",
+      "primaryBbox": [
+        325,
+        455,
+        571,
+        266
+      ],
+      "primaryArea": 53092,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 645,
+          "nearWhiteOrGrayRatio": 0.0171,
+          "distanceFromPrimaryPx": 452.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00009.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00009.png",
+      "changed": true,
+      "width": 886,
+      "height": 721,
+      "sourceSha256": "774f90981b4d7cc75adc2e82ab488c8142dff485fb776b35576d21abdb13dd7c",
+      "cleanedSha256": "dacd916ee80098baaf397eebf8e0103ba54d152d892183606b42649ba29a8f2b",
+      "primaryBbox": [
+        410,
+        452,
+        476,
+        269
+      ],
+      "primaryArea": 47968,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 683,
+          "nearWhiteOrGrayRatio": 0.0161,
+          "distanceFromPrimaryPx": 449.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00010.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00010.png",
+      "changed": true,
+      "width": 880,
+      "height": 721,
+      "sourceSha256": "3bd5aca4631be4977cc20b10f4e4e22244cfdb9277ec2e464b4e9e5509c1c1d0",
+      "cleanedSha256": "e347ce903130651e724d53bde83ccc42026c879d586638dcbe761d850b2565f1",
+      "primaryBbox": [
+        410,
+        450,
+        470,
+        271
+      ],
+      "primaryArea": 48061,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            531,
+            3
+          ],
+          "area": 694,
+          "nearWhiteOrGrayRatio": 0.0159,
+          "distanceFromPrimaryPx": 447.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00011.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00011.png",
+      "changed": true,
+      "width": 874,
+      "height": 721,
+      "sourceSha256": "77395234f5dbd5b07b59b4a15f05a00f3b5aa58d531fe2097cfe33e1846e000b",
+      "cleanedSha256": "3d1d72cf63b6cc52be536d7d12c73c32b7b05b2657b8eac1b0e35f62e042a9fb",
+      "primaryBbox": [
+        410,
+        450,
+        464,
+        271
+      ],
+      "primaryArea": 48117,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 700,
+          "nearWhiteOrGrayRatio": 0.0157,
+          "distanceFromPrimaryPx": 447.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00012.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00012.png",
+      "changed": true,
+      "width": 866,
+      "height": 721,
+      "sourceSha256": "2032b273b394be1eb910803c8b0d7d181887aaf0b67dc4e4e18596767575efc2",
+      "cleanedSha256": "c5f244d8118e387c512dde6d0d39d9f0cfa2690926dfe79dcb287e478bd0553d",
+      "primaryBbox": [
+        409,
+        447,
+        457,
+        274
+      ],
+      "primaryArea": 47528,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            530,
+            3
+          ],
+          "area": 699,
+          "nearWhiteOrGrayRatio": 0.0157,
+          "distanceFromPrimaryPx": 444.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00013.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00013.png",
+      "changed": true,
+      "width": 864,
+      "height": 721,
+      "sourceSha256": "a64faa94175e67214cb1543d1ed2a1d1e6b5f2662cda7edc876f280116ea75a9",
+      "cleanedSha256": "eb88ba0ad5410c83d63b56f5550c1fe2008d9dcf74b5d51df013a81ccefb4e17",
+      "primaryBbox": [
+        409,
+        450,
+        455,
+        271
+      ],
+      "primaryArea": 46971,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            506,
+            3
+          ],
+          "area": 658,
+          "nearWhiteOrGrayRatio": 0.0167,
+          "distanceFromPrimaryPx": 447.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00014.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00014.png",
+      "changed": true,
+      "width": 862,
+      "height": 721,
+      "sourceSha256": "71e50cf896b83a103414fc08937b91c1e12ea8ec0bea9f68315f9d6e288e542f",
+      "cleanedSha256": "9614540f889eb829148e58af501bc00744acfce6b2b6e1390b9e1cc5956f0180",
+      "primaryBbox": [
+        408,
+        450,
+        454,
+        271
+      ],
+      "primaryArea": 46753,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            506,
+            3
+          ],
+          "area": 653,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 447.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00015.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00015.png",
+      "changed": true,
+      "width": 862,
+      "height": 721,
+      "sourceSha256": "b12d12d9eae664d13b998abc5afe5b1922d92db3129c02eff0c8171e648123db",
+      "cleanedSha256": "d07f931314396146c5b2bf1fe671541048ca13070ed3c17f6639ee1f0437624d",
+      "primaryBbox": [
+        409,
+        450,
+        453,
+        271
+      ],
+      "primaryArea": 46510,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            506,
+            3
+          ],
+          "area": 658,
+          "nearWhiteOrGrayRatio": 0.0167,
+          "distanceFromPrimaryPx": 447.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00016.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00016.png",
+      "changed": true,
+      "width": 864,
+      "height": 721,
+      "sourceSha256": "c6e8b95b4eb40053574b7a5c6fd79d9d161dab9201d960d9d3473bd785c296a2",
+      "cleanedSha256": "be4672579c4640efc13e2b026236ecbbf8aff1cef27d1d8275002caae328acc1",
+      "primaryBbox": [
+        409,
+        447,
+        455,
+        274
+      ],
+      "primaryArea": 46092,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            506,
+            3
+          ],
+          "area": 652,
+          "nearWhiteOrGrayRatio": 0.0169,
+          "distanceFromPrimaryPx": 444.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00017.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00017.png",
+      "changed": true,
+      "width": 862,
+      "height": 721,
+      "sourceSha256": "9592184b69f362a7e765c54778058d05da57c3bdcabaa6bd93140db2b0b20fa1",
+      "cleanedSha256": "28504ce007fe081aaef49a46251c1e65131f37ce765c295f15f1b7056a5291db",
+      "primaryBbox": [
+        410,
+        455,
+        452,
+        266
+      ],
+      "primaryArea": 46119,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            504,
+            3
+          ],
+          "area": 653,
+          "nearWhiteOrGrayRatio": 0.0168,
+          "distanceFromPrimaryPx": 452.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2/frame_00018.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2/frame_00018.png",
+      "changed": true,
+      "width": 868,
+      "height": 720,
+      "sourceSha256": "5c70502387e4ac46e4564326268c861dddea21d18f4330333d7441e8cbc91a0e",
+      "cleanedSha256": "b359bcf10feba4e18216eff554207764161586a5096ae7a4c50ca0dae7fc3e08",
+      "primaryBbox": [
+        433,
+        448,
+        435,
+        272
+      ],
+      "primaryArea": 44462,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            504,
+            3
+          ],
+          "area": 641,
+          "nearWhiteOrGrayRatio": 0.0172,
+          "distanceFromPrimaryPx": 445.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00001.png",
+      "changed": true,
+      "width": 1140,
+      "height": 719,
+      "sourceSha256": "96324f45359ae2b967c6592b88499b012c2accd0ebf1526728f66ee7b43466cd",
+      "cleanedSha256": "9007277c4214fa7f4748dc3e19595fcc68cc93c14502cfbb6b79094947e6c692",
+      "primaryBbox": [
+        0,
+        376,
+        1140,
+        343
+      ],
+      "primaryArea": 52242,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 523,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 373.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00002.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00002.png",
+      "changed": true,
+      "width": 1134,
+      "height": 720,
+      "sourceSha256": "700ff2553f6df9bcaaa89f2f82bd3470ad4530c3c45ed9564de46b1a5b459e03",
+      "cleanedSha256": "d3d2c3f16d52974855eb6612cd5b4daae1e48eda3ca38fa9ad52299fc6987b66",
+      "primaryBbox": [
+        722,
+        374,
+        412,
+        346
+      ],
+      "primaryArea": 45905,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 523,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 606.66,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00003.png",
+      "changed": false,
+      "width": 1262,
+      "height": 721,
+      "sourceSha256": "8fe797fdbcebb922246e13dc36227431034b851d28bee428a5729803177c573c",
+      "primaryBbox": [
+        701,
+        379,
+        419,
+        342
+      ],
+      "primaryArea": 47962,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00004.png",
+      "changed": false,
+      "width": 1617,
+      "height": 721,
+      "sourceSha256": "04efefd37850180a6432a086279795eb9e2c76e0a87e0c8b9c0fd6662c2ed4dd",
+      "primaryBbox": [
+        688,
+        371,
+        929,
+        350
+      ],
+      "primaryArea": 153245,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00005.png",
+      "changed": false,
+      "width": 1874,
+      "height": 721,
+      "sourceSha256": "a16331c978da0a460589af751849c6f041ce9b7f764fea58fb267abb590256ec",
+      "primaryBbox": [
+        646,
+        371,
+        870,
+        350
+      ],
+      "primaryArea": 111777,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00006.png",
+      "changed": false,
+      "width": 1232,
+      "height": 721,
+      "sourceSha256": "b9ad15dce80e5cc0a09592b0664c479f41d81d3183558379115727e386d16486",
+      "primaryBbox": [
+        648,
+        363,
+        584,
+        358
+      ],
+      "primaryArea": 76820,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00007.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00007.png",
+      "changed": true,
+      "width": 1215,
+      "height": 721,
+      "sourceSha256": "76833e3aa1569ed51d872633abf6dbde7135f08de416d1df8e420b26b1f0230a",
+      "cleanedSha256": "18fe06357308b24ad2c957cea17100eb0a2022254f87a82024aebc5d52de6716",
+      "primaryBbox": [
+        646,
+        450,
+        569,
+        271
+      ],
+      "primaryArea": 53550,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 498,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 601.85,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00008.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00008.png",
+      "changed": true,
+      "width": 1206,
+      "height": 721,
+      "sourceSha256": "698fb791cbde5b859f544ddc3802acde94dedc047118d6cb768ac4cc21ba1e0e",
+      "cleanedSha256": "405e442867f0ba423d88791a4b26e227671a29223072644985aa8b78094c50b1",
+      "primaryBbox": [
+        728,
+        447,
+        478,
+        274
+      ],
+      "primaryArea": 48112,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 496,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 657.54,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00009.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00009.png",
+      "changed": true,
+      "width": 1200,
+      "height": 721,
+      "sourceSha256": "e0391f94c723c0614aa4ff49085a7105b36b8b44b6d16e933237334c8740c62a",
+      "cleanedSha256": "027083018b7bc618dbbe3dfef02d3b2b3a8d7bf5c4cbf02e15ca9b1dc062217a",
+      "primaryBbox": [
+        728,
+        446,
+        472,
+        275
+      ],
+      "primaryArea": 47970,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 498,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.87,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00010.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00010.png",
+      "changed": true,
+      "width": 1200,
+      "height": 721,
+      "sourceSha256": "270c0eb82f7996458484ec46fe5255117d1865ad205fac6b3ae9a871cadad39c",
+      "cleanedSha256": "3c5abb75db174586d4abeef9c9face2b6d68eb89b8367702336d2d64c47e7b21",
+      "primaryBbox": [
+        728,
+        446,
+        472,
+        275
+      ],
+      "primaryArea": 47965,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 506,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.87,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00011.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00011.png",
+      "changed": true,
+      "width": 1187,
+      "height": 721,
+      "sourceSha256": "b0ac8182e3c94ed2cf59091e7b84eef01f838e906f4f9187a4392c2e17528a64",
+      "cleanedSha256": "2e212df569b856e780b4af38955b74928572d16e01fb3d885c164e08b7dd1718",
+      "primaryBbox": [
+        727,
+        447,
+        460,
+        274
+      ],
+      "primaryArea": 47755,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 506,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.8,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00012.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00012.png",
+      "changed": true,
+      "width": 1184,
+      "height": 721,
+      "sourceSha256": "3b04f5a36cc6475fe672ed843d83ffcab1072ffb3dc9da4bdac9ad400de84b15",
+      "cleanedSha256": "e4da8141f2af8da0555ca60b746cdfa59777abd08127a7304228b8ae2871326f",
+      "primaryBbox": [
+        727,
+        447,
+        457,
+        274
+      ],
+      "primaryArea": 47261,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 506,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.8,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00013.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00013.png",
+      "changed": true,
+      "width": 1184,
+      "height": 721,
+      "sourceSha256": "56f0c4c56bd373c4e6c28a4addcd56ee06be6fdd8fee6cb7f61742dd2b51d710",
+      "cleanedSha256": "5c1b4c05eaf1571719525cd38120919035780a95afe4e67b6d00fed22735d940",
+      "primaryBbox": [
+        727,
+        447,
+        457,
+        274
+      ],
+      "primaryArea": 46679,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 512,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.8,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00014.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00014.png",
+      "changed": true,
+      "width": 1183,
+      "height": 721,
+      "sourceSha256": "181ce68f2088df4a2bdf17361ce0121982cb188f50f5b9e20cba01265fa1a14c",
+      "cleanedSha256": "109f530df5b7a989721a0145c43bd53e01c2a1bad8084f1071d99814e97d2cfd",
+      "primaryBbox": [
+        727,
+        447,
+        456,
+        274
+      ],
+      "primaryArea": 46522,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 512,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.8,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00015.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00015.png",
+      "changed": true,
+      "width": 1188,
+      "height": 721,
+      "sourceSha256": "b384a373cc7533a8284bf549e21451f211cc0ef0abf6b26958c0a8b2928468bd",
+      "cleanedSha256": "af3c7a15369c6f5f21a23f5e43e101cff9c604b0034eea923c17c4561750a949",
+      "primaryBbox": [
+        727,
+        447,
+        461,
+        274
+      ],
+      "primaryArea": 46630,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 482,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 656.8,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00016.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00016.png",
+      "changed": true,
+      "width": 1186,
+      "height": 721,
+      "sourceSha256": "9403c1b5eed4875e447e93ead4afbb1441ba9c38813b1861194e635cff3f2969",
+      "cleanedSha256": "5bc98706a7b93f2880f4f8bd1f2b89f2a74f64d4940f3dae0e5a9290776d78d2",
+      "primaryBbox": [
+        729,
+        441,
+        457,
+        280
+      ],
+      "primaryArea": 46669,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            3
+          ],
+          "area": 496,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 654.25,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加前摇/frame_00017.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加前摇/frame_00017.png",
+      "changed": true,
+      "width": 1200,
+      "height": 721,
+      "sourceSha256": "36ef3fe89ec863b645146b33497b91bdd96fa1bca7109a11b44c449b2747f08b",
+      "cleanedSha256": "10ac53783f64a3595d174494dcfe38c52a455a4f9e1618f5a3ce5d64e2ba5ff5",
+      "primaryBbox": [
+        736,
+        421,
+        464,
+        300
+      ],
+      "primaryArea": 47439,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            2
+          ],
+          "area": 482,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 647.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00001.png",
+      "changed": true,
+      "width": 1025,
+      "height": 721,
+      "sourceSha256": "a862f86878af2547d5811fbebb7452d561dc404e2bb276393dad342c8595c056",
+      "cleanedSha256": "ceb66203f224171e668eb1acb930eb6cf15879f03237b98abc84a063d739543a",
+      "primaryBbox": [
+        624,
+        429,
+        401,
+        291
+      ],
+      "primaryArea": 51051,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            502,
+            3
+          ],
+          "area": 643,
+          "nearWhiteOrGrayRatio": 0.0171,
+          "distanceFromPrimaryPx": 443.13,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00002.png",
+      "changed": false,
+      "width": 1402,
+      "height": 720,
+      "sourceSha256": "0e20cdf70e72408c2faef708aa43823716e28b250d3069b86800c4873e3e74ea",
+      "primaryBbox": [
+        400,
+        369,
+        1002,
+        351
+      ],
+      "primaryArea": 155323,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00003.png",
+      "changed": false,
+      "width": 1856,
+      "height": 721,
+      "sourceSha256": "3b6943949d964c31021eb948a149511a0f7b3f5e0fa371f6dc55e5c14ad95538",
+      "primaryBbox": [
+        448,
+        369,
+        830,
+        352
+      ],
+      "primaryArea": 103428,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00004.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00004.png",
+      "changed": true,
+      "width": 1272,
+      "height": 721,
+      "sourceSha256": "6f4e339fdc072e6c0176ebf78e622eb9ee8134437b4bbbc83e9cbc82b3f2fdcc",
+      "cleanedSha256": "1a3bb7968a64d0f732b98c7a143e5bb4671ca320506ffa9c1d6686c7a5cc4dc6",
+      "primaryBbox": [
+        364,
+        369,
+        908,
+        352
+      ],
+      "primaryArea": 108572,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 359,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 381.32,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00005.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00005.png",
+      "changed": true,
+      "width": 936,
+      "height": 721,
+      "sourceSha256": "e353d7dec88bd9e4b201870a271d2dff2ad24ae181022deffc7b86187080e835",
+      "cleanedSha256": "87bc7fd8371c52b44528fe663bf82f7060ab2fbc42bdeba5cf344a0c413f6856",
+      "primaryBbox": [
+        441,
+        362,
+        495,
+        359
+      ],
+      "primaryArea": 70159,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 351,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 403.41,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00006.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00006.png",
+      "changed": true,
+      "width": 912,
+      "height": 721,
+      "sourceSha256": "851e9b229f5a27f0fe900db4fa5c7cd3297949091710b8110ea0bdcca8348b40",
+      "cleanedSha256": "a2d1b08a271ed720aaaf769b07129af2adbbaf5859bb4ffe6250144a625aa09c",
+      "primaryBbox": [
+        432,
+        450,
+        480,
+        271
+      ],
+      "primaryArea": 49447,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 480.04,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00007.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00007.png",
+      "changed": true,
+      "width": 899,
+      "height": 721,
+      "sourceSha256": "3db1bec17055653c7c650a78cf3644e9ae26726cda77d60566549e0b07ca60e9",
+      "cleanedSha256": "b8246d0446d3d634561420dbef905d14e2bf6c4d37fd867a2af640a559594ff9",
+      "primaryBbox": [
+        424,
+        447,
+        475,
+        274
+      ],
+      "primaryArea": 47620,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 474.37,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00008.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00008.png",
+      "changed": true,
+      "width": 892,
+      "height": 721,
+      "sourceSha256": "46734b010ea260cce900968f1e6605740d6032d1f6f8cfc7a42094b28639ae83",
+      "cleanedSha256": "1cb97d488c3f4d68142351b2fbc25702339dc212de9b2aaeed1aad5ab76ccab0",
+      "primaryBbox": [
+        423,
+        447,
+        469,
+        274
+      ],
+      "primaryArea": 47333,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 474.02,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00009.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00009.png",
+      "changed": true,
+      "width": 883,
+      "height": 721,
+      "sourceSha256": "c940c45551227771764b23c670c167d6f4441c12c3c7f74b5c718d13c75800c4",
+      "cleanedSha256": "3244d7141dceb2a5bd39ce11f8e43cb0dfada0d71dfed1f596704a5738e9e225",
+      "primaryBbox": [
+        423,
+        447,
+        460,
+        274
+      ],
+      "primaryArea": 47179,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 474.02,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00010.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00010.png",
+      "changed": true,
+      "width": 884,
+      "height": 721,
+      "sourceSha256": "582c6cf57db5f2b60275641cfd8b074ed7cece2913fe6a80cae0323e7104b382",
+      "cleanedSha256": "9736bba983e35be3938a10f3cd8e6dd6a5f2246d08aa7905957efeadb79ac583",
+      "primaryBbox": [
+        423,
+        447,
+        461,
+        274
+      ],
+      "primaryArea": 47017,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 474.02,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00011.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00011.png",
+      "changed": true,
+      "width": 878,
+      "height": 721,
+      "sourceSha256": "be011e3fde9ba09777634a257ad4217312351a7ab4dfa6ee2371d003cf7f643e",
+      "cleanedSha256": "b599a35035c8d4b6ec2e84ebe6aad0a1a15b9872983c56945a0c1d97a5315d99",
+      "primaryBbox": [
+        422,
+        447,
+        456,
+        274
+      ],
+      "primaryArea": 46415,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 337,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 473.67,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00012.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00012.png",
+      "changed": true,
+      "width": 878,
+      "height": 721,
+      "sourceSha256": "7bd94114cb79cc005390f0abf24e86227b9715ced1278cd88b238b0d91e4c3d5",
+      "cleanedSha256": "e996b6697876b6e37d01dfef861e8c9f6bfd86237b3b9bb12046f2799c9aac6f",
+      "primaryBbox": [
+        422,
+        447,
+        456,
+        274
+      ],
+      "primaryArea": 46231,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 338,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 473.67,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00013.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00013.png",
+      "changed": true,
+      "width": 878,
+      "height": 721,
+      "sourceSha256": "e931c9aee0cca8f5cca57583177a97e5ee47cb4540d5fc1f31f1778fe56aea3e",
+      "cleanedSha256": "dfb048374ca4c607db687447c28769a6b42f35a7aa86c6cfc511d8f277f28705",
+      "primaryBbox": [
+        422,
+        447,
+        456,
+        274
+      ],
+      "primaryArea": 46338,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 337,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 473.67,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00014.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00014.png",
+      "changed": true,
+      "width": 880,
+      "height": 721,
+      "sourceSha256": "28388ea538832aa541005fe12cfb0b58cc1cf80855aad550fc590c6c96652722",
+      "cleanedSha256": "bd94af9c64050920d6c5163b5d0f1a9041c1fae270a1a4a8a6f60f3b37119ed1",
+      "primaryBbox": [
+        422,
+        447,
+        458,
+        274
+      ],
+      "primaryArea": 46258,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 337,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 473.67,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00015.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00015.png",
+      "changed": true,
+      "width": 880,
+      "height": 721,
+      "sourceSha256": "889cc576764ae74212bac9dc7438ad1dec34461d6a0f7b5555b84917bcc2367b",
+      "cleanedSha256": "08a4945509b264d153ee2e1093a3e776428833e0418a8712d6b51ff898c1d829",
+      "primaryBbox": [
+        422,
+        447,
+        458,
+        274
+      ],
+      "primaryArea": 46224,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            240,
+            3
+          ],
+          "area": 334,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 479.85,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00016.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00016.png",
+      "changed": true,
+      "width": 880,
+      "height": 721,
+      "sourceSha256": "02b5afd1881d2fdf8e8a298f95e8a0afad572969553931fa2b81d7fc2e653b53",
+      "cleanedSha256": "b54a6bd47287e9198dd2e2aff7d93dc2915c63cf1f9ac6cdab4a172cb0a7f53e",
+      "primaryBbox": [
+        424,
+        446,
+        456,
+        275
+      ],
+      "primaryArea": 46961,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            240,
+            3
+          ],
+          "area": 334,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 479.69,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00017.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00017.png",
+      "changed": true,
+      "width": 886,
+      "height": 721,
+      "sourceSha256": "55ce6afa668e8638cbbe1a126b1df44b3667781edc1205a138011615358dc8b4",
+      "cleanedSha256": "8746bd6d9011d8d464de8e2d7b8477d8ad069fbc144d7b0f76fb8ba3e3c109ff",
+      "primaryBbox": [
+        440,
+        431,
+        446,
+        290
+      ],
+      "primaryArea": 49186,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            240,
+            3
+          ],
+          "area": 334,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 472.42,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00018.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00018.png",
+      "changed": true,
+      "width": 896,
+      "height": 721,
+      "sourceSha256": "e97052051ea8a9aa0a972417b2b2c03e97631a4138f40578f6b62819fe0e2185",
+      "cleanedSha256": "ea69e14f8375c236c5abf5c1082da34caf71763bb76857fdff6a5bebec9a964d",
+      "primaryBbox": [
+        470,
+        407,
+        426,
+        314
+      ],
+      "primaryArea": 55230,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            232,
+            3
+          ],
+          "area": 326,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 468.89,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00019.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00019.png",
+      "changed": true,
+      "width": 906,
+      "height": 721,
+      "sourceSha256": "31dfb838d0eae66e55ca7fe3aeff107b604c47e529c482a34e4f7c8cbe419f01",
+      "cleanedSha256": "4d4c200778fdb3ac281c48b4e268a8a5da7aaebfe8ebeeb7fae51a24d194871d",
+      "primaryBbox": [
+        625,
+        389,
+        281,
+        332
+      ],
+      "primaryArea": 46036,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            257,
+            3
+          ],
+          "area": 376,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 533.31,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00020.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00020.png",
+      "changed": true,
+      "width": 912,
+      "height": 721,
+      "sourceSha256": "198946604bc6d0ce723f424c810c69a4a0cc44f7f999f5a6e07f2fafeb772f3e",
+      "cleanedSha256": "5d36cbc4c64a62814439d60cc9bab05065ccf315a6a6d47aaaf2c0c02fbd0a95",
+      "primaryBbox": [
+        641,
+        309,
+        271,
+        412
+      ],
+      "primaryArea": 52278,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            279,
+            3
+          ],
+          "area": 365,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 474.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00021.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00021.png",
+      "changed": true,
+      "width": 916,
+      "height": 721,
+      "sourceSha256": "53ab02476dd559d612eddb982fa4023b6ae67d4aa1d0124c419f07b183eae457",
+      "cleanedSha256": "5cd0c86c9edaee3dddcef062b7b77d4928f382e7e5c8a7fdde9dacdbdf43dc51",
+      "primaryBbox": [
+        553,
+        295,
+        363,
+        426
+      ],
+      "primaryArea": 53196,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            279,
+            3
+          ],
+          "area": 396,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 400.42,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00022.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00022.png",
+      "changed": true,
+      "width": 916,
+      "height": 721,
+      "sourceSha256": "40ce2dab8c56e5e8f3c78b4f12fa9afb19c131f32c383110825885d461c7224d",
+      "cleanedSha256": "385dab97691c80d4681515a08e0f22480a05c14e15607ddab8c6c3e80185a1be",
+      "primaryBbox": [
+        552,
+        297,
+        364,
+        424
+      ],
+      "primaryArea": 53534,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 400.52,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00023.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00023.png",
+      "changed": true,
+      "width": 930,
+      "height": 721,
+      "sourceSha256": "f30ad33306529ca662bf2857a4a97a05d4b614ed6685742d2e1fe6cf02cdd0c1",
+      "cleanedSha256": "ad1147b8df16a11700b25b316d12aec8644677074dd28f0f4df5f12743653749",
+      "primaryBbox": [
+        480,
+        303,
+        450,
+        418
+      ],
+      "primaryArea": 56888,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 360.56,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00024.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00024.png",
+      "changed": true,
+      "width": 944,
+      "height": 721,
+      "sourceSha256": "ff0450bdc28325fa5981ca7f93e782656e0af2c37d9771a88becf59864dd307d",
+      "cleanedSha256": "cd2e17a689b8dfe8d80c8a17c2f8e4a8f6954d3b5c1ebf8189619f106c465936",
+      "primaryBbox": [
+        460,
+        370,
+        484,
+        351
+      ],
+      "primaryArea": 64779,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 408.77,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00025.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00025.png",
+      "changed": true,
+      "width": 966,
+      "height": 721,
+      "sourceSha256": "52c8b89d0b3e7f4c234f7d5e05779ff6c4c43d015e580316955f1eedccc178f4",
+      "cleanedSha256": "a83e3b18424cf5990f51061e9bc4ca767bb93e4305417be0f31f3a6370c0cf75",
+      "primaryBbox": [
+        504,
+        380,
+        462,
+        341
+      ],
+      "primaryArea": 53425,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 438.53,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00026.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00026.png",
+      "changed": true,
+      "width": 960,
+      "height": 721,
+      "sourceSha256": "bff3e248c41935301e383dd4162e9b7bf0cc7b9c552f2e48156013dcb6621bcc",
+      "cleanedSha256": "fd9b7bff3c9e0d3b1cac09a9c40ed524e924ee4760537113ab4c23e0f8bd0723",
+      "primaryBbox": [
+        512,
+        383,
+        448,
+        338
+      ],
+      "primaryArea": 52699,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 445.22,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00027.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00027.png",
+      "changed": true,
+      "width": 947,
+      "height": 721,
+      "sourceSha256": "68d31875ce8773ddaa10a8350e93912caea3b7603059c17918cc9486341b1dde",
+      "cleanedSha256": "a61fc60b2276443bb394bd24cf6d5a41378961bd9377fe90317c359c2aaad8c1",
+      "primaryBbox": [
+        542,
+        382,
+        405,
+        339
+      ],
+      "primaryArea": 49723,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 398,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 460.74,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00028.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00028.png",
+      "changed": true,
+      "width": 940,
+      "height": 721,
+      "sourceSha256": "617f171cfe89fb17db2969b0e7f3e51aec4d68ab08bbe9cef5c0a6fa9213158f",
+      "cleanedSha256": "525a8c7bf691d8de16d52589d10caff86775536f6ec297d409f1fad613137dbe",
+      "primaryBbox": [
+        557,
+        379,
+        383,
+        342
+      ],
+      "primaryArea": 47543,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 467.02,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00029.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00029.png",
+      "changed": true,
+      "width": 936,
+      "height": 721,
+      "sourceSha256": "0550334e047c2be30a2c2612eed1a8680cf93a815ca969d787f3b5e81142497a",
+      "cleanedSha256": "c2fccf35ddd7769f3ef294fedafd3922cc8764bc3b0c499841dabe18a6c2f7c7",
+      "primaryBbox": [
+        544,
+        377,
+        392,
+        344
+      ],
+      "primaryArea": 46177,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 382,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 457.79,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a2加后摇/frame_00030.png",
+      "cleaned": "assets/image/desktop-actions-clean/a2加后摇/frame_00030.png",
+      "changed": true,
+      "width": 936,
+      "height": 721,
+      "sourceSha256": "0674e66402cc2a550b7e3a0d70cbcdcd357dd3e0fd7661a19db8b14ddb8d68df",
+      "cleanedSha256": "b975104e5a7efe736bfb75df21cd876f7a8c260f92c1da9be166388faf31579c",
+      "primaryBbox": [
+        543,
+        375,
+        393,
+        346
+      ],
+      "primaryArea": 45940,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            280,
+            3
+          ],
+          "area": 366,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 455.58,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3/frame_00001.png",
+      "changed": true,
+      "width": 1200,
+      "height": 721,
+      "sourceSha256": "34f1bae91ae6233254171f8c528a1e7901d3ae4fc67e2c5d9918406a5983b1b8",
+      "cleanedSha256": "88017ceb68f7f4404fce6de8393057ddcccc96fafe15f3309758d2fc108badb7",
+      "primaryBbox": [
+        736,
+        421,
+        464,
+        300
+      ],
+      "primaryArea": 47323,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            243,
+            2
+          ],
+          "area": 482,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 647.0,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00002.png",
+      "changed": false,
+      "width": 1240,
+      "height": 721,
+      "sourceSha256": "12ce5fa95d3ea73b729076e643d14f99ac8deb218917fbaeec6730fd7775cf73",
+      "primaryBbox": [
+        748,
+        405,
+        474,
+        316
+      ],
+      "primaryArea": 48620,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00003.png",
+      "changed": false,
+      "width": 1336,
+      "height": 721,
+      "sourceSha256": "273e34dc888f4f8c4fcebe320c95633401965ab992ab77fe1155d4d647be67f7",
+      "primaryBbox": [
+        849,
+        415,
+        487,
+        306
+      ],
+      "primaryArea": 53017,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00004.png",
+      "changed": false,
+      "width": 1600,
+      "height": 721,
+      "sourceSha256": "06e6b3ee779774d398f4f1cbcdc236c40c6c6e7a7a9b6a1e22f0db45ca6dd629",
+      "primaryBbox": [
+        848,
+        415,
+        752,
+        306
+      ],
+      "primaryArea": 77880,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00005.png",
+      "changed": false,
+      "width": 2112,
+      "height": 721,
+      "sourceSha256": "28278aa29a20a9cca8752d46177423fda3a5bcc532954511f4b4e59e6a108772",
+      "primaryBbox": [
+        784,
+        324,
+        956,
+        397
+      ],
+      "primaryArea": 112184,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00006.png",
+      "changed": false,
+      "width": 1588,
+      "height": 721,
+      "sourceSha256": "21ac96f828c311f96abdd540446b586d8b16923a5b65d56de64ccd421fc6d0bc",
+      "primaryBbox": [
+        1023,
+        431,
+        303,
+        290
+      ],
+      "primaryArea": 38963,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00007.png",
+      "changed": false,
+      "width": 1488,
+      "height": 721,
+      "sourceSha256": "978e26e492c5b2c8b1575cef01adf2ae8413b4832466f8bc1b6990f506e6ab76",
+      "primaryBbox": [
+        1064,
+        226,
+        424,
+        206
+      ],
+      "primaryArea": 31605,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00008.png",
+      "changed": false,
+      "width": 1312,
+      "height": 721,
+      "sourceSha256": "3e774d9d89fcef78a9df158f33f6862c44ae7e6fa192b3b5c2a6792276fe619f",
+      "primaryBbox": [
+        991,
+        223,
+        321,
+        498
+      ],
+      "primaryArea": 70541,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00009.png",
+      "changed": false,
+      "width": 1296,
+      "height": 721,
+      "sourceSha256": "666d9320d35ca70e721b14ff4e26f9a79c30db92bab4dc39627e23e3fcde1390",
+      "primaryBbox": [
+        944,
+        221,
+        352,
+        500
+      ],
+      "primaryArea": 70444,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00010.png",
+      "changed": false,
+      "width": 1296,
+      "height": 721,
+      "sourceSha256": "2e806e6fc610520400dc5acef393ac6a5b40475895852a0589db50cf8ef4f6dc",
+      "primaryBbox": [
+        927,
+        223,
+        369,
+        498
+      ],
+      "primaryArea": 66527,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00011.png",
+      "changed": false,
+      "width": 1777,
+      "height": 721,
+      "sourceSha256": "8ba714aaffe714b856791ce8a1b49a8e77a432186845ab91aed427d2ddf359fa",
+      "primaryBbox": [
+        912,
+        391,
+        865,
+        330
+      ],
+      "primaryArea": 121998,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00012.png",
+      "changed": false,
+      "width": 1750,
+      "height": 721,
+      "sourceSha256": "a7a6caf9733f1f7d33a7dfa96097ee0072308c89b97752dee7ef7ccac12e4abe",
+      "primaryBbox": [
+        1021,
+        451,
+        729,
+        270
+      ],
+      "primaryArea": 63648,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00013.png",
+      "changed": false,
+      "width": 1578,
+      "height": 721,
+      "sourceSha256": "cd26aa8cb92862002ff06b861862be138bfe2f5bb7947f09a0a7ff9b38e08c85",
+      "primaryBbox": [
+        1036,
+        447,
+        542,
+        274
+      ],
+      "primaryArea": 46434,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00014.png",
+      "changed": false,
+      "width": 1568,
+      "height": 721,
+      "sourceSha256": "b2c1de32ddbdb36c5b3688c00bd2d4c8bd0a6818f3718acdf851d8f002b7908b",
+      "primaryBbox": [
+        1039,
+        448,
+        529,
+        273
+      ],
+      "primaryArea": 46038,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00015.png",
+      "changed": false,
+      "width": 1563,
+      "height": 721,
+      "sourceSha256": "d4fe8a6b02bae9073a5c88aada6323ff97ccd737f6f1b0b41c8d456c3af527d0",
+      "primaryBbox": [
+        1040,
+        447,
+        523,
+        274
+      ],
+      "primaryArea": 45174,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00016.png",
+      "changed": false,
+      "width": 1562,
+      "height": 721,
+      "sourceSha256": "4b5c7aa208872ee8c09df2191ed2198cf8c9635923a7d0ae8ff7918d3febda75",
+      "primaryBbox": [
+        1040,
+        443,
+        522,
+        278
+      ],
+      "primaryArea": 45106,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00017.png",
+      "changed": false,
+      "width": 1563,
+      "height": 721,
+      "sourceSha256": "e695c2f7ff6e2379bd2a558cec1b7ea8773abbf679ded644b8bb652b99098979",
+      "primaryBbox": [
+        1040,
+        444,
+        523,
+        277
+      ],
+      "primaryArea": 44526,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00018.png",
+      "changed": false,
+      "width": 1564,
+      "height": 721,
+      "sourceSha256": "dabf72d987d648a674b276799b98cad050817b64123ca5191f763bf7f4512607",
+      "primaryBbox": [
+        1040,
+        446,
+        524,
+        275
+      ],
+      "primaryArea": 44346,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00019.png",
+      "changed": false,
+      "width": 1564,
+      "height": 721,
+      "sourceSha256": "a6da08dc13a67e4e51e63f8ae26e83bd46c894fc2442596e71dbef09def5804b",
+      "primaryBbox": [
+        1038,
+        446,
+        526,
+        275
+      ],
+      "primaryArea": 44353,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00020.png",
+      "changed": false,
+      "width": 1564,
+      "height": 721,
+      "sourceSha256": "7aea2c30f841f84f4e13dcabeef4d2b7a990765f1e6dfe70cf502ee1f099de0f",
+      "primaryBbox": [
+        1040,
+        448,
+        524,
+        273
+      ],
+      "primaryArea": 43312,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00021.png",
+      "changed": false,
+      "width": 1564,
+      "height": 721,
+      "sourceSha256": "f957b3dc58a47d9c964fc969ef6c37617750b22830f9778c4c0ce6c72b94e6b5",
+      "primaryBbox": [
+        1040,
+        447,
+        524,
+        274
+      ],
+      "primaryArea": 43449,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00022.png",
+      "changed": false,
+      "width": 1561,
+      "height": 721,
+      "sourceSha256": "ae1e32a4732579e27e71895b25fa6418a1fef88a96a285ce1ac9eec2b49eb391",
+      "primaryBbox": [
+        1042,
+        433,
+        519,
+        288
+      ],
+      "primaryArea": 44332,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00023.png",
+      "changed": false,
+      "width": 1560,
+      "height": 721,
+      "sourceSha256": "eaaeb417f2ac668fa535825bc3b4797f00037a70521bb5a83be2352349c9cde1",
+      "primaryBbox": [
+        1040,
+        422,
+        520,
+        299
+      ],
+      "primaryArea": 45431,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00024.png",
+      "changed": false,
+      "width": 1553,
+      "height": 721,
+      "sourceSha256": "66096bedd2001a0a847d8e186cc9c14108a432a446a799c52246fb51e50f04c9",
+      "primaryBbox": [
+        1052,
+        408,
+        501,
+        313
+      ],
+      "primaryArea": 46825,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00025.png",
+      "changed": false,
+      "width": 1520,
+      "height": 721,
+      "sourceSha256": "6cbf1281a939086c14576f3e28c245df7022cbf71d8e478fc9afb470d0936959",
+      "primaryBbox": [
+        1052,
+        391,
+        468,
+        330
+      ],
+      "primaryArea": 49880,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00026.png",
+      "changed": false,
+      "width": 1432,
+      "height": 721,
+      "sourceSha256": "aa6c5f1bc1848e7a8696f165ee31aed919c0cbdac847d6a2c0c327331b4ea5dc",
+      "primaryBbox": [
+        1052,
+        384,
+        380,
+        337
+      ],
+      "primaryArea": 48074,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00027.png",
+      "changed": false,
+      "width": 1332,
+      "height": 721,
+      "sourceSha256": "8ba612afd53ab6021a2923d7a067cc6a9c42f61e9247345ab9f4eb417626ef19",
+      "primaryBbox": [
+        832,
+        377,
+        500,
+        344
+      ],
+      "primaryArea": 64773,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00028.png",
+      "changed": false,
+      "width": 1266,
+      "height": 721,
+      "sourceSha256": "575bd012c61be0c941e32eae3f58b24ab2f7117417c114b6503c7a5e36cc4128",
+      "primaryBbox": [
+        813,
+        373,
+        453,
+        348
+      ],
+      "primaryArea": 49536,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00029.png",
+      "changed": false,
+      "width": 1263,
+      "height": 721,
+      "sourceSha256": "691652118ddcbd8a4d43a5d034ab44b1569530196ac6169d884185143d5ac385",
+      "primaryBbox": [
+        810,
+        373,
+        453,
+        348
+      ],
+      "primaryArea": 48549,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3/frame_00030.png",
+      "changed": false,
+      "width": 1263,
+      "height": 721,
+      "sourceSha256": "d4601eddce3f87214e8e0e2ea6515a76aa8e8b5a083e5d37a6dbedbb1a9b283a",
+      "primaryBbox": [
+        810,
+        373,
+        453,
+        348
+      ],
+      "primaryArea": 48303,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00001.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00001.png",
+      "changed": true,
+      "width": 1008,
+      "height": 721,
+      "sourceSha256": "687dd42febbd6de1a86c53600f5312cd2be7d471713d57545cad4c463ede82d1",
+      "cleanedSha256": "e53edde0b4313ce5eabdbc95521042af3eac1fb1fd12681b465ff33053387e8d",
+      "primaryBbox": [
+        529,
+        416,
+        479,
+        305
+      ],
+      "primaryArea": 47832,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            258,
+            3
+          ],
+          "area": 504,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 493.97,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00002.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00002.png",
+      "changed": true,
+      "width": 1022,
+      "height": 721,
+      "sourceSha256": "476b11feb797c9f7d7593246f73e1cc1fa6c5349d6f52fc07202f26ad4f4cbd6",
+      "cleanedSha256": "e3b68f2c6e5234a0911b9f74b07f047c26db8d874981de8c58054ecc104a2cd3",
+      "primaryBbox": [
+        560,
+        391,
+        462,
+        330
+      ],
+      "primaryArea": 46914,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            258,
+            3
+          ],
+          "area": 506,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 491.68,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00003.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00003.png",
+      "changed": true,
+      "width": 1028,
+      "height": 721,
+      "sourceSha256": "b600e89085617dfde7f8d4f484b4876bbbce911907597df1f6eeecb0228f9eee",
+      "cleanedSha256": "163a84507861baaf6d79e14815c4dde5436331202a853bba7a2382955f1aa0b5",
+      "primaryBbox": [
+        585,
+        383,
+        443,
+        338
+      ],
+      "primaryArea": 46662,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 490,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 511.91,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00004.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00004.png",
+      "changed": true,
+      "width": 1041,
+      "height": 720,
+      "sourceSha256": "5c1562935df984345fa4157d0ee591514e2a4190824b24b3e282530680a9fbe4",
+      "cleanedSha256": "ddbf028a8e4fe05ea9a0f76c3c4827147621ae2e7345c0374dfc236022c34498",
+      "primaryBbox": [
+        610,
+        377,
+        431,
+        343
+      ],
+      "primaryArea": 46324,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 501,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 524.69,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00005.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00005.png",
+      "changed": true,
+      "width": 1056,
+      "height": 720,
+      "sourceSha256": "78273ec288d4e99dc49ff5a2066a4e720f8cf4a408b9da1d8e72498b9be2ba21",
+      "cleanedSha256": "13115ac6e20e1150c38540a416346892c60cd98a107af375e2f22c16af99b47d",
+      "primaryBbox": [
+        640,
+        379,
+        416,
+        341
+      ],
+      "primaryArea": 45615,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 490,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 547.52,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00006.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00006.png",
+      "changed": true,
+      "width": 1056,
+      "height": 720,
+      "sourceSha256": "c2db7c10211d7006a2da93ce868cfb665e40b787c0db81c8806c4f648f1f1bf5",
+      "cleanedSha256": "2616e3354c41c306c8aba7ca4e2dc4447158229ec02cee594fad101a3be78e37",
+      "primaryBbox": [
+        655,
+        379,
+        401,
+        341
+      ],
+      "primaryArea": 45896,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 521,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 558.52,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00007.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00007.png",
+      "changed": true,
+      "width": 1084,
+      "height": 721,
+      "sourceSha256": "65b1dc929600c4b772caa56b62695c7b936cdbad4fffc9609b4b57087d00a39d",
+      "cleanedSha256": "f5b1560441bc1834f9b9cdb4fd0d26abc4bee4647fd25681776d91b05c7cae04",
+      "primaryBbox": [
+        784,
+        395,
+        300,
+        326
+      ],
+      "primaryArea": 42648,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 493,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 668.9,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00008.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00008.png",
+      "changed": true,
+      "width": 1153,
+      "height": 719,
+      "sourceSha256": "e0a9285989d7fb7395d1d4a2c641e78da88e704accb6cd60c57c1da1d9063576",
+      "cleanedSha256": "fb1dd1e7a761052f7788d738c09ceeb0557155a2c74c7d55539e67d4c5756666",
+      "primaryBbox": [
+        784,
+        405,
+        369,
+        314
+      ],
+      "primaryArea": 45679,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 493,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 674.81,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00009.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00009.png",
+      "changed": true,
+      "width": 1271,
+      "height": 721,
+      "sourceSha256": "3dff9145d6cc0d2f5e3fbeb424e975bf04bf37ab17a6d44a02ad14b90db93faa",
+      "cleanedSha256": "ff06030b6f33d873f2365837106ba9b48744d059faf9497b231f506b17568df3",
+      "primaryBbox": [
+        876,
+        404,
+        222,
+        231
+      ],
+      "primaryArea": 28540,
+      "removedComponents": [
+        {
+          "bbox": [
+            1260,
+            392,
+            11,
+            11
+          ],
+          "area": 98,
+          "nearWhiteOrGrayRatio": 0.9388,
+          "distanceFromPrimaryPx": 162.0,
+          "reason": "detached_small_near_white_or_gray_component",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00010.png",
+      "changed": false,
+      "width": 2112,
+      "height": 721,
+      "sourceSha256": "e92724a20435172aa54c4fb84bc90b36b597e5d4b69a55a35c76c20455540363",
+      "primaryBbox": [
+        0,
+        254,
+        2112,
+        467
+      ],
+      "primaryArea": 167724,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00011.png",
+      "changed": false,
+      "width": 2112,
+      "height": 721,
+      "sourceSha256": "33a1f346e47a55c8d1dd4b2f5305f7c39100948427c1412ce9e4f300a64c5ca6",
+      "primaryBbox": [
+        0,
+        269,
+        2112,
+        452
+      ],
+      "primaryArea": 125991,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00012.png",
+      "changed": false,
+      "width": 1424,
+      "height": 721,
+      "sourceSha256": "1016c58b786df6968843d59842be1cf6b4d747d3c25227464aede142b2aa8205",
+      "primaryBbox": [
+        750,
+        344,
+        674,
+        377
+      ],
+      "primaryArea": 61802,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00013.png",
+      "changed": false,
+      "width": 1248,
+      "height": 721,
+      "sourceSha256": "1cef78dd0133ed3b4ed131d80d1b778f0c072566d9f6fcd0b8cc50b9fc17559e",
+      "primaryBbox": [
+        774,
+        344,
+        474,
+        377
+      ],
+      "primaryArea": 61255,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00014.png",
+      "changed": false,
+      "width": 1248,
+      "height": 721,
+      "sourceSha256": "f94283bf05e6d5ac792e54dbf90bd252d8eea1353ed08ba5797033f00bf80cd2",
+      "primaryBbox": [
+        767,
+        335,
+        441,
+        386
+      ],
+      "primaryArea": 54322,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00015.png",
+      "changed": false,
+      "width": 1237,
+      "height": 721,
+      "sourceSha256": "9b0c54ddccb0c8fa8155c37425f7be6e7ca9dcec7bdc50dfa110c6f5bce6f220",
+      "primaryBbox": [
+        759,
+        300,
+        393,
+        421
+      ],
+      "primaryArea": 53053,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00016.png",
+      "changed": false,
+      "width": 1234,
+      "height": 720,
+      "sourceSha256": "da4dda5f1629f2291def7b80bc63b26ef021ce98934b5176085c502e4f80eff3",
+      "primaryBbox": [
+        834,
+        296,
+        319,
+        424
+      ],
+      "primaryArea": 48695,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00017.png",
+      "changed": false,
+      "width": 1232,
+      "height": 720,
+      "sourceSha256": "d83068d08e6e8c68675a08de5ce19467cefbaa6bb75d576295a9f3a0727b3fe3",
+      "primaryBbox": [
+        838,
+        296,
+        314,
+        424
+      ],
+      "primaryArea": 48282,
+      "removedComponents": []
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00018.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00018.png",
+      "changed": true,
+      "width": 1152,
+      "height": 720,
+      "sourceSha256": "703d710c9defde60ab5db2ccaf0f6aeee49e3dbad95d776f89364b3131c01a4c",
+      "cleanedSha256": "e286c0de42185283df9622a7d96d59ed07c9deead3e1be357510b485df76fedf",
+      "primaryBbox": [
+        838,
+        295,
+        314,
+        425
+      ],
+      "primaryArea": 48272,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 493,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 663.69,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00019.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00019.png",
+      "changed": true,
+      "width": 1153,
+      "height": 720,
+      "sourceSha256": "bf01c1c106be4467b29f1268f4e4b6f8cc90774c00c6f888735d6a0aefb8b9fe",
+      "cleanedSha256": "d72accfa79ba87aaab4a32e30dcadda3a799cbbf20d09d7a49023046e304238a",
+      "primaryBbox": [
+        844,
+        289,
+        309,
+        431
+      ],
+      "primaryArea": 48204,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 493,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 666.48,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00020.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00020.png",
+      "changed": true,
+      "width": 1153,
+      "height": 720,
+      "sourceSha256": "0d3525cad0d4d2c71d03f90c77a6b83e51dd1ae35f46499b2a05b4bc8c43d46d",
+      "cleanedSha256": "3a913c3a4a778f6b7ceacdd73a593415bf68f001bd7e3749a6801813f47ceaf1",
+      "primaryBbox": [
+        848,
+        286,
+        305,
+        434
+      ],
+      "primaryArea": 48169,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 481,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 668.82,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00021.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00021.png",
+      "changed": true,
+      "width": 1166,
+      "height": 721,
+      "sourceSha256": "34cf1f9ce283a035cbd3266fc844b77f03f68f63a56bbe465f3f6533efa53a51",
+      "cleanedSha256": "5e97db39cb890d95df3c9582a88508415bd712e14bfa9a5854cdf3ce88c1e27e",
+      "primaryBbox": [
+        858,
+        284,
+        294,
+        437
+      ],
+      "primaryArea": 47229,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 481,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 677.06,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00022.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00022.png",
+      "changed": true,
+      "width": 1164,
+      "height": 721,
+      "sourceSha256": "009a79024777c9bd2005a1c1922b0c327614ea4b54909692223106888b27875f",
+      "cleanedSha256": "739d24827ff0d2c6ffc72fef6763916f5e76d2345577f6b399edd6ea65bbaaea",
+      "primaryBbox": [
+        862,
+        286,
+        291,
+        435
+      ],
+      "primaryArea": 46384,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 481,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 681.53,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00023.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00023.png",
+      "changed": true,
+      "width": 1166,
+      "height": 721,
+      "sourceSha256": "85aa9d4076fc5f080713529ad0f82bc7f22d6b35282d219410a355f3881b99e8",
+      "cleanedSha256": "c14b9819fd7ee6ef0e4b6c43edc62fddc5e308b7e86faf3d04d9c2b3e4cec093",
+      "primaryBbox": [
+        868,
+        299,
+        298,
+        422
+      ],
+      "primaryArea": 43770,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 481,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 692.45,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00024.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00024.png",
+      "changed": true,
+      "width": 1168,
+      "height": 721,
+      "sourceSha256": "78581f2105b02dcb2f0e68e2e01728f8377b1a5269e28514d7b542935e561bf8",
+      "cleanedSha256": "5dcdbfbf0f99a6317d9771a8f3ac1373d0faee2ab2f0ce553fecc498c138141b",
+      "primaryBbox": [
+        868,
+        299,
+        300,
+        422
+      ],
+      "primaryArea": 43783,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            258,
+            3
+          ],
+          "area": 500,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 678.02,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00025.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00025.png",
+      "changed": true,
+      "width": 1147,
+      "height": 721,
+      "sourceSha256": "059319541a5a3e417d27743d5f694ccbb6130856508c6dcb73d0b8544c53a678",
+      "cleanedSha256": "cbbbda303483ce9b7a6e0276c600bd4f34742225ae07835e3b241aebb461d3c7",
+      "primaryBbox": [
+        864,
+        315,
+        283,
+        406
+      ],
+      "primaryArea": 40232,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            258,
+            3
+          ],
+          "area": 533,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 681.6,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00026.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00026.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "f1a8c7be14fee6cf02c3ac6b9f9e1f8481e0b93403fe8c9660aaaa4f31b0d962",
+      "cleanedSha256": "7f75077e552ed0b9f87ec54efdecbbee7a4f6da1fe8a8eefdac5ca5afcaab365",
+      "primaryBbox": [
+        720,
+        399,
+        424,
+        321
+      ],
+      "primaryArea": 45710,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            259,
+            3
+          ],
+          "area": 544,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 607.73,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00027.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00027.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "c8df8040bc4e1effe8bdeea81735da1cdd12432da4879a4078380917c28aa1bf",
+      "cleanedSha256": "974d34783a958620249ba3a34d19014d794970e6ec4d092bfa7d8fe1f08fd212",
+      "primaryBbox": [
+        698,
+        388,
+        446,
+        332
+      ],
+      "primaryArea": 46559,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            259,
+            3
+          ],
+          "area": 544,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 583.91,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00028.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00028.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "2014017a9b5f535711f19639a5c30221a37212a3046a30707e8b06ccdd50d9a7",
+      "cleanedSha256": "6a3b0b07d150b88bdadf7475910886c1ee03a2f2a9aa038c186b484dfe8d70a9",
+      "primaryBbox": [
+        706,
+        383,
+        438,
+        337
+      ],
+      "primaryArea": 46992,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            259,
+            3
+          ],
+          "area": 544,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 586.69,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00029.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00029.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "fa6e9074dd839092f5e3a7809cc0362d915c7289b8619d257c636712fc556bff",
+      "cleanedSha256": "c0fc799a0c061bdd2299a8505b07ab6187a2ac2d8ef455a0247470f46af98780",
+      "primaryBbox": [
+        716,
+        377,
+        428,
+        343
+      ],
+      "primaryArea": 48634,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            259,
+            3
+          ],
+          "area": 544,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 590.53,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00030.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00030.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "263f5f78441ad3adf6796db052474db7b34576c8eb5a0340d632efaa018ae21d",
+      "cleanedSha256": "eab8ddbc51e54db4b72cc96b5df7cae508bbf873650aafc2863236a333c24118",
+      "primaryBbox": [
+        733,
+        375,
+        411,
+        345
+      ],
+      "primaryArea": 47056,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 493,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 616.01,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    },
+    {
+      "source": "assets/image/desktop-actions/a3挑飞加后摇（强普）/frame_00031.png",
+      "cleaned": "assets/image/desktop-actions-clean/a3挑飞加后摇（强普）/frame_00031.png",
+      "changed": true,
+      "width": 1144,
+      "height": 720,
+      "sourceSha256": "322470cc12cd9f3953afc6e7bca4f83c4ac233f6e888373bfceef77d6b0cdbd8",
+      "cleanedSha256": "060d8073c9ebaba876ba100559e01e2f39af688ba4dee96de7d4309b599c437c",
+      "primaryBbox": [
+        756,
+        375,
+        388,
+        345
+      ],
+      "primaryArea": 46346,
+      "removedComponents": [
+        {
+          "bbox": [
+            0,
+            0,
+            242,
+            3
+          ],
+          "area": 510,
+          "nearWhiteOrGrayRatio": 0.0,
+          "distanceFromPrimaryPx": 634.49,
+          "reason": "isolated_thin_long_canvas_border_line",
+          "alphaThreshold": 32
+        }
+      ],
+      "pixelValidation": "retained RGBA byte-identical; changed pixels only have candidate alpha set to zero"
+    }
+  ]
+}

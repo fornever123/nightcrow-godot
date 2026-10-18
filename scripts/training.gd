@@ -8,6 +8,7 @@ const CameraScript := preload("res://scripts/presentation/camera_shake.gd")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 var config: Dictionary
 var moves: Dictionary
 var player: CharacterBody2D
@@ -26,6 +27,9 @@ var combo_hits: int = 0
 var combo_time: float = 0.0
 var last_feedback: String = ""
 var reloading: bool = false
+var training_attacks: bool = false
+var training_attack_clock: float = 0.0
+var training_telegraph: float = 0.0
 
 func _ready() -> void:
 	config = Config.read()
@@ -44,14 +48,16 @@ func _ready() -> void:
 	Art.reset(c.sprite)
 	player = PlayerScene.instantiate()
 	player.set_meta("character", c)
-	player.foot_offset = 84.0 * float(c.sprite.get("displayScale",1))
+	# Source PNG pixel scale is independent of the physical character's size.
+	var world_scale := float(c.sprite.get("worldScale", c.sprite.get("displayScale",1)))
+	player.foot_offset = 84.0 * world_scale
 	player.position = Vector2(config.stage.spawn.player.x, config.stage.spawn.player.y - player.foot_offset)
 	player.get_node("Visual/ActorSprite").position.y = player.foot_offset
 	var capsule: CapsuleShape2D = player.get_node("CollisionShape2D").shape
-	capsule.height = 168.0 * float(c.sprite.get("displayScale",1))
-	capsule.radius = minf(25.0 * float(c.sprite.get("displayScale",1)), capsule.height/2)
+	capsule.height = 168.0 * world_scale
+	capsule.radius = minf(25.0 * world_scale, capsule.height/2)
 	var hurt: RectangleShape2D = player.get_node("Hurtbox/CollisionShape2D").shape
-	hurt.size = Vector2(c.hurtbox.width,c.hurtbox.height) * float(c.sprite.get("displayScale",1))
+	hurt.size = Vector2(c.hurtbox.width,c.hurtbox.height) * world_scale
 	player.acceleration = float(c.get("acceleration",4800))
 	player.speed = float(c.speed) * float(config.settings.get("characterSpeedMultiplier", 1))
 	player.air_control = float(c.airControl)
@@ -71,6 +77,16 @@ func _ready() -> void:
 	player.air_up_move = moves.air_up
 	player.ranged_move = moves.ranged_1
 	player.parry_move = moves.parry_1
+	for move_id in ["air_light_1", "air_light_2", "air_light_3"]:
+		if moves.has(move_id):
+			player.air_combo.append(moves[move_id])
+	player.dash_move = moves.get("dash_slash")
+	player.dash_left_move = moves.get("dash_slash_left")
+	for i in 3:
+		if moves.has("guard_hit_%d" % (i+1)):
+			player.guard_reactions.append(moves["guard_hit_%d" % (i+1)])
+		if moves.has("parry_react_%d" % (i+1)):
+			player.parry_reactions.append(moves["parry_react_%d" % (i+1)])
 	var runtime_ranged: Dictionary = {}
 	for source in config.moves:
 		if source.id == "ranged_1":
@@ -108,6 +124,7 @@ func _ready() -> void:
 	add_child(fx)
 	player.hit_confirmed.connect(_hit)
 	player.parry_success.connect(_parry)
+	player.block_success.connect(_block)
 	player.move_started.connect(func(move: Resource, index: int): audio.play_swing_of(move,index))
 	player.jumped.connect(audio.play_jump)
 	player.landed.connect(_landed)
@@ -137,7 +154,7 @@ func _floor(rect: Rect2) -> void:
 func _register_input() -> void:
 	var bindings := {"move_left":[KEY_A,KEY_LEFT],"move_right":[KEY_D,KEY_RIGHT],"jump":[KEY_W,KEY_SPACE],
 		"aim_up":[KEY_W,KEY_UP],"move_down":[KEY_S,KEY_DOWN],"attack_light":[KEY_J],"attack_ranged":[KEY_K],
-		"parry":[KEY_L],"reset":[KEY_R],"debug_toggle":[KEY_F1]}
+		"parry":[KEY_L],"dash_modifier":[KEY_SHIFT],"reset":[KEY_R],"debug_toggle":[KEY_F1],"training_attack_toggle":[KEY_F2]}
 	for name in bindings:
 		if not InputMap.has_action(name):
 			InputMap.add_action(name)
@@ -168,7 +185,7 @@ func _build_hud() -> void:
 	panel.add_child(hud)
 	help_label = Label.new()
 	help_label.position = Vector2(28,622)
-	help_label.text = "A / D 跑动   空格 / W 二段跳   J 点按连击 / 按住蓄力   K 远射   W + J 上挑   L 弹刀\nR 重置木桩   F1 判定框   修改器保存后，训练场自动重置并应用"
+	help_label.text = "A / D 跑动与转身   空格 / W 二段跳   J 地面 / 空中三连   按住 J 蓄力\nShift + J 冲刺斩   K 远射   W + J 挑飞   L 弹刀 / 按住格挡   F2 测试来袭开关   R 重置   F1 判定框"
 	help_label.add_theme_font_size_override("font_size",16)
 	help_label.visible = bool(config.ui.get("showMoveHints",true))
 	panel.add_child(help_label)
@@ -218,13 +235,45 @@ func _wall_hit(speed: float, damage: float, point: Vector2, target: Node2D) -> v
 
 func _parry(attacker: Node, point: Vector2) -> void:
 	var dir := Vector2(player.facing,0)
-	if attacker is Node2D:
+	if attacker == self:
+		dir = dummy.global_position - player.global_position
+	elif attacker is Node2D:
 		dir = (attacker as Node2D).global_position-player.global_position
 	camera.add_shake(5.0*float(config.feedback.get("shakeMultiplier",1)),dir)
 	audio.play_parry()
 	fx.spawn_parry(point,dir)
 	fx.spawn_text(point,"弹刀")
 	last_feedback = "弹刀成功 · 零伤害"
+
+func _block(_attacker: Node, point: Vector2) -> void:
+	audio.play_parry()
+	fx.spawn_text(point, "格挡")
+	last_feedback = "格挡成功"
+
+func on_parried(_cause: Node = null) -> void:
+	training_telegraph = 0.0
+	training_attack_clock = 0.0
+
+func _physics_process(delta: float) -> void:
+	if not training_attacks or not is_instance_valid(player) or not is_instance_valid(dummy):
+		return
+	training_attack_clock += delta
+	training_telegraph = maxf(0.0, 0.6 - fposmod(training_attack_clock, 2.2)) if training_attack_clock >= 2.2 else 0.0
+	if training_attack_clock >= 2.8:
+		training_attack_clock = 0.0
+		training_telegraph = 0.0
+		# Only the existing wooden dummy sends this optional, telegraphed test strike.
+		if absf(player.global_position.x - dummy.global_position.x) <= 240.0 and absf(player.global_position.y - dummy.global_position.y) < 100.0:
+			var strike: Resource = moves.light_1.duplicate()
+			strike.damage = 6.0
+			strike.knockback = 120.0
+			strike.victim_hitstop_frames = 4
+			var from_facing := 1 if player.global_position.x > dummy.global_position.x else -1
+			var point := player.global_position + Vector2(0, -20)
+			var blocked: bool = player.take_hit(strike, from_facing, point, 0.0, false, 1.0, self)
+			if not blocked:
+				fx.spawn_text(point, "测试命中 -6")
+				last_feedback = "木桩测试命中 · 按 L 防守"
 
 func _landed() -> void:
 	audio.play_land()
@@ -237,7 +286,7 @@ func _knockdown() -> void:
 func _reset() -> void:
 	player.reset_state(Vector2(config.stage.spawn.player.x,config.stage.spawn.player.y - player.foot_offset))
 	dummy.reset_state()
-	player.get_node("Visual/ActorSprite")._clear_trail()
+	player.get_node("Visual/ActorSprite").reset_presentation()
 	for node in get_children():
 		if node is Area2D:
 			node.queue_free()
@@ -246,6 +295,8 @@ func _reset() -> void:
 	combo_hits = 0
 	combo_time = 0
 	last_feedback = ""
+	training_attack_clock = 0.0
+	training_telegraph = 0.0
 	fx.clear()
 	audio.stop_all()
 	camera.reset_shake()
@@ -255,6 +306,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_reset()
 	if event.is_action_pressed("debug_toggle"):
 		debug_boxes = not debug_boxes
+	if event.is_action_pressed("training_attack_toggle"):
+		training_attacks = not training_attacks
+		training_attack_clock = 0.0
+		training_telegraph = 0.0
+		last_feedback = "测试来袭已开启：靠近木桩，观察提示后按 L" if training_attacks else "测试来袭已关闭"
 
 func _process(delta: float) -> void:
 	if config.is_empty():
@@ -284,7 +340,8 @@ func _process(delta: float) -> void:
 	if bool(config.ui.get("showComboCounter",true)):
 		hud.text += "\n连击 %d    浮空追击 %d    撞击 %d" % [combo_hits,dummy.juggle_count,dummy.wall_slam_count]
 	if bool(config.ui.get("showDebugText",true)):
-		hud.text += "\n动作 %s · 第 %d 帧    %s" % [view.clip_name,view.frame_index+1,last_feedback]
+		var clip: Dictionary = view.setup.get("animations", {}).get(view.clip_name, {})
+		hud.text += "\n动作 %s · 第 %d 帧    %s" % [clip.get("name", view.clip_name),view.frame_index+1,last_feedback]
 	queue_redraw()
 
 func _draw() -> void:
@@ -298,3 +355,5 @@ func _draw() -> void:
 		var p: Vector2 = shape.global_position
 		draw_rect(Rect2(p-shape.shape.size/2,shape.shape.size),Color(1,0.4,0.4,0.7),false,2)
 		draw_rect(Rect2(dummy.global_position-Vector2(37,68),Vector2(74,136)),Color(0.4,0.9,0.8,0.7),false,2)
+	if training_telegraph > 0.0 and is_instance_valid(dummy):
+		draw_arc(dummy.global_position + Vector2(0, -85), 25.0, 0.0, TAU, 24, Color(1.0, 0.65, 0.2), 3.0)

@@ -1,0 +1,53 @@
+{
+  "axisName": "action_00014_a2加后摇",
+  "projectId": "f185d603-1f17-43cb-8319-1e42e5527122",
+  "axisId": "a7a4e6ba-870b-4aa0-a211-72cd7c9db915",
+  "fps": 24,
+  "count": 30,
+  "cellWidth": 2112,
+  "cellHeight": 1153,
+  "originX": 586,
+  "originY": 737,
+  "transformsApplied": true,
+  "uniqueTransforms": [
+    {
+      "offset_x": 470.0,
+      "offset_y": -160.01,
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  ],
+  "note": "Exported with FrameBaker offset_x/offset_y/scale/rotation; does not touch art/game-ready-sequences",
+  "files": [
+    "action_00014_a2加后摇_000.png",
+    "action_00014_a2加后摇_001.png",
+    "action_00014_a2加后摇_002.png",
+    "action_00014_a2加后摇_003.png",
+    "action_00014_a2加后摇_004.png",
+    "action_00014_a2加后摇_005.png",
+    "action_00014_a2加后摇_006.png",
+    "action_00014_a2加后摇_007.png",
+    "action_00014_a2加后摇_008.png",
+    "action_00014_a2加后摇_009.png",
+    "action_00014_a2加后摇_010.png",
+    "action_00014_a2加后摇_011.png",
+    "action_00014_a2加后摇_012.png",
+    "action_00014_a2加后摇_013.png",
+    "action_00014_a2加后摇_014.png",
+    "action_00014_a2加后摇_015.png",
+    "action_00014_a2加后摇_016.png",
+    "action_00014_a2加后摇_017.png",
+    "action_00014_a2加后摇_018.png",
+    "action_00014_a2加后摇_019.png",
+    "action_00014_a2加后摇_020.png",
+    "action_00014_a2加后摇_021.png",
+    "action_00014_a2加后摇_022.png",
+    "action_00014_a2加后摇_023.png",
+    "action_00014_a2加后摇_024.png",
+    "action_00014_a2加后摇_025.png",
+    "action_00014_a2加后摇_026.png",
+    "action_00014_a2加后摇_027.png",
+    "action_00014_a2加后摇_028.png",
+    "action_00014_a2加后摇_029.png"
+  ]
+}

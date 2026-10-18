@@ -18,6 +18,7 @@ const sheetWidth=ref(128), sheetHeight=ref(128), sheetCount=ref(16);
 const frameBakerBusy=ref(false), frameBakerMode=ref('new'), frameBakerLabel=ref(''), frameBakerBaked=ref(true);
 const current=computed<JsonObject>(()=>clip.value.frames[index.value]||{});
 const previewSpeed=computed(()=>effectMode.value?1:Number((props.selectedMove?.animation===name.value?props.selectedMove:props.config.moves?.find((m:JsonObject)=>m.animation===name.value))?.animationSpeed||1));
+const sourceFrameRange=computed(()=>clip.value.sourceFrameStart===undefined&&clip.value.sourceFrameEnd===undefined?'':`${Number(clip.value.sourceFrameStart??0)+1}–${Number(clip.value.sourceFrameEnd??clip.value.frames.length-1)+1} 帧`);
 const images=new Map<string,HTMLImageElement>();
 const urls=computed(()=>props.assets.filter(a=>a.kind==='image'));
 let raf=0,last=0,phase=0,drag:{x:number;y:number;pivots:number[][]}|null=null;
@@ -44,7 +45,10 @@ function drawFrame(ctx:CanvasRenderingContext2D,f:JsonObject,alpha=1) {
   const scale=zoom.value*Number(actor.value?.sprite?.displayScale||1);
   const r=f.region||{x:0,y:0,width:im.naturalWidth,height:im.naturalHeight};
   ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=effectMode.value||String(f.asset).startsWith('image/vfx/')||actor.value.sprite.filter!=='nearest';
-  ctx.drawImage(im,r.x,r.y,r.width,r.height,430-Number(f.pivotX)*scale,355-Number(f.pivotY)*scale,Number(f.width)*scale,Number(f.height)*scale);
+  const facing=!clip.value.authoredTurn&&Number(clip.value.sourceFacing)===-1?-1:1;
+  ctx.save();ctx.translate(430,355);ctx.scale(facing,1);
+  ctx.drawImage(im,r.x,r.y,r.width,r.height,-Number(f.pivotX)*scale,-Number(f.pivotY)*scale,Number(f.width)*scale,Number(f.height)*scale);
+  ctx.restore();
   ctx.globalAlpha=1;
 }
 function draw() {
@@ -52,7 +56,7 @@ function draw() {
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,view.width,view.height);
   ctx.setTransform(view.width/900,0,0,view.height/460,0,0);
   ctx.strokeStyle='#857498';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,355);ctx.lineTo(900,355);ctx.stroke();
-  ctx.fillStyle='#c4b5fd';ctx.font='13px sans-serif';ctx.fillText('脚底固定点 · 游戏原比例 '+Math.round(168*Number(actor.value?.sprite?.displayScale||1))+' 高',20,440);
+  ctx.fillStyle='#c4b5fd';ctx.font='13px sans-serif';ctx.fillText('脚底固定点 · 游戏站立身高约 '+Math.round(168*Number(actor.value?.sprite?.worldScale??actor.value?.sprite?.displayScale??1))+' 高',20,440);
   if(ghosts.value&&index.value>0) drawFrame(ctx,clip.value.frames[index.value-1],0.20);
   drawFrame(ctx,current.value);
   if(showEffect.value&&!effectMode.value&&!clip.value.effectsBaked) {
@@ -92,7 +96,8 @@ function beginDrag(e:PointerEvent) {
 function moveDrag(e:PointerEvent) {
   if(!drag||!canvas.value) return;
   const scale=canvas.value.getBoundingClientRect().width/900*zoom.value*Number(actor.value.sprite.displayScale||1);
-  (allFrames.value?clip.value.frames:[current.value]).forEach((f:JsonObject,i:number)=>{f.pivotX=+(drag!.pivots[i]![0]!-(e.clientX-drag!.x)/scale).toFixed(2);f.pivotY=+(drag!.pivots[i]![1]!-(e.clientY-drag!.y)/scale).toFixed(2);});
+  const facing=!clip.value.authoredTurn&&Number(clip.value.sourceFacing)===-1?-1:1;
+  (allFrames.value?clip.value.frames:[current.value]).forEach((f:JsonObject,i:number)=>{f.pivotX=+(drag!.pivots[i]![0]!-(e.clientX-drag!.x)/scale*facing).toFixed(2);f.pivotY=+(drag!.pivots[i]![1]!-(e.clientY-drag!.y)/scale).toFixed(2);});
   draw();
 }
 function endDrag(){if(drag){drag=null;changed();}}
@@ -194,6 +199,14 @@ onUnmounted(()=>{cancelAnimationFrame(raf);resizeObserver?.disconnect();});
       <PanelShell title="当前帧与播放" eyebrow="逐帧调整">
         <p class="notice">预览采用招式速度 {{previewSpeed}} 倍；点击输入框时自动暂停，避免改错帧。</p>
         <p class="notice">整段 {{animationDuration(clip,previewSpeed).toFixed(3)}} 秒；当前帧停留 {{((Number(current.durationTicks??1)/Number(clip.fps||24)/previewSpeed)*1000).toFixed(1)}} 毫秒。</p>
+        <div v-if="clip.sourceName||clip.sourceFrameStart!==undefined||clip.sourceDuration!==undefined||clip.timingSource" class="sub-card source-details">
+          <h4>素材来源与源时轴</h4>
+          <p v-if="clip.sourceName">来源：{{clip.sourceName}}</p>
+          <p v-if="sourceFrameRange">源帧范围：{{sourceFrameRange}}（源索引 {{clip.sourceFrameStart??0}}–{{clip.sourceFrameEnd??clip.frames.length-1}}）</p>
+          <p v-if="clip.sourceDuration!==undefined">源动作时长：{{Number(clip.sourceDuration).toFixed(3)}} 秒</p>
+          <p v-if="clip.timingSource">时长依据：{{clip.timingSource}}</p>
+          <p>当前片段实际时长：{{animationDuration(clip,previewSpeed).toFixed(3)}} 秒（{{clip.fps||24}} FPS × {{previewSpeed}} 倍）</p>
+        </div>
         <EditorField label="当前帧停留（1 = 原速一帧，2 = 停留两倍）" type="number" :model-value="current.durationTicks??1" min="0.001" max="1000" step="0.1" @update="current.durationTicks=$event" @changed="changed"/>
         <EditorField label="循环播放（待机、跑步使用）" type="checkbox" :model-value="clip.loop??false" @update="clip.loop=$event" @changed="changed"/>
         <div class="field-grid"><EditorField label="播放帧率 FPS" type="number" :model-value="clip.fps" :min="1" :max="180" @update="clip.fps=$event" @changed="changed"/><EditorField label="角色显示倍率（1 = E 盘原大小）" type="number" :model-value="actor.sprite.displayScale" min="0.25" max="3" step="0.05" @update="actor.sprite.displayScale=$event" @changed="changed"/><EditorField label="固定点 X（向大改，图片向左）" type="number" :model-value="current.pivotX" @update="setPivot('pivotX',$event)"/><EditorField label="固定点 Y（向大改，图片向上）" type="number" :model-value="current.pivotY" @update="setPivot('pivotY',$event)"/><EditorField label="当前帧宽度" type="number" :model-value="current.width" min="1" @update="current.width=$event" @changed="changed"/><EditorField label="当前帧高度" type="number" :model-value="current.height" min="1" @update="current.height=$event" @changed="changed"/></div>

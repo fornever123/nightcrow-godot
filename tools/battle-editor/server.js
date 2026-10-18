@@ -220,6 +220,9 @@ function validateConfig(config) {
     if (!isObject(config)) return {ok:false,errors:['配置必须是对象'],warnings};
     const c=(config.characters||[]).find(c=>c.id==='player');
     const d=(config.characters||[]).find(c=>c.id==='dummy');
+    for(const [key,bindings] of Object.entries(config.input||{})) {
+        if(!Array.isArray(bindings)||bindings.some(binding=>typeof binding!=='string'||!binding.trim()||!/^[A-Z][A-Z0-9]*(?:\+[A-Z][A-Z0-9]*)*(?:_HOLD)?$/i.test(binding.trim()))) errors.push(`输入 ${key} 必须是由按键组合组成的列表`);
+    }
     if (!c || !d) errors.push('必须保留夜鸦角色和训练木桩');
     if (!config.stage?.spawn?.player || config.stage?.spawn?.enemies?.length!==1) errors.push('训练场必须有一个角色出生点和一个木桩出生点');
     const bounds=config.stage?.bounds||{};
@@ -251,6 +254,11 @@ function validateConfig(config) {
             addBooleanRule(errors,clip.effectsBaked,`${name} effectsBaked`);
             if(clip.overlayEffect !== undefined && (typeof clip.overlayEffect !== 'string' || (clip.overlayEffect !== '' && !Object.prototype.hasOwnProperty.call(actor.sprite?.effects||{},clip.overlayEffect)))) errors.push(`${name} overlayEffect 必须引用当前角色的特效`);
             if(!Array.isArray(clip.frames)||!clip.frames.length) errors.push(`${name} 缺少动作帧`);
+            if(clip.sourceName!==undefined&&typeof clip.sourceName!=='string') errors.push(`${name} sourceName 必须是文字`);
+            if(clip.timingSource!==undefined&&typeof clip.timingSource!=='string') errors.push(`${name} timingSource 必须是文字`);
+            for(const key of ['sourceFrameStart','sourceFrameEnd']) if(clip[key]!==undefined) addNumberRule(errors,clip[key],`${name} ${key}`,0,1000000);
+            if(clip.sourceFrameStart!==undefined&&clip.sourceFrameEnd!==undefined&&clip.sourceFrameEnd<clip.sourceFrameStart) errors.push(`${name} 源帧结束位置不能早于开始位置`);
+            addOptionalNumberRule(errors,clip.sourceDuration,`${name} 源动作时长`,Number.MIN_VALUE,3600);
             for(const frame of clip.frames||[]) {
                 if(frame.durationTicks !== undefined && (!isFiniteNumber(frame.durationTicks) || frame.durationTicks <= 0)) errors.push(`${name} durationTicks 必须是正数`);
                 if(frame.blank) continue;
@@ -262,6 +270,16 @@ function validateConfig(config) {
             }
         }
     }
+    const locomotion=c?.sprite?.locomotion;
+    if(locomotion!==undefined) {
+        addOptionalNumberRule(errors,locomotion.landingCancelFrame,'落地取消帧',0,1000000);
+    }
+    const guard=c?.sprite?.guard;
+    if(guard!==undefined) {
+        addOptionalNumberRule(errors,guard.damageMultiplier,'格挡伤害倍率',0,1);
+        if(guard.enabled&&!(config.input?.guard||[]).some(value=>String(value).toUpperCase()==='L_HOLD')) errors.push('启用格挡时，按住防守输入需包含 L_HOLD');
+    }
+    if((config.moves||[]).some(move=>move.id==='dash_slash')&&!(config.input?.dashAttack||[]).some(value=>String(value).replaceAll(' ','').toUpperCase()==='SHIFT+J')) errors.push('冲刺攻击按键需包含 SHIFT+J');
     const required=['light_1','light_2','light_3','charge_1','up_strike','air_up','ranged_1','parry_1'];
     if(new Set((config.moves||[]).map(m=>m.id)).size!==(config.moves||[]).length) errors.push('招式 ID 重复');
     for(const id of required) if(!(config.moves||[]).some(m=>m.id===id)) errors.push(`缺少基础招式 ${id}`);
@@ -271,6 +289,21 @@ function validateConfig(config) {
         for(const k of ['hitstop','victimHitstop']) addNumberRule(errors,m[k],`${m.name} ${k}`,0,0.5);
         addOptionalNumberRule(errors,m.chargeHitstopBonus,`${m.name} 蓄力额外顿帧`,0,0.5);
         for(const k of ['squashX','squashY']) addOptionalNumberRule(errors,m[k],`${m.name} ${k}`,0.25,2);
+        addOptionalNumberRule(errors,m.dashDistance,`${m.name} 冲刺距离`,0,5000);
+        addOptionalNumberRule(errors,m.airGravityScale,`${m.name} 空中重力倍率`,0,3);
+        addOptionalNumberRule(errors,m.airSuspendFrames,`${m.name} 空中滞空帧数`,0,600);
+        if(m.movementTimeline!==undefined) {
+            if(!Array.isArray(m.movementTimeline)||m.movementTimeline.length<2) errors.push(`${m.name} 移动曲线至少需要两个控制点`);
+            else {
+                let previousTime=-1,previousDistance=-1;
+                for(const [index,point] of m.movementTimeline.entries()) {
+                    addNumberRule(errors,point.time,`${m.name} 曲线第 ${index+1} 点进度`,0,1);
+                    addNumberRule(errors,point.distance,`${m.name} 曲线第 ${index+1} 点距离`,0,5000);
+                    if(point.time<previousTime||point.distance<previousDistance) errors.push(`${m.name} 移动曲线的进度和累计距离必须递增`);
+                    previousTime=Number(point.time);previousDistance=Number(point.distance);
+                }
+            }
+        }
         if(m.syncAnimation) {
             const clip=c?.sprite?.animations?.[m.animation];
             if(!clip) errors.push(`${m.name} 缺少动作 ${m.animation}`);
