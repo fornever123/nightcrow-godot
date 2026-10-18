@@ -158,7 +158,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - [x] 节点 5：角色环境光（设计见 §12）
 - [x] 节点 6：整合 + 整轮实机复查（镜头/遭遇战/HUD/主场景在节点 3，夜景在节点 4，环境光在节点 5）
 - [x] 节点 7：测试全过 + 实机截图/录屏验证
-- [ ] 节点 8：GitHub 推送 + Windows 包（如可行）+ 用户说明
+- [x] 节点 8：合并到 main（PR #1）+ 用户说明（Windows 包不做，见 §9）
 
 ## 9. 进度日志
 
@@ -216,9 +216,15 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - 全部测试 270/0（沙盒第二次被重置后重建环境再跑，结果一样）。
   - `tests/dev/bot_night.gd` 加 `BOT_TAIL=N`：打完 BOT_ENC 处封印后继续空跑 N 帧（把结算面板录进去）。
   - 录屏命令：`DISPLAY=:99 SEED=3 SKILL=0.8 BOT_ENC=3 BOT_TAIL=240 /data/tools/godot --path . --script res://tests/dev/bot_night.gd --resolution 1280x720 --fixed-fps 30 --write-movie /data/work/movie/demo.avi`（后台跑，Xvfb 下约 7 分钟，AVI 约 900MB）→ `ffmpeg -c:v libx264 -preset slow -crf 30 -pix_fmt yuv420p -c:a aac -b:a 112k -movflags +faststart`（crf 27 是 44MB，太大）。
-  - 这一局：2 分 19 秒，0 死；三处封印 57.6s / 95.6s / 135.0s 清完；最高评价 S，第 1 轮结算 A（最高连击 34、眩晕/挑飞 22/11、下砸/撞墙/连锁 3/3/4、弹刀 7）。抽帧检查：浮空连段、S 评价、封印解除横幅、情境提示、结算面板都正常。
+  - 这一局：2 分 09 秒，0 死；三处封印 51.7s / 85.0s / 125.1s 清完；最高评价 S，第 1 轮结算 A（用时 1:45、最高连击 37、眩晕/挑飞 21/13、下砸/撞墙/连锁 6/4/12、弹刀 6、受击 6 次 72 伤害）。同样的 SEED 两次录制结果不完全一样（渲染时帧序有差别），无所谓。抽帧检查：开场标题、情境提示、浮空连段、“挑飞！眩晕！破防·眩晕！”、S 评价、封印解除横幅、结算面板都正常。成品 26MB（crf 30）。
   - 录屏文件不进仓库（太大），直接发给用户：`月下堤岸试玩录屏.mp4`。
   - 新增 `docs/试玩说明.md`（给用户看的：怎么更新、怎么启动、操作、眩晕连段、关卡、已知问题）和 `PULL_GITHUB.bat` / `下载GitHub更新.bat`（`git pull --ff-only origin main`；冲突时停下、不覆盖本机文件）。原来的 SYNC_GITHUB.bat 只会上传，GitHub 上更新时它会拒绝，所以用户需要这个下载入口。
+  - 本地提交 9a3ec41，已推送为 trial-wip 提交 77e086a。
+- 2026-10-18 节点 8 完成（交付）：
+  - 开 PR #1（trial-wip → main，https://github.com/fornever123/nightcrow-godot/pull/1），用 merge 方式合并（保留每个节点的提交）。合并前 main 仍是 5c452fd，没有冲突。
+  - Windows 打包没做：沙盒没有导出模板（约 1GB），而且 GitHub MCP 只能传文本。用户本机有 Godot exe，用 `下载GitHub更新.bat` 拉取后双击 OPEN_GAME.bat 就能玩。以后要打包的话，在用户本机用 Godot 编辑器导出，并把 `*.b64`、`*.json` 加进导出的“非资源文件”过滤。
+  - 交付给用户：录屏 `月下堤岸试玩录屏.mp4`、`docs/试玩说明.md`、本文档。
+  - **以后接手**：新需求在 main 上开新分支（例如 `trial-wip2`），照旧每个节点推送一次；先 `list_commits` 看用户有没有从本机上传新提交。
 
 ## 10. 仍待用户拍板的旧事项（本任务不阻塞）
 
