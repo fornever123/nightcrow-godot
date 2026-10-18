@@ -6,6 +6,8 @@ GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever1
 
 这是现在要使用的正式工程。E 盘旧角色素材和动作保留，战斗使用 C 盘 Godot 的基础；场景清空，只留下训练木桩。旧工程保留作备份。
 
+**选后视频音频**：[六段原始音频独立归档](art/selected-video-audio/README.md)，与源视频同名，直接提取、未重新压缩，已核对声音数据一致。
+
 ## 你只需要双击这两个文件
 
 - `OPEN_GAME.bat`：打开 Godot 游戏。
