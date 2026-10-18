@@ -108,7 +108,13 @@ func _ready() -> void:
 	ok = far_tex != null and mid_tex != null and near_tex != null and meta.has("near") and meta.has("mid")
 	if not ok:
 		return
+	# 镜头在本帧移动后再摆夜景（否则冲刺时远景会晚一帧，屏幕边露出底色）
+	process_priority = 100
 	_far = _sprite(far_tex, -100, false)
+	# 远景左右各多画 MARGIN（镜像延伸）兜底
+	_far.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR
+	_far.region_enabled = true
+	_far.region_rect = Rect2(-MARGIN, 0, 1280.0 + MARGIN * 2.0, 720.0)
 	_far.material = _shader_mat(preload("res://assets/shaders/night_far.gdshader"), {"horizon": horizon_y() / 720.0})
 	_sky = Node2D.new()
 	_sky.z_index = -98
@@ -197,7 +203,7 @@ func _process(delta: float) -> void:
 		top_y = camera.get_screen_center_position().y - 360.0
 	var w := 1280.0 + MARGIN * 2.0
 	# 远景：贴着屏幕
-	_far.position = Vector2(cl, top_y)
+	_far.position = Vector2(cl - MARGIN, top_y)
 	# 中景：0.25 倍视差
 	var mp := float(meta.mid.period)
 	var mh := float(meta.mid.size[1])

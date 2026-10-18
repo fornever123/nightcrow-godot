@@ -13,6 +13,7 @@ var rng := RandomNumberGenerator.new()
 var skill := 0.8
 var deaths := [0]
 var enc_clear: Array = []
+var snap: Dictionary = {}   ## 上一帧的评价统计（关卡在整轮结束时会先重置统计，再轮到这里的回调）
 var dmg_by := {}
 func _initialize() -> void:
 	call_deferred("run")
@@ -115,13 +116,14 @@ func run() -> void:
 	await process_frame
 	p = stage.player
 	p.died.connect(func(): deaths[0] += 1; plan.clear())
-	stage.encounter.cleared.connect(func(): enc_clear.append(["%.1fs" % (tick / 60.0), int(p.hp), deaths[0], "stun%d launch%d slam%d wall%d chain%d parry%d hit%d dmg%d" % [stage.style.stats.stun, stage.style.stats.launch, stage.style.stats.slam, stage.style.stats.wall, stage.style.stats.chain, stage.style.stats.parry, stage.style.stats.times_hit, stage.style.stats.damage_taken], dmg_by.duplicate()]))
+	stage.encounter.cleared.connect(func(): enc_clear.append(["%.1fs" % (tick / 60.0), int(p.hp), deaths[0], "stun%d launch%d slam%d wall%d chain%d parry%d hit%d dmg%d" % [snap.stun, snap.launch, snap.slam, snap.wall, snap.chain, snap.parry, snap.times_hit, snap.damage_taken], dmg_by.duplicate()]))
 	stage.encounter.shade_spawned.connect(func(s): s.strike_landed.connect(func(_pt): dmg_by[s.display_name()] = dmg_by.get(s.display_name(), 0) + 1))
 	var max_frames := int(OS.get_environment("BOT_FRAMES")) if OS.get_environment("BOT_FRAMES") != "" else 18000
 	var want := int(OS.get_environment("BOT_ENC")) if OS.get_environment("BOT_ENC") != "" else 3
 	var best := 0
 	while tick < max_frames and enc_clear.size() < want:
 		tick += 1
+		snap = stage.style.stats.duplicate()
 		p.set_injected_frame(decide())
 		await physics_frame
 		best = maxi(best, stage.style.rank_index())
