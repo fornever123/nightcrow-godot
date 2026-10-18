@@ -62,6 +62,8 @@ static func moves(config: Dictionary) -> Dictionary:
 		m.movement_timeline = source.get("movementTimeline", [])
 		m.air_gravity_scale = float(source.get("airGravityScale", 1.0))
 		m.air_suspend_frames = maxi(0, int(source.get("airSuspendFrames", 0)))
+		m.root_motion_x = animations.get(m.animation, {}).get("rootMotionX", [])
+		m.root_motion_scale = float(source.get("rootMotionScale", 1.0))
 		var box: Dictionary = source.get("hitbox", {})
 		m.hitbox = Rect2(Vector2(box.get("x", 100), box.get("y", -90)), Vector2(box.get("width", 200), box.get("height", 136)))
 		m.command = &"light"

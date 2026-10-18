@@ -1,8 +1,8 @@
 config_version=5
 
 [application]
-config/name="夜鸦 · 木桩训练场"
-run/main_scene="res://scenes/training.tscn"
+config/name="月下堤岸 · 试玩版"
+run/main_scene="res://scenes/night_trial.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]

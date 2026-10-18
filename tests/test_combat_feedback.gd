@@ -76,7 +76,7 @@ func run() -> void:
 	check(stage.moves.parry_1.cancel_frame < stage.moves.parry_1.recovery_frames,"招架后摇可及时接招")
 	check(stage.moves.charge_1.cancel_frame < stage.moves.charge_1.recovery_frames,"蓄力收刀恢复提前接招窗口")
 	check(stage.moves.up_strike.direction==1 and stage.moves.air_up.direction==1,"地面/空中上挑方向恢复")
-	check(stage.moves.light_1.movement_scale==1,"轻攻击走位保留 C 盘速度")
+	check(stage.moves.light_1.movement_scale<=0.35 and stage.moves.light_1.root_motion_x.size()>0,"轻攻击前冲交给根位移，按方向只做小幅走位")
 	await reset()
 	var before: float = d.hp
 	await step(1,[&"attack_light"],[&"attack_light"])
