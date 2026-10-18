@@ -58,13 +58,7 @@ func _ready() -> void:
 	capsule.radius = minf(25.0 * world_scale, capsule.height/2)
 	var hurt: RectangleShape2D = player.get_node("Hurtbox/CollisionShape2D").shape
 	hurt.size = Vector2(c.hurtbox.width,c.hurtbox.height) * world_scale
-	player.acceleration = float(c.get("acceleration",4800))
-	player.speed = float(c.speed) * float(config.settings.get("characterSpeedMultiplier", 1))
-	player.air_control = float(c.airControl)
-	player.jump_time_to_peak = float(c.get("jumpTimeToPeak", 0.28))
-	player.jump_time_to_descent = float(c.get("jumpTimeToDescent", 0.20)) / sqrt(float(config.settings.get("jumpGravityMultiplier",1)))
-	player.jump_height = float(c.jumpSpeed) * player.jump_time_to_peak * 0.5 * float(config.settings.get("jumpSpeedMultiplier", 1))
-	player.extra_air_jumps = maxi(0, int(c.maxJumps) - 1)
+	player.apply_movement_config(c, config.settings)
 	player.max_hp = c.maxHp
 	player.squash_strength = float(config.feedback.get("squashStrength",0))
 	player.parry_hitstop_frames = roundi(float(config.feedback.get("parryHitstop",0.05))*60*float(config.feedback.get("hitstopMultiplier",1)))

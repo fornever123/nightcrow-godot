@@ -57,11 +57,16 @@ func run() -> void:
 	for id in ["light_1","light_2","light_3","charge_1"]:
 		var m: Resource = stage.moves[id]
 		var clip: Dictionary = raw.characters[0].sprite.animations[m.animation]
-		check(absf(float(m.total_frames())/60-float(clip.frames.size())/m.animation_fps)<=1.0/60+0.00001,id+" 按完整动作时长出招")
+		check(absf(m.anim_seconds(float(m.total_frames()))-float(clip.frames.size())/m.animation_fps)<=1.0/60+0.00001,id+" 按完整动作时长出招（分段变速后动画仍播满）")
+		check(m.phase_timed and float(m.total_frames())/60.0 < float(clip.frames.size())/m.animation_fps,id+" 前后摇加速后整招更短")
 	var faster: Dictionary = raw.duplicate(true)
+	for k in ["startupSpeed","activeSpeed","recoverySpeed","tailSpeed"]:
+		faster.moves[0].erase(k)
 	faster.moves[0].animationSpeed = 1.5
 	var sped: Resource = Config.moves(faster).light_1
-	check(sped.total_frames() < stage.moves.light_1.total_frames(),"动作加速会同步缩短战斗窗口")
+	var plain: Dictionary = faster.duplicate(true)
+	plain.moves[0].animationSpeed = 1.0
+	check(sped.total_frames() < Config.moves(plain).light_1.total_frames(),"动作加速会同步缩短战斗窗口")
 	check(absf(float(sped.total_frames())/60-float(raw.characters[0].sprite.animations.attack_1.frames.size())/sped.animation_fps)<0.02,"加速后的动作与判定同步")
 	var x: float = p.position.x
 	await step(12, frame([&"move_right"],[],Vector2.RIGHT))
