@@ -18,6 +18,7 @@ const LANTERN_IN_TILE := Vector2(639.0, 61.0)   ## 近景图块里灯笼火光�
 const BRIDGE_LAMPS := [65.0, 124.0, 184.0, 245.0, 307.0, 368.0, 731.0, 791.0, 848.0, 908.0]
 const BRIDGE_LAMP_Y := 203.0       ## 中景图块里桥灯的行
 const MARGIN := 48.0
+const LANTERN_REACH := 330.0      ## 灯笼暖光照到角色身上的半径
 
 static var _cache: Dictionary = {}
 
@@ -51,6 +52,24 @@ func nearest_lantern(x: float) -> Vector2:
 	var p := float(meta.near.period)
 	var k := roundf((x - LANTERN_IN_TILE.x) / p)
 	return Vector2(k * p + LANTERN_IN_TILE.x, near_top() + LANTERN_IN_TILE.y)
+
+
+## 灯笼火苗的跳动（地上暖光圈、角色身上的暖光都用它，保持同步）
+func lantern_flicker(lx: float) -> float:
+	return 0.85 + 0.1 * sin(_time * 9.0 + lx) + 0.05 * sin(_time * 23.0)
+
+
+## 某点受到的灯笼暖光：x = 强度 0..1（含火苗跳动），(y, z) = 从该点指向灯笼的单位方向（屏幕坐标）
+func lantern_light(p: Vector2) -> Vector3:
+	var lan := nearest_lantern(p.x)
+	if not is_finite(lan.x):
+		return Vector3.ZERO
+	var d := lan - p
+	var dist := d.length()
+	var w := clampf(1.0 - dist / LANTERN_REACH, 0.0, 1.0)
+	w = w * w * (3.0 - 2.0 * w) * lantern_flicker(lan.x)
+	var dir := d / maxf(dist, 0.001)
+	return Vector3(w, dir.x, dir.y)
 
 
 func near_top() -> float:
@@ -273,7 +292,7 @@ func _draw_glow_back() -> void:
 		if lx < cl - 400.0 or lx > cl + 1680.0:
 			continue
 		var c := Vector2(lx, near_top() + LANTERN_IN_TILE.y)
-		var fl := 0.85 + 0.1 * sin(_time * 9.0 + lx) + 0.05 * sin(_time * 23.0)
+		var fl := lantern_flicker(lx)
 		for i in 6:
 			var r := 18.0 + float(i) * 22.0
 			_glow_back.draw_circle(c, r * fl, Color(1.0, 0.62, 0.3, 0.045 * fl))

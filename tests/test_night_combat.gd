@@ -146,6 +146,12 @@ func test_backdrop() -> void:
 	var lan: Vector2 = b.nearest_lantern(p.global_position.x)
 	check(is_finite(lan.x) and absf(lan.x - p.global_position.x) <= float(b.meta.near.period) * 0.5 + 1.0, "能找到最近的灯笼")
 	check(stage.get_child(0) == b, "夜景在最底层")
+	var spr: Sprite2D = p.get_node("Visual/ActorSprite")
+	check(stage.light_mat != null and spr.material == stage.light_mat, "角色挂上环境光材质（只在试玩关卡）")
+	var lan0: Vector2 = b.nearest_lantern(600.0)
+	var lit: Vector3 = b.lantern_light(lan0 + Vector2(-80.0, 20.0))
+	var dark: Vector3 = b.lantern_light(Vector2(lan0.x + float(b.meta.near.period) * 0.5, 520.0))
+	check(lit.x > 0.3 and lit.y > 0.9 and dark.x == 0.0, "灯笼暖光：近处强、方向朝灯，两灯中间为 0")
 
 
 func test_slam_route() -> void:

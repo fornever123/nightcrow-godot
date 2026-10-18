@@ -99,6 +99,7 @@ var flash: int = 0
 var flash_color: Color = Color.WHITE
 var squash: Vector2 = Vector2.ONE
 var armor_flash: int = 0
+var lamp: Vector3 = Vector3.ZERO      ## 灯笼暖光（night_trial 每帧填）：x 强度，(y,z) 指向灯笼
 var _rng := RandomNumberGenerator.new()
 var _hurtbox: Area2D
 static var _font: Font
@@ -856,6 +857,7 @@ const RIM := Color(0.48, 0.6, 0.9)
 const EYE := Color(1.0, 0.8, 0.45)
 const WARN := Color(1.0, 0.54, 0.24)
 const GOLD := Color(1.0, 0.86, 0.4)
+const LAMP := Color(1.0, 0.66, 0.34)
 
 
 func _draw() -> void:
@@ -873,6 +875,9 @@ func _draw() -> void:
 	# 接地影子（随离地高度变淡变小）
 	var air := clampf((ground_y() - position.y) / 300.0, 0.0, 1.0)
 	_draw_ellipse(Vector2(0, h + 2), Vector2(w * 1.5 * (1.0 - air * 0.5), 6.0), Color(0, 0, 0, 0.45 * fade * (1.0 - air * 0.7)))
+	if lamp.x > 0.03:   # 灯笼投影：背向灯笼拉长
+		var away := -1.0 if lamp.y > 0.0 else 1.0
+		_draw_ellipse(Vector2(away * (w + 22.0 * lamp.x), h + 2), Vector2(w * 1.4 + 30.0 * lamp.x, 4.0), Color(0, 0, 0, 0.25 * lamp.x * fade * (1.0 - air)))
 	draw_set_transform(Vector2(0, h), 0.0, s)
 	var lean := 0.0
 	var tele := telegraph()
@@ -924,6 +929,10 @@ func _draw() -> void:
 		cloak = INK.lerp(Color.WHITE, 0.85) if flash_color == Color.WHITE else INK.lerp(flash_color, 0.7)
 	cloak.a = fade
 	draw_colored_polygon(pts, cloak)
+	var wash := LAMP
+	wash.a = 0.16 * lamp.x * fade
+	if wash.a > 0.004:
+		draw_colored_polygon(pts, wash)   # 灯笼边：斗篷整体透一点暖色
 	# 衣褶：两道略亮的竖纹，让斗篷不像一整块剪影
 	var fold := INK_SOFT
 	fold.a = 0.9 * fade
@@ -968,6 +977,21 @@ func _draw() -> void:
 		var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
 		hood_rim.append(head + Vector2(cos(a) * (r + 0.5), sin(a) * (r + 0.5)))
 	draw_polyline(hood_rim, rim, 1.5)
+	# 灯笼暖光：朝灯笼那一侧再描一道暖边
+	if lamp.x > 0.02:
+		var wc := LAMP
+		wc.a = lamp.x * fade
+		var side := 1.0 if lamp.y > 0.0 else -1.0
+		var warm_edge := front if side * f > 0.0 else back
+		var glow := LAMP
+		glow.a = 0.28 * lamp.x * fade
+		draw_polyline(warm_edge, glow, 7.0)
+		draw_polyline(warm_edge, wc, 3.0)
+		var warm_rim := PackedVector2Array()
+		for i in 13:
+			var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
+			warm_rim.append(head + Vector2(cos(a) * side * (r + 0.5), sin(a) * (r + 0.5)))
+		draw_polyline(warm_rim, wc, 1.5)
 	# 下摆的影雾：几团慢慢上飘的半透明黑烟
 	for i in 4:
 		var ph := fmod(t * 0.6 + float(i) * 0.27, 1.0)

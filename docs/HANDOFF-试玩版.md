@@ -155,7 +155,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - [x] 节点 2：手感参数（跑步/转身/跳跃/缓冲/判定框/顿帧）+ 序列帧横线瑕疵清理
 - [x] 节点 3：战斗系统（敌人、失衡/眩晕、浮空连段、方向终结、连锁）+ 试玩关卡/HUD/评价（原节点 6 的大部分）
 - [x] 节点 4：夜景场景（抠图/无缝/视差/特效，设计见 §11）
-- [ ] 节点 5：角色环境光
+- [x] 节点 5：角色环境光（设计见 §12）
 - [ ] 节点 6：整合（镜头/遭遇战/HUD/主场景已在节点 3 做完；夜景 backdrop 已在节点 4 接入；剩：环境光接入后的整轮实机复查）
 - [ ] 节点 7：测试全过 + 实机截图/录屏验证
 - [ ] 节点 8：GitHub 推送 + Windows 包（如可行）+ 用户说明
@@ -195,6 +195,14 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - 新增开发工具 `tests/dev/scene_shot.gd`（静帧截图）。
   - 截图检查：x=300/1400/2600 三处构图、月亮/云无噪点、接缝看不出、灯笼/倒影/雾正常；capture_night 战斗截图里影卒在亮海面上轮廓清楚，封印墙和底部提示框不挡战斗。近景倒影原来太淡被月光路盖住 → strength 0.72、tint_amt 0.38。
   - test_night_combat 加 6 项夜景检查（47 项）；全部 268/0；无头模式加载 webp/着色器无报错。
+  - 本地提交 64f9149，已推送为 trial-wip 提交 fe8727f。
+- 2026-10-18 节点 5 完成（细节全在 §12）：
+  - 新增 `assets/shaders/char_light.gdshader`（冷色环境 + 右上月光边缘光 + 灯笼暖光），`night_trial.gd` 加 `_build_lighting()/_update_lighting()/_draw_player_shadow()`；`night_backdrop.gd` 加 `lantern_flicker()`、`lantern_light()`、`LANTERN_REACH`；`shade.gd` 加 `lamp`、朝灯一侧暖边 + 斗篷暖色 + 背向灯笼的长影。
+  - `tests/dev/scene_shot.gd` 加 `NOLIGHT=1`（关光照对比）、`SHADES="-230,170"`（放静止影卒）、`FACE=-1`（朝左）、`POSE="招式:帧"`（定格）。
+  - 调参过程：第一版去饱和 0.14 + 暗部抬蓝 → 角色发灰发平；改为去饱和 0.08、抬升只作用在最暗处、月光边 0.85、宽 2.5px。影子一开始被叉开的双脚挡住、步道顶面在画面里只有约 12px 高 → 改成“贴地接触影 40×3.5 + 外圈淡影 60×6.5”。影卒暖边在黑斗篷上太暗 → 3px 实线 + 7px 外发光。
+  - 坑：着色器自定义函数里不能直接用 TEXTURE；把 TEXTURE 当 sampler 参数传进函数会在无头模式报 `custom_samplers` ERROR → 现在全部在 fragment 里直接采样。**无头测试不编译着色器**，改着色器后必须用 Xvfb 跑 scene_shot 并 grep `SHADER ERROR`。
+  - test_night_combat 加 2 项（材质已挂、灯笼暖光近强远零）→ 49 项；全部 270/0。
+  - 挑飞（attack_up）序列帧自带的大白刀光弧是不透明像素，靠 alpha 分不出来；`POSE="attack_up:10"` 定格对比开/关光照，差别很小（只是更偏冷），灰白笔触是原图本身 → 不做“发光像素例外”。
 
 ## 10. 仍待用户拍板的旧事项（本任务不阻塞）
 
@@ -236,3 +244,26 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 静帧：`DISPLAY=:99 SHOT_DIR=/data/work/shots XS="300,1400,2600" /data/tools/godot --path . --script res://tests/dev/scene_shot.gd --resolution 1280x720` → `scene_x<x>.png`。
 - 战斗：`DISPLAY=:99 SHOT_DIR=… SEED=3 godot --path . --script res://tests/dev/capture_night.gd --resolution 1280x720`（眩晕/挑飞/下砸/连锁/波次自动截图）。
 - 测试：test_night_combat 里 `test_backdrop()`（加载成功、尺寸 = 周期、步道对齐 floor_y、灯笼可查、夜景在最底层）。
+
+## 12. 角色环境光（节点 5 定稿）
+
+只在试玩关卡生效（训练场的角色没有材质，完全不变）。夜景加载失败（`backdrop == null`）时也不挂。
+
+### 12.1 玩家：`assets/shaders/char_light.gdshader`（挂在 `Visual/ActorSprite`，`night_trial.light_mat`）
+- 冷色环境：去饱和 `desat` 0.08 → 乘 `ambient` (0.85, 0.9, 1.0) → 最暗处抬一点蓝 `shadow_lift` (0, 0.012, 0.04)×(1−亮度)²。
+- 月光边缘光：月亮固定在屏幕右上，`moon_dir` (0.86, −0.5)。往这个方向偏 1 倍和 2.2 倍宽度采样 alpha，外面是透明就是“迎光的边”，用 screen 混合叠 `moon_col` (0.74, 0.86, 1.0)×0.85。宽度 `RIM_PX` = 2.5 屏幕像素，脚本每帧按精灵的全局缩放换算成贴图像素（`px`）。
+- 灯笼暖光：`warm` = `backdrop.lantern_light(身体中心).x × 0.85`（0..1，含火苗跳动，半径 `LANTERN_REACH` 330，smoothstep 衰减），`warm_dir` = 指向灯笼的方向。朝灯一侧 7 倍宽度的“宽漫反射” + 1 倍宽度的暖边；越暖环境色越接近白、去饱和越少。
+- 镜像：精灵 `get_global_transform().x.x < 0` 时 `flip = −1`，把屏幕方向换成贴图方向（转身动画会自己抵消父节点翻面，结果照样对）。
+- 序列帧每帧是一张整图（没有图集 region），所以贴图外面直接算透明。
+
+### 12.2 影子（`night_trial._draw_player_shadow()`，画在关卡节点自己的 _draw 里，z 0，在角色下面、夜景上面）
+- 步道顶面在画面里只有约 572–588 这一条，所以影子很扁：贴地接触影（中心 floor_y+2，40×3.5，alpha 0.8）+ 外圈淡影（floor_y+3，60×6.5，alpha 0.45），中心往左偏 3–5px（月亮在右上）。离地越高越小越淡（300px 淡到最低）。
+- 靠近灯笼：再加一道背向灯笼拉长的淡影（长 56+50w，alpha 0.35w）。
+- 影卒的影子在 `shade.gd._draw()` 里自己画（原有接地影 + 新加的灯笼长影）。
+
+### 12.3 影卒（`shade.gd`，程序绘制）
+- 原有：右侧月光描边 `RIM`。
+- 新增 `lamp: Vector3`（night_trial 每帧 `_update_lighting()` 里填 `backdrop.lantern_light(影卒位置)`）：朝灯一侧 3px 暖边 + 7px 外发光、兜帽同侧暖边、整件斗篷叠 0.16×强度的暖色。
+
+### 12.4 验证
+- `NOLIGHT=1` 对比开/关；`SHADES="-230,170" XS=760` 看灯笼左边的影卒；`FACE=-1` 看朝左；`POSE="attack_up:10"` 定格某招式某帧。结论截图：离灯远时角色偏冷、右侧有月光边；在灯笼左/右时对应一侧变暖；双脚之间能看到贴地影。

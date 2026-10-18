@@ -17,6 +17,9 @@ const Encounter := preload("res://scripts/night/encounter.gd")
 const Style := preload("res://scripts/night/style_meter.gd")
 const Hud := preload("res://scripts/night/combat_hud.gd")
 const Backdrop := preload("res://scripts/night/night_backdrop.gd")
+const CharLight := preload("res://assets/shaders/char_light.gdshader")
+const RIM_PX := 2.5                 ## 角色月光边缘光宽度（屏幕像素）
+const SHADOW_COL := Color(0.01, 0.015, 0.045)
 const CameraScript := preload("res://scripts/presentation/camera_shake.gd")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
@@ -59,6 +62,7 @@ var hud: Control
 var style: Style
 var encounter: Node
 var backdrop: Node2D                ## 夜景（节点 4 接入；为空时画占位地面）
+var light_mat: ShaderMaterial       ## 角色环境光（节点 5；夜景缺失时为空）
 var floor_y: float = 580.0
 var phase: Phase = Phase.EXPLORE
 var round_index: int = 0
@@ -110,6 +114,7 @@ func _ready() -> void:
 	_hp_seen = player.hp
 	_build_camera()
 	_build_backdrop()
+	_build_lighting()
 	audio = AudioFeedback.new()
 	audio.configure(config.get("audio", {}))
 	add_child(audio)
@@ -175,6 +180,29 @@ func _build_backdrop() -> void:
 		backdrop = b
 	else:
 		b.queue_free()   # 图层缺失时退回占位背景，游戏照样能玩
+
+
+## 角色环境光（节点 5，见 HANDOFF §12）：只给试玩关卡的角色挂材质，训练场不受影响
+func _build_lighting() -> void:
+	if backdrop == null:
+		return
+	light_mat = ShaderMaterial.new()
+	light_mat.shader = CharLight
+	(player.get_node("Visual/ActorSprite") as Sprite2D).material = light_mat
+
+
+func _update_lighting() -> void:
+	if light_mat == null:
+		return
+	var spr: Sprite2D = player.get_node("Visual/ActorSprite")
+	var gt := spr.get_global_transform()
+	light_mat.set_shader_parameter("flip", -1.0 if gt.x.x < 0.0 else 1.0)
+	light_mat.set_shader_parameter("px", Vector2(RIM_PX / maxf(gt.x.length(), 0.0001), RIM_PX / maxf(gt.y.length(), 0.0001)))
+	var l: Vector3 = backdrop.lantern_light(player.global_position + Vector2(0, player.foot_offset - 60.0))
+	light_mat.set_shader_parameter("warm", l.x * 0.85)
+	light_mat.set_shader_parameter("warm_dir", Vector2(l.y, l.z))
+	for s in get_tree().get_nodes_in_group(&"shade"):
+		s.lamp = backdrop.lantern_light(s.global_position)
 
 
 func _build_camera() -> void:
@@ -552,6 +580,7 @@ func _process(_delta: float) -> void:
 	else:
 		hud.wave_text = "第 %d 轮 · 封印 %d/%d · 第 %d/%d 波" % [round_index + 1, enc_no, ROUND.size(),
 				maxi(encounter.wave_index, 0) + 1, encounter.waves.size()]
+	_update_lighting()
 	queue_redraw()
 
 
@@ -564,6 +593,7 @@ func _draw() -> void:
 		draw_rect(Rect2(c.x - 700, c.y - 420, 1400, floor_y - (c.y - 420)), Color("101830"))
 		draw_rect(Rect2(c.x - 700, floor_y, 1400, 300), Color("1b2033"))
 		draw_line(Vector2(c.x - 700, floor_y), Vector2(c.x + 700, floor_y), Color("56607e"), 2)
+	_draw_player_shadow()
 	_draw_seals()
 	if debug_boxes:
 		var shape: CollisionShape2D = player.get_node("MeleeHitbox/CollisionShape2D")
@@ -571,6 +601,36 @@ func _draw() -> void:
 		draw_rect(Rect2(p - shape.shape.size / 2, shape.shape.size), Color(1, 0.4, 0.4, 0.7), false, 2)
 		for s in get_tree().get_nodes_in_group(&"shade"):
 			draw_rect(Rect2(s.global_position - Vector2(s.half_w, s.half_h), Vector2(s.half_w, s.half_h) * 2), Color(0.4, 0.9, 0.8, 0.7), false, 2)
+
+
+## 玩家脚下的影子：月亮在右上方 → 影子略偏左；离地越高越小越淡；
+## 靠近灯笼时再加一道背向灯笼拉长的淡影。（影卒的影子在 shade.gd 里自己画）
+func _draw_player_shadow() -> void:
+	if player == null or player.state == player.State.DEAD:
+		return
+	var x: float = player.global_position.x
+	var foot: float = player.global_position.y + player.foot_offset
+	var air := clampf((floor_y - foot) / 300.0, 0.0, 1.0)
+	var k := 1.0 - air * 0.5
+	_soft_ellipse(Vector2(x - 5.0, floor_y + 3.0), Vector2(60.0 * k, 6.5 * k), 0.45 * (1.0 - air * 0.8))   # 外圈淡影
+	_soft_ellipse(Vector2(x - 3.0, floor_y + 2.0), Vector2(40.0 * k, 3.5 * k), 0.8 * (1.0 - air))          # 贴地接触影
+	if backdrop != null:
+		var l: Vector3 = backdrop.lantern_light(Vector2(x, floor_y - 60.0))
+		if l.x > 0.03:
+			var away := -1.0 if l.y > 0.0 else 1.0
+			_soft_ellipse(Vector2(x + away * (40.0 + 40.0 * l.x), floor_y + 3.0), Vector2(56.0 + 50.0 * l.x, 5.0), 0.35 * l.x * (1.0 - air))
+
+
+func _soft_ellipse(c: Vector2, r: Vector2, alpha: float) -> void:
+	if alpha <= 0.005:
+		return
+	for i in 3:
+		var k := 1.0 - float(i) * 0.25
+		var pts := PackedVector2Array()
+		for j in 28:
+			var a := TAU * float(j) / 28.0
+			pts.append(c + Vector2(cos(a) * r.x * k, sin(a) * r.y * k))
+		draw_colored_polygon(pts, Color(SHADOW_COL, alpha * 0.4))
 
 
 ## 封印墙：两道月光竖幕 + 往上飘的符纹
