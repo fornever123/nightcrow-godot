@@ -216,6 +216,7 @@ func _build_camera() -> void:
 	camera.make_current()
 	camera.follow_target = player
 	camera.follow_smoothing = float(config.camera.get("followLerp", 0.12)) * 60.0
+	camera.look_ahead = float(config.camera.get("lookAhead", 0.0))
 	camera.arena_min = Vector2(back_limit - 30.0, 0)
 	camera.arena_max = Vector2(1.0e9, 720)
 	camera.global_position = Vector2(maxf(START_X, back_limit + 610.0), 360)

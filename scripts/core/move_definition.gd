@@ -153,3 +153,37 @@ func distance_at(progress: float) -> float:
 		previous_time = end_time
 		previous_distance = end_distance
 	return previous_distance if not movement_timeline.is_empty() else dash_distance * t
+
+## 分段变速（第二轮手感）：前摇 / 判定 / 后摇（到接招点）/ 收招尾巴 各自的播放速度。
+## 不删帧，只把每一段动画压缩到更少的物理帧里。
+## phase_frame_ends = 每段结束时的物理帧（累计），phase_anim_ends = 同一时刻的动画时间（秒，按 animation_fps）。
+## phase_timed 为 false 时完全沿用旧的"物理帧/60 = 动画时间"。
+@export var phase_timed: bool = false
+@export var phase_frame_ends: PackedInt32Array = PackedInt32Array()
+@export var phase_anim_ends: PackedFloat64Array = PackedFloat64Array()
+## 后摇里"按方向键直接收招跑开"的时机：接招点之后再等几帧（-1 = 不允许）。
+@export var move_cancel_delay: int = -1
+
+## 第 f 个物理帧对应的动画时间（秒，配合 animation_fps 取帧）。
+func anim_seconds(f: float) -> float:
+	if not phase_timed or phase_frame_ends.size() != phase_anim_ends.size() or phase_frame_ends.is_empty():
+		return f / 60.0
+	var prev_f := 0.0
+	var prev_t := 0.0
+	for i in phase_frame_ends.size():
+		var end_f := float(phase_frame_ends[i])
+		var end_t := float(phase_anim_ends[i])
+		if f < end_f:
+			if end_f <= prev_f:
+				return end_t
+			return lerpf(prev_t, end_t, clampf((f - prev_f) / (end_f - prev_f), 0.0, 1.0))
+		prev_f = end_f
+		prev_t = end_t
+	return prev_t + maxf(f - prev_f, 0.0) / 60.0
+
+
+## 动画进度 0..1（冲刺位移曲线用）。
+func anim_progress(f: float) -> float:
+	if not phase_timed or phase_anim_ends.is_empty():
+		return f / float(maxi(total_frames(), 1))
+	return clampf(anim_seconds(f) / maxf(float(phase_anim_ends[phase_anim_ends.size() - 1]), 0.00001), 0.0, 1.0)

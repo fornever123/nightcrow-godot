@@ -63,6 +63,21 @@ const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up",
 @export var hold_to_charge_frames: int = 10
 @export var foot_offset: float = 84.0
 @export var acceleration: float = 4800.0
+## 刹车 / 反向时的减速度（地面）。比加速度大，松手就停、不打滑。
+@export var deceleration: float = 4800.0
+## 最大下落速度
+@export var max_fall_speed: float = 2400.0
+## 松开跳跃键后上升段的重力倍率（小跳）。只对真实键盘/手柄生效，
+## 机器人和测试注入的输入一律视为"按满"，不会被误判成松键。
+@export var jump_cut_gravity_scale: float = 1.0
+## 空中连段悬停结束后的下落重力、被打飞时的重力。
+## 和普通跳跃的下落重力分开：跳跃改快以后，空连和被击飞仍保持原来的滞空。
+@export var air_attack_gravity: float = 1476.0
+@export var knock_gravity: float = 1476.0
+## 落差超过这个高度（像素）算"重落地"（播完整落地动作 + 重落地音效）。下砸一律算重落地。
+@export var heavy_landing_height: float = 260.0
+## 重落地后的落地硬直（物理帧）：期间走路很慢，但跳跃/出招/弹刀随时可以取消。
+@export var heavy_landing_lag_frames: int = 0
 
 @export_group("阵营 / 输入（PVP 用；PVE 时全部保持默认值 = 零影响）")
 ## 按键表后缀。"" = P1（A/D/W/S/J/K）；"_p2" = P2（方向键 + 小键盘）。
@@ -241,6 +256,14 @@ var _charge_accum: float = 0.0
 var input_buffer: InputBuffer
 
 var _jump_velocity: float = -560.0
+var _jump_rising: bool = false
+var _jump_cut: bool = false
+var _keyboard_frame: bool = false
+var _peak_y: float = 0.0
+## 最近一次落地：落差（像素）和是不是重落地。landed 信号发出前写好，音效/画面直接读。
+var last_fall_height: float = 0.0
+var last_landing_heavy: bool = false
+var _landing_lag: int = 0
 var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
@@ -366,6 +389,26 @@ func _apply_identity_color() -> void:
 		sprite.call(&"set_identity_color", identity_color)
 
 
+## 读角色配置里的移动参数（夜战和训练场共用这一份，免得两边各写一遍）。
+func apply_movement_config(c: Dictionary, settings: Dictionary) -> void:
+	acceleration = float(c.get("acceleration", 4800))
+	deceleration = float(c.get("deceleration", acceleration))
+	speed = float(c.get("speed", 186)) * float(settings.get("characterSpeedMultiplier", 1))
+	air_control = float(c.get("airControl", 0.8))
+	jump_time_to_peak = float(c.get("jumpTimeToPeak", 0.28))
+	jump_time_to_descent = float(c.get("jumpTimeToDescent", 0.20)) / sqrt(float(settings.get("jumpGravityMultiplier", 1)))
+	jump_height = float(c.get("jumpSpeed", 600)) * jump_time_to_peak * 0.5 * float(settings.get("jumpSpeedMultiplier", 1))
+	extra_air_jumps = maxi(0, int(c.get("maxJumps", 2)) - 1)
+	max_fall_speed = float(c.get("maxFallSpeed", 2400))
+	jump_cut_gravity_scale = maxf(float(c.get("jumpCutGravityScale", 1.0)), 1.0)
+	air_attack_gravity = float(c.get("airAttackGravity", 1476))
+	knock_gravity = float(c.get("knockGravity", 1476))
+	heavy_landing_height = float(c.get("heavyLandingHeight", 260))
+	heavy_landing_lag_frames = int(c.get("heavyLandingLagFrames", 0))
+	if is_inside_tree():
+		_recalculate_jump()
+
+
 func _recalculate_jump() -> void:
 	_jump_velocity = -2.0 * jump_height / jump_time_to_peak
 	_gravity = 2.0 * jump_height / (jump_time_to_peak * jump_time_to_peak)
@@ -410,6 +453,7 @@ func _physics_process(delta: float) -> void:
 	# ---- 1. 取这一帧的输入（必须在 hitstop 的 return 之前！）----
 	# 优先级：注入队列 > 粘住帧 > 真实 Input 采样
 	var frame: InputBuffer.Frame
+	_keyboard_frame = false
 	if not _frame_queue.is_empty():
 		frame = _frame_queue.pop_front()
 	elif _sticky_frame != null:
@@ -420,6 +464,7 @@ func _physics_process(delta: float) -> void:
 		frame = input_source.poll_frame(self)
 	else:
 		frame = _sample_keyboard()
+		_keyboard_frame = true
 	if frame == null:
 		frame = InputBuffer.Frame.new()
 	input_buffer.push(frame)
@@ -442,6 +487,7 @@ func _physics_process(delta: float) -> void:
 	# 出招期间也要更新，否则"出招中能不能跳"的判断会用到过期数据。
 	# 但跳跃缓冲的计数只在允许自由行动时消耗（见 _try_buffered_jump）。
 	_update_ground_air()
+	_update_jump_cut(frame)
 	input_direction = int(signf(frame.axis.x)) if absf(frame.axis.x) > 0.15 else 0
 	movement_direction = int(signf(velocity.x)) if absf(velocity.x) > 1.0 else 0
 	_advance_locomotion(delta)
@@ -476,7 +522,15 @@ func _update_ground_air() -> void:
 		air_frames = 0
 		_air_jumps_left = extra_air_jumps
 		_air_light_left = air_light_uses
+		var landing_peak := _peak_y
+		# 站在地上时最高点 = 脚下，离地之后再往上记
+		_peak_y = global_position.y
 		if ground_frames == 1:
+			last_fall_height = maxf(global_position.y - landing_peak, 0.0)
+			last_landing_heavy = finisher_intent == &"slam" or last_fall_height >= heavy_landing_height
+			_landing_lag = heavy_landing_lag_frames if last_landing_heavy else 0
+			_jump_rising = false
+			_jump_cut = false
 			if finisher_intent == &"slam":
 				finisher_intent = &""
 				plunge_landed.emit(global_position + Vector2(0, foot_offset))
@@ -486,9 +540,31 @@ func _update_ground_air() -> void:
 				_reset_air_combo()
 			landed.emit()
 	else:
+		_landing_lag = 0
+		_peak_y = minf(_peak_y, global_position.y)
 		air_frames += 1
 		ground_frames = 0
 	frames_since_attack += 1
+
+
+## 小跳：真实按键在上升途中松开 → 这一跳剩下的上升段用更大的重力。
+## 注入/机器人输入（_keyboard_frame=false）一律按"按满"处理。
+func _update_jump_cut(frame: InputBuffer.Frame) -> void:
+	if velocity.y >= 0.0:
+		_jump_rising = false
+		_jump_cut = false
+		return
+	if _jump_rising and _keyboard_frame and not frame.actions.has(&"jump"):
+		_jump_cut = true
+
+
+## 自由行动时的重力：上升用起跳重力（松键小跳加大），下落用下落重力。
+func _air_gravity() -> float:
+	if velocity.y > 0.0:
+		return _fall_gravity
+	if _jump_cut:
+		return _gravity * jump_cut_gravity_scale
+	return _gravity
 
 
 # ---------------------------------------------------------------- NEUTRAL
@@ -499,7 +575,7 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 	if not locomotion_animation.is_empty() and not _turn_can_cancel():
 		_buffer_jump(frame)
 		_move_horizontal(delta, frame, 1.0)
-		_apply_gravity(delta, _gravity)
+		_apply_gravity(delta, _air_gravity())
 		move_and_slide()
 		return
 	# 【顺序很重要】先判跳跃，再判出招。
@@ -514,15 +590,20 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 
 	var cmd := _resolve_attack_command(frame)
 	if cmd != &"":
+		_landing_lag = 0
 		# 起手这一帧也照常移动，点按 J / K 不能吞掉一帧走路或跳跃轨迹。
 		_move_horizontal(delta, frame, 1.0)
-		_apply_gravity(delta, _gravity)
+		_apply_gravity(delta, _air_gravity())
 		move_and_slide()
 		_begin_command(cmd, frame)
 		return
 
-	_move_horizontal(delta, frame, 1.0)
-	_apply_gravity(delta, _gravity)
+	var land_scale := 1.0
+	if _landing_lag > 0:
+		_landing_lag -= 1
+		land_scale = 0.25
+	_move_horizontal(delta, frame, land_scale)
+	_apply_gravity(delta, _air_gravity())
 	move_and_slide()
 
 
@@ -579,6 +660,8 @@ func _do_jump() -> void:
 	if is_double:
 		_air_jumps_left = maxi(_air_jumps_left - 1, 0)
 		velocity.y = _jump_velocity * double_jump_scale
+		_jump_rising = true
+		_jump_cut = false
 		# 二段跳更夸张的拉伸，和一段跳区分开
 		_set_visual_scale(Vector2(0.74, 1.30))
 		_squash_timer = 7
@@ -592,6 +675,8 @@ func _do_jump() -> void:
 		# 让它自然走完 ≤coyote_frames 帧，之后再按才是真正的二段跳。
 		air_frames = maxi(air_frames, 1)
 		velocity.y = _jump_velocity
+		_jump_rising = true
+		_jump_cut = false
 		_set_visual_scale(Vector2(0.82, 1.22))
 		_squash_timer = 6
 	jumped.emit(is_double)
@@ -605,7 +690,7 @@ func _apply_gravity(delta: float, g: float) -> void:
 		velocity.y = 0.0
 		return
 	velocity.y += g * delta
-	velocity.y = minf(velocity.y, 2400.0)
+	velocity.y = minf(velocity.y, max_fall_speed)
 
 
 ## 把角色从地形重叠里挤出来（起跳前调用）。
@@ -633,9 +718,13 @@ func _move_horizontal(delta: float, frame: InputBuffer.Frame, move_scale: float)
 		_start_turn(int(signf(axis.x)))
 	if not locomotion_animation.is_empty():
 		target = 0.0 if facing != _turn_target else float(_turn_target) * absf(axis.x) * speed * move_scale
+	var rate := acceleration
 	if not is_on_floor():
 		target = velocity.x + (target - velocity.x) * air_control
-	velocity.x = move_toward(velocity.x, target, acceleration * delta)
+	elif absf(target) < absf(velocity.x) or signf(target) != signf(velocity.x):
+		# 松手 / 反向：用更大的减速度，急停不打滑
+		rate = deceleration
+	velocity.x = move_toward(velocity.x, target, rate * delta)
 	if absf(axis.x) > 0.15 and locomotion_animation.is_empty():
 		_set_facing(1 if axis.x > 0.0 else -1)
 
@@ -910,7 +999,7 @@ func _process_charge(delta: float, frame: InputBuffer.Frame) -> void:
 			_start_move(light_combo[0], false)
 		return
 
-	_apply_gravity(delta, _gravity)
+	_apply_gravity(delta, _air_gravity())
 	move_and_slide()
 
 
@@ -945,7 +1034,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 
 	var phase: StringName = mv.phase_at(move_frame)
 	if mv == dash_move or mv == dash_left_move:
-		_process_dash_attack(delta, mv, phase)
+		_process_dash_attack(delta, mv, phase, frame)
 		return
 
 	if phase == &"startup":
@@ -974,6 +1063,14 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			if lf != null and (lf.actions.has(&"aim_up") or frame.actions.has(&"aim_up")):
 				_link_into(&"attack_light")
 				return
+		# 第二轮手感：招式后摇【随时】可以用 弹刀 / 冲刺 / 跳 取消（受击反馈另算，见下）。
+		var reaction := guard_reactions.has(mv) or parry_reactions.has(mv)
+		if not reaction and not _is_parry_move(mv):
+			if _has_edge(&"parry"):
+				_link_into(&"parry")
+				return
+			if _try_dash_cancel():
+				return
 		# 取消窗口：后摇开始后第 cancel_frame 帧起。
 		# 窗口一开就【立刻】尝试消费连段输入 —— 不然窗口期内每帧都会重新命中
 		# 同一个边沿，把连段自动推到底。
@@ -986,6 +1083,8 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			if _has_edge(&"parry"):
 				_link_into(&"parry")
 				return
+			if _try_dash_cancel():
+				return
 			# K 随时能补一发远程，且不影响连段指针（"存连段"的中转）
 			if _has_edge(&"attack_ranged"):
 				_link_into(&"attack_ranged")
@@ -995,6 +1094,10 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			if _resolve_light_press():
 				return
 			link_open = false
+		# 收招尾巴：接招点之后再过 move_cancel_delay 帧，按方向键直接收招跑开
+		if _try_move_cancel(mv):
+			_process_neutral(delta, frame)
+			return
 		# 后摇也能走位（走得慢一点），这是"取消不重置"之外的第二条流畅度来源
 		_move_horizontal(delta, frame, mv.recovery_movement_scale)
 		# 后摇里按 W 可以跳起来取消（地面常用）
@@ -1240,7 +1343,7 @@ func _process_launched(delta: float) -> void:
 			else:
 				velocity = velocity.bounce(normal) * wall_restitution
 
-	velocity.y += _fall_gravity * gravity_scale_launched * delta
+	velocity.y += knock_gravity * gravity_scale_launched * delta
 	velocity.x = move_toward(velocity.x, 0.0, 260.0 * delta)
 
 	if absf(velocity.x) < 12.0 and is_on_floor():
@@ -1285,7 +1388,7 @@ func _enter_down() -> void:
 
 
 func _process_down(delta: float) -> void:
-	_apply_gravity(delta, _fall_gravity)
+	_apply_gravity(delta, knock_gravity)
 	velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 	move_and_slide()
 	down_frames -= 1
@@ -1650,7 +1753,7 @@ func _advance_locomotion(delta: float) -> void:
 	if state != State.NEUTRAL or not is_on_floor():
 		_cancel_locomotion()
 		return
-	locomotion_clock += delta
+	locomotion_clock += delta * maxf(float(_turn_options.get("playbackSpeed", 1.0)), 0.05)
 	locomotion_frame = Timeline.frame_at(_turn_clip, locomotion_clock, -1.0, true, false)
 	var flip := int(_turn_options.get("flipFrame", _turn_clip.get("flipFrame", 0)))
 	if locomotion_frame >= flip:
@@ -1694,7 +1797,7 @@ func _apply_air_attack_gravity(delta: float, mv: Resource) -> void:
 		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
 		return
 	if air_combo.is_empty() or not air_combo.has(mv) or is_on_floor():
-		_apply_gravity(delta, _gravity)
+		_apply_gravity(delta, _air_gravity())
 		return
 	var budget := maxi(int(_sprite_config().get("airCombo", {}).get("maxSuspendFrames", 180)), 0)
 	if air_suspend_used < budget:
@@ -1702,27 +1805,85 @@ func _apply_air_attack_gravity(delta: float, mv: Resource) -> void:
 		if move_frame < maxi(mv.air_suspend_frames, 0):
 			velocity.y = 0.0
 			return
-		_apply_gravity(delta, _fall_gravity * clampf(mv.air_gravity_scale, 0.0, 1.0))
+		_apply_gravity(delta, air_attack_gravity * clampf(mv.air_gravity_scale, 0.0, 1.0))
 	else:
 		_apply_gravity(delta, _fall_gravity)
 
-func _process_dash_attack(delta: float, mv: Resource, phase: StringName) -> void:
+func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: InputBuffer.Frame = null) -> void:
 	if phase == &"active":
 		_do_hit_check(mv)
 		if hitstop_this_tick:
 			return
-	var total := float(maxi(mv.total_frames(), 1))
-	var before: float = mv.distance_at(float(move_frame) / total)
-	var after: float = mv.distance_at(float(move_frame + 1) / total)
+	elif phase == &"recovery" and frame != null and _dash_recovery_cancel(delta, mv, frame):
+		return
+	# 位移曲线按【动画进度】走（分段变速后，身体在哪一帧，位移就到哪一步）
+	var before: float = mv.distance_at(mv.anim_progress(float(move_frame)))
+	var after: float = mv.distance_at(mv.anim_progress(float(move_frame + 1)))
 	velocity.x = (after - before) * float(_dash_facing) / maxf(delta, 0.000001)
 	velocity.x += _root_motion_step(mv) * float(_dash_facing) / maxf(delta, 0.000001)
 	_set_facing(_dash_facing)
-	_apply_gravity(delta, _gravity)
+	_apply_gravity(delta, _air_gravity())
 	move_and_slide()
 	move_frame += 1
 	if move_frame >= mv.total_frames():
 		_end_attack()
 		velocity.x = 0.0
+
+## 冲刺斩的后摇取消：弹刀 / 跳随时；接招点之后可以 冲刺 / J / K，再晚一点按方向键直接收招。
+func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame) -> bool:
+	if _has_edge(&"parry"):
+		_link_into(&"parry")
+		return true
+	if is_on_floor() and _try_buffered_jump(frame):
+		_end_attack()
+		return true
+	if not link_open and move_frame >= mv.startup_frames + mv.active_frames + mv.cancel_frame:
+		link_open = true
+		link_open_count += 1
+	if link_open:
+		if _try_dash_cancel():
+			return true
+		if _has_edge(&"attack_ranged"):
+			_link_into(&"attack_ranged")
+		if _has_edge(&"attack_light") and not light_combo.is_empty():
+			# 冲刺斩之后的 J 从第一刀起（W+J 仍是上挑）
+			combo_index = -1
+			_link_into(&"attack_light")
+			return true
+	if _try_move_cancel(mv):
+		_process_neutral(delta, frame)
+		return true
+	return false
+
+
+## 后摇里的 Shift+J：直接接一次冲刺斩（方向以按键那一帧为准）。
+func _try_dash_cancel() -> bool:
+	if dash_move == null or not is_on_floor():
+		return false
+	var f := _unconsumed_edge_frame(&"attack_light")
+	if f == null or not f.actions.has(&"dash_modifier"):
+		return false
+	_pending_dash_direction = int(signf(f.axis.x)) if absf(f.axis.x) > 0.15 else facing
+	_begin_command(&"dash", f)
+	return true
+
+
+## 收招尾巴的"方向键取消"：接招点之后再过 move_cancel_delay 帧，
+## 没有待处理的攻击/弹刀输入、又按着方向 → 直接收招，这一帧就开始跑。
+## 打中过的话连段指针往前推一格（马上再按 J 接下一刀，而不是从头再来）。
+func _try_move_cancel(mv: Resource) -> bool:
+	if mv.move_cancel_delay < 0 or not is_on_floor() or input_direction == 0:
+		return false
+	if move_frame < mv.startup_frames + mv.active_frames + mv.cancel_frame + mv.move_cancel_delay:
+		return false
+	if _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"parry"):
+		return false
+	var index := light_combo.find(mv)
+	if last_swing_hit and index >= 0:
+		combo_index = index + 1 if index + 1 < light_combo.size() else 0
+	_end_attack()
+	return true
+
 
 ## 这一物理帧的根位移（世界像素，朝前为正）。
 ## 画面在本帧结束后显示 move_frame+1 对应的动画帧，所以取两帧之差。
@@ -1733,8 +1894,8 @@ func _root_motion_step(mv: Resource) -> float:
 	if clip.is_empty():
 		return 0.0
 	var n: int = mv.root_motion_x.size()
-	var i0 := clampi(Timeline.frame_at(clip, float(move_frame) / 60.0, mv.animation_fps, true, false), 0, n - 1)
-	var i1 := clampi(Timeline.frame_at(clip, float(move_frame + 1) / 60.0, mv.animation_fps, true, false), 0, n - 1)
+	var i0 := clampi(Timeline.frame_at(clip, mv.anim_seconds(float(move_frame)), mv.animation_fps, true, false), 0, n - 1)
+	var i1 := clampi(Timeline.frame_at(clip, mv.anim_seconds(float(move_frame + 1)), mv.animation_fps, true, false), 0, n - 1)
 	return (float(mv.root_motion_x[i1]) - float(mv.root_motion_x[i0])) * mv.root_motion_scale
 
 
@@ -1833,7 +1994,7 @@ func _process_guard(delta: float, frame: InputBuffer.Frame) -> bool:
 			guard_animation = hold
 			guard_clock = 0.0
 	_move_horizontal(delta, frame, float(config.get("movementScale", 0.25)))
-	_apply_gravity(delta, _gravity)
+	_apply_gravity(delta, _air_gravity())
 	move_and_slide()
 	return true
 
