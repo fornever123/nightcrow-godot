@@ -63,6 +63,8 @@ func run() -> void:
 		f.durationTicks = ticks
 		frames.append(f)
 	sprite.animations.attack_1 = {"fps": 10.0, "frames": frames}
+	for k in ["startupSpeed","activeSpeed","recoverySpeed","tailSpeed","moveCancelDelay"]:
+		config.moves[0].erase(k)
 	config.moves[0].animationSpeed = 2.0
 	config.moves[0].activeFrameStart = 1
 	config.moves[0].activeFrameEnd = 1

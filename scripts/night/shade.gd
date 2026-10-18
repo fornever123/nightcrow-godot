@@ -22,6 +22,9 @@ signal launched_high(point: Vector2)
 signal chain_hit(level: int, point: Vector2)
 signal slam_impact(point: Vector2, strength: float)
 signal strike_landed(point: Vector2)
+## 音效用：开始蓄力 / 挥出（heavy = 甲影）
+signal windup_started(heavy: bool)
+signal strike_started(heavy: bool)
 
 enum Kind { GRUNT, BRUTE }
 enum State { IDLE, APPROACH, WINDUP, STRIKE, RECOVER, HITSTUN, LAUNCHED, DOWN, STUNNED, DEAD }
@@ -293,6 +296,7 @@ func _begin_windup() -> void:
 	state_frames = 0
 	velocity.x = 0.0
 	squash = Vector2(0.9, 1.1)
+	windup_started.emit(kind == Kind.BRUTE)
 
 
 func _process_windup(delta: float) -> void:
@@ -310,6 +314,7 @@ func _process_windup(delta: float) -> void:
 		_strike_done = false
 		velocity.x = float(facing) * float(spec.lunge)
 		squash = Vector2(1.2, 0.86)
+		strike_started.emit(kind == Kind.BRUTE)
 
 
 func _process_strike(delta: float) -> void:

@@ -17,6 +17,9 @@ extends Camera2D
 
 ## 跟随目标（由 main.gd 注入）
 @export var follow_target: Node2D
+## 跑动时镜头往前多看一点（像素）。只在真的跑起来时才转向，顿帧/停下不回弹，避免镜头来回晃。
+@export var look_ahead: float = 0.0
+var _look: float = 0.0
 ## 镜头中心被钳制的世界矩形。
 ##
 ## 注意它【不等于】竞技场范围：竞技场 1920 宽、视口也是 1920 宽的话，
@@ -66,6 +69,13 @@ func _update_follow(delta: float) -> void:
 		z.y = 1.0
 	var half := Vector2(view.x * 0.5 / z.x, view.y * 0.5 / z.y)
 	var target := follow_target.global_position
+	if look_ahead > 0.0 and follow_target is CharacterBody2D:
+		var run_speed: Variant = follow_target.get("speed")
+		var sp := maxf(float(run_speed) if run_speed != null else 300.0, 1.0)
+		var vx := (follow_target as CharacterBody2D).velocity.x
+		if absf(vx) > sp * 0.5:
+			_look = move_toward(_look, signf(vx) * look_ahead, look_ahead * 1.5 * delta)
+		target.x += _look
 	# 先钳制目标，保证镜头任何情况下都不会露出竞技场外面
 	var lo := arena_min + half
 	var hi := arena_max - half

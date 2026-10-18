@@ -1,0 +1,292 @@
+{
+ "note": "由 tools/audio/make_sfx_v3.py 生成，勿手改；混音微调写在 battle.json audio.gainDb",
+ "clips": {
+  "step": {
+   "files": [
+    "step_0.ogg.b64",
+    "step_1.ogg.b64",
+    "step_2.ogg.b64",
+    "step_3.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.05
+  },
+  "jump": {
+   "files": [
+    "jump_0.ogg.b64",
+    "jump_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "jump_double": {
+   "files": [
+    "jump_double_0.ogg.b64",
+    "jump_double_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "land_light": {
+   "files": [
+    "land_light_0.ogg.b64",
+    "land_light_1.ogg.b64",
+    "land_light_2.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.04
+  },
+  "land_heavy": {
+   "files": [
+    "land_heavy_0.ogg.b64",
+    "land_heavy_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "dash": {
+   "files": [
+    "dash_0.ogg.b64",
+    "dash_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "hit_light": {
+   "files": [
+    "hit_light_0.ogg.b64",
+    "hit_light_1.ogg.b64",
+    "hit_light_2.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.04
+  },
+  "hit_heavy": {
+   "files": [
+    "hit_heavy_0.ogg.b64",
+    "hit_heavy_1.ogg.b64",
+    "hit_heavy_2.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "hit_finisher": {
+   "files": [
+    "hit_finisher_0.ogg.b64",
+    "hit_finisher_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.02
+  },
+  "hurt": {
+   "files": [
+    "hurt_0.ogg.b64",
+    "hurt_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "hurt_heavy": {
+   "files": [
+    "hurt_heavy_0.ogg.b64",
+    "hurt_heavy_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "parry": {
+   "files": [
+    "parry_0.ogg.b64",
+    "parry_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.02
+  },
+  "block": {
+   "files": [
+    "block_0.ogg.b64",
+    "block_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "stun": {
+   "files": [
+    "stun_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.0
+  },
+  "launch": {
+   "files": [
+    "launch_0.ogg.b64",
+    "launch_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "slam": {
+   "files": [
+    "slam_0.ogg.b64",
+    "slam_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.03
+  },
+  "wall": {
+   "files": [
+    "wall_0.ogg.b64",
+    "wall_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.04
+  },
+  "chain": {
+   "files": [
+    "chain_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.0
+  },
+  "shade_die": {
+   "files": [
+    "shade_die_0.ogg.b64",
+    "shade_die_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.04
+  },
+  "shade_windup": {
+   "files": [
+    "shade_windup_0.ogg.b64",
+    "shade_windup_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.04
+  },
+  "shade_windup_heavy": {
+   "files": [
+    "shade_windup_heavy_0.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.02
+  },
+  "shade_swing": {
+   "files": [
+    "shade_swing_0.ogg.b64",
+    "shade_swing_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.04
+  },
+  "shade_swing_heavy": {
+   "files": [
+    "shade_swing_heavy_0.ogg.b64",
+    "shade_swing_heavy_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "seal": {
+   "files": [
+    "seal_0.ogg.b64"
+   ],
+   "bus": "ui",
+   "pitchJitter": 0.0
+  },
+  "clear": {
+   "files": [
+    "clear_0.ogg.b64"
+   ],
+   "bus": "ui",
+   "pitchJitter": 0.0
+  },
+  "die": {
+   "files": [
+    "die_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.0
+  },
+  "swing_l1": {
+   "files": [
+    "swing_l1_0.ogg.b64",
+    "swing_l1_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_l2": {
+   "files": [
+    "swing_l2_0.ogg.b64",
+    "swing_l2_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_l3": {
+   "files": [
+    "swing_l3_0.ogg.b64",
+    "swing_l3_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_charge": {
+   "files": [
+    "swing_charge_0.ogg.b64",
+    "swing_charge_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_up": {
+   "files": [
+    "swing_up_0.ogg.b64",
+    "swing_up_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_air1": {
+   "files": [
+    "swing_air1_0.ogg.b64",
+    "swing_air1_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_air2": {
+   "files": [
+    "swing_air2_0.ogg.b64",
+    "swing_air2_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_air3": {
+   "files": [
+    "swing_air3_0.ogg.b64",
+    "swing_air3_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_air_up": {
+   "files": [
+    "swing_air_up_0.ogg.b64",
+    "swing_air_up_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  },
+  "swing_dash": {
+   "files": [
+    "swing_dash_0.ogg.b64",
+    "swing_dash_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.03
+  }
+ }
+}

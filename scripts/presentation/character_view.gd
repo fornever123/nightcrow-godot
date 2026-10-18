@@ -8,6 +8,9 @@ var clip_name: String = "idle"
 var frame_index: int = 0
 var clock: float = 0.0
 var landing: float = 0.0
+## 落地动画的播放倍率：普通落地快放（很快就能跑），高处落下 / 下砸按原速播完整落地。
+var landing_speed: float = 1.0
+var landing_heavy: bool = false
 var trail: Node2D
 var overlay: Sprite2D
 var overlay_frame_index: int = -1
@@ -71,9 +74,10 @@ func _physics_process(delta: float) -> void:
 		wanted = "land"
 	if wanted == "land" and bool(setup.get("locomotion", {}).get("enabled", false)):
 		var land_clip: Dictionary = setup.get("animations", {}).get("land", {})
-		var elapsed := _clip_duration(land_clip) - landing
-		var cancel_index := int(setup.locomotion.get("landingCancelFrame", land_clip.get("frames", []).size()))
-		var cancel_time := Timeline.ticks_before(land_clip.get("frames", []), cancel_index) / maxf(float(land_clip.get("fps", 24)), 0.001)
+		var elapsed := _clip_duration(land_clip) / landing_speed - landing
+		var cancel_key := "heavyLandingCancelFrame" if landing_heavy else "landingCancelFrame"
+		var cancel_index := int(setup.locomotion.get(cancel_key, setup.locomotion.get("landingCancelFrame", land_clip.get("frames", []).size())))
+		var cancel_time := Timeline.ticks_before(land_clip.get("frames", []), cancel_index) / maxf(float(land_clip.get("fps", 24)) * landing_speed, 0.001)
 		if absf(actor.velocity.x) > 12.0 and elapsed >= cancel_time:
 			landing = 0.0
 			wanted = "run"
@@ -100,7 +104,10 @@ func _draw_frame() -> void:
 	var time := clock
 	if actor.state == 1 and actor.current_move != null:
 		fps = actor.current_move.animation_fps
-		time = float(actor.move_frame) / 60.0
+		# 分段变速：前摇/后摇各自的播放速度由招式时间轴换算（没配就是 move_frame/60）
+		time = actor.current_move.anim_seconds(float(actor.move_frame))
+	elif clip_name == "land":
+		fps *= landing_speed
 	elif actor.has_method("is_guarding") and actor.is_guarding() and clip_name == actor.guard_animation:
 		time = actor.guard_clock
 	elif actor.get("locomotion_animation") == clip_name and not clip_name.is_empty():
@@ -149,7 +156,9 @@ func _on_landed() -> void:
 	if bool(setup.get("locomotion", {}).get("enabled", false)) and not airborne_seen:
 		return
 	airborne_seen = false
-	landing = _clip_duration(setup.get("animations", {}).get("land", {})) if bool(setup.get("locomotion", {}).get("enabled", false)) else 0.15
+	landing_heavy = bool(actor.get("last_landing_heavy"))
+	landing_speed = 1.0 if landing_heavy else maxf(float(setup.get("locomotion", {}).get("lightLandingSpeed", 1.0)), 0.05)
+	landing = _clip_duration(setup.get("animations", {}).get("land", {})) / landing_speed if bool(setup.get("locomotion", {}).get("enabled", false)) else 0.15
 	# Keep the jump clock so the landing frames at the end of that clip still play.
 	if clip_name != "jump" or not _full_jump_sequence():
 		clock = 0.0

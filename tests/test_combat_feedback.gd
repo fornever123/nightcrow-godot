@@ -61,7 +61,7 @@ func run() -> void:
 	d = stage.dummy
 	view = p.get_node("Visual/ActorSprite")
 	await step(6)
-	check(stage.audio._clips.size()==13,"13 个 C 盘音效槽均加载真实声音")
+	check(stage.audio._clips.size()==13 and stage.audio.bank_size()>=20,"13 个旧音效槽兜底 + 新音效库加载")
 	var expected_filter := CanvasItem.TEXTURE_FILTER_NEAREST if view.setup.get("filter", "linear") == "nearest" else CanvasItem.TEXTURE_FILTER_LINEAR
 	check(view.texture_filter==expected_filter,"角色遵循配置的图片显示方式")
 	var parry_source: Dictionary = {}
@@ -86,7 +86,7 @@ func run() -> void:
 	check(p.hitstop_frames==6,"轻击真实触发角色 6 帧顿帧")
 	check(d.hitstop_frames>=6,"木桩使用独立受击停顿")
 	check(stage.camera._trauma>0,"命中产生镜头冲击")
-	check(stage.audio.last_event=="blade_hit" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
+	check(stage.audio.last_event=="hit_light" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
 	check(stage.fx.last_hit_plan.size()==6 and stage.fx.get_child_count()>=6,"实际生成六层错时命中反馈")
 	var first_source: Dictionary = {}
 	for source in stage.config.moves:
@@ -145,7 +145,7 @@ func run() -> void:
 			charge_source = source
 	check(view.frame_index==int(charge_source.activeFrameStart),"重击实际停在当前素材配置的起始命中图片")
 	check(d.last_hit_damage>26,"满蓄力造成加成伤害")
-	check(stage.audio.last_event=="launch","重击击飞使用不同命中声音")
+	check(stage.audio.last_event=="hit_finisher","重击使用终结档命中声音")
 	p._start_move(stage.moves.light_1,false)
 	check(p._charge_t==0,"普通攻击不继承上一次蓄力加成")
 	await reset()

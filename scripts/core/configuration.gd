@@ -34,11 +34,36 @@ static func moves(config: Dictionary) -> Dictionary:
 			start = Timeline.ticks_before(frames, int(source.get("activeFrameStart", 2))) / m.animation_fps
 			end = Timeline.ticks_before(frames, int(source.get("activeFrameEnd", 12)) + 1) / m.animation_fps
 			chain = Timeline.ticks_before(frames, int(source.get("chainFrame", frames.size()))) / m.animation_fps
-		m.startup_frames = maxi(0, ceili(start * 60.0 - 0.0001))
-		var end_tick := maxi(m.startup_frames + 1, ceili(end * 60.0 - 0.0001))
-		m.active_frames = end_tick - m.startup_frames
-		m.recovery_frames = maxi(1, ceili(duration * 60.0 - 0.0001) - end_tick)
-		m.cancel_frame = maxi(0, ceili(chain * 60.0 - 0.0001) - end_tick)
+		# 分段变速（第二轮手感）：前摇 / 判定 / 后摇到接招点 / 收招尾巴 各自一个播放速度。
+		# 全局倍率在 settings 里，方便整体再调快或调慢。
+		var settings: Dictionary = config.get("settings", {})
+		var startup_speed := maxf(float(source.get("startupSpeed", 1.0)) * float(settings.get("startupSpeedMultiplier", 1.0)), 0.05)
+		var active_speed := maxf(float(source.get("activeSpeed", 1.0)), 0.05)
+		var recovery_speed := maxf(float(source.get("recoverySpeed", 1.0)) * float(settings.get("recoverySpeedMultiplier", 1.0)), 0.05)
+		var tail_speed := maxf(float(source.get("tailSpeed", source.get("recoverySpeed", 1.0))) * float(settings.get("recoverySpeedMultiplier", 1.0)), 0.05)
+		m.phase_timed = absf(startup_speed - 1.0) > 0.0001 or absf(active_speed - 1.0) > 0.0001 \
+				or absf(recovery_speed - 1.0) > 0.0001 or absf(tail_speed - 1.0) > 0.0001
+		if m.phase_timed:
+			end = maxf(end, start)
+			chain = clampf(chain, end, maxf(duration, end))
+			duration = maxf(duration, chain)
+			var s_f := maxi(0, ceili(start / startup_speed * 60.0 - 0.0001))
+			var e_f := maxi(s_f + 1, s_f + ceili((end - start) / active_speed * 60.0 - 0.0001))
+			var c_f := e_f + maxi(0, ceili((chain - end) / recovery_speed * 60.0 - 0.0001))
+			var t_f := maxi(e_f + 1, c_f + ceili((duration - chain) / tail_speed * 60.0 - 0.0001))
+			m.startup_frames = s_f
+			m.active_frames = e_f - s_f
+			m.recovery_frames = t_f - e_f
+			m.cancel_frame = c_f - e_f
+			m.phase_frame_ends = PackedInt32Array([s_f, e_f, c_f, t_f])
+			m.phase_anim_ends = PackedFloat64Array([start, end, chain, duration])
+		else:
+			m.startup_frames = maxi(0, ceili(start * 60.0 - 0.0001))
+			var end_tick := maxi(m.startup_frames + 1, ceili(end * 60.0 - 0.0001))
+			m.active_frames = end_tick - m.startup_frames
+			m.recovery_frames = maxi(1, ceili(duration * 60.0 - 0.0001) - end_tick)
+			m.cancel_frame = maxi(0, ceili(chain * 60.0 - 0.0001) - end_tick)
+		m.move_cancel_delay = int(source.get("moveCancelDelay", -1))
 		m.damage = float(source.get("damage", 10))
 		var x := float(source.get("knockbackX", 200))
 		var y := float(source.get("launchY", 0))
