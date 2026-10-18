@@ -13,6 +13,9 @@ extends CharacterBody2D
 ## 当成跨脚本的接口类型用。跨脚本传招式资源统一用 Resource / 无类型 Array。
 
 signal move_started(move: Resource, index: int)
+## 挥刀音效提示：在判定帧前 swing_cue_lead_frames 帧发出（刀风音效的峰值在 0.05 秒，
+## 提前 3 帧发声，耳朵听到的“唰”正好落在刀光出现的那一帧）
+signal swing_cue(move: Resource, index: int)
 signal hit_confirmed(target: Node2D, move: Resource, point: Vector2)
 signal landed()
 signal jumped(is_double: bool)
@@ -237,6 +240,10 @@ var down_frames: int = 0
 
 var current_move: Resource = null
 var move_frame: int = 0
+## 这一招的挥刀音效提示发过没有（每招只发一次）
+var _swing_cued: bool = false
+## 挥刀音效比判定帧提前几帧发出
+var swing_cue_lead_frames: int = 3
 var combo_index: int = 0
 ## 当前正在用的招式是不是"上挑/向上打"。命中判定要靠它决定浮空方向
 var current_is_up: bool = false
@@ -900,6 +907,17 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	_set_visual_scale(windup)
 	_squash_timer = 4
 	move_started.emit(mv, combo_index if light_combo.has(mv) else -1)
+	_swing_cued = false
+	_check_swing_cue(mv)
+
+
+## 判定帧前 swing_cue_lead_frames 帧发 swing_cue（招架/远程这类不挥刀的招式由音效表决定不响）
+func _check_swing_cue(mv: Resource) -> void:
+	if _swing_cued or mv == null or current_move != mv:
+		return
+	if move_frame >= mv.startup_frames - swing_cue_lead_frames:
+		_swing_cued = true
+		swing_cue.emit(mv, combo_index if light_combo.has(mv) else -1)
 
 
 func _start_charge() -> void:
@@ -1032,6 +1050,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			_process_neutral(delta, frame)
 			return
 
+	_check_swing_cue(mv)
 	var phase: StringName = mv.phase_at(move_frame)
 	if mv == dash_move or mv == dash_left_move:
 		_process_dash_attack(delta, mv, phase, frame)

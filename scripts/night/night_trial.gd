@@ -236,16 +236,21 @@ func _build_hud() -> void:
 func _connect_player() -> void:
 	player.hit_confirmed.connect(_on_player_hit)
 	player.parry_success.connect(_on_parry)
-	player.block_success.connect(func(_a: Node, point: Vector2): audio.play_parry(0.4); fx.spawn_text(point, "格挡"))
-	player.move_started.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
+	player.block_success.connect(func(_a: Node, point: Vector2): audio.play_block(); fx.spawn_text(point, "格挡"))
+	# 冲刺斩起步“呼”一声；刀风统一走 swing_cue（判定帧前 3 帧，音画对齐）
+	player.move_started.connect(func(move: Resource, _index: int):
+		if move == player.dash_move or move == player.dash_left_move:
+			audio.play_dash())
+	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
 	player.jumped.connect(audio.play_jump)
-	player.landed.connect(func(): audio.play_land(); fx.spawn_dust(player.global_position + Vector2(0, player.foot_offset)))
+	player.landed.connect(func(): audio.play_land(player.last_landing_heavy); fx.spawn_dust(player.global_position + Vector2(0, player.foot_offset)))
 	player.charge_started.connect(audio.play_charge_start)
 	player.charge_released.connect(func(_f: int, charged: bool): audio.play_charge_release(charged))
 	player.ranged_fired.connect(func(_p: Node): audio.play_ranged())
 	player.plunge_landed.connect(_on_plunge_landed)
 	player.wall_slam.connect(_on_player_wall)
 	player.died.connect(_on_player_died)
+	audio.attach_player(player)
 
 
 # ---------------------------------------------------------------- 流程
@@ -297,7 +302,7 @@ func _lock_arena() -> void:
 	encounter.start()
 	phase = Phase.FIGHT
 	camera.add_shake(4.0 * shake_mul)
-	audio.play_wall(0.35)
+	audio.play_seal()
 
 
 func _unlock_arena() -> void:
@@ -324,10 +329,12 @@ func _on_wave_started(idx: int, count: int, label: String) -> void:
 func _on_wave_cleared(idx: int, count: int) -> void:
 	player.hp = minf(player.max_hp, player.hp + WAVE_HEAL)
 	if idx < count - 1:
+		audio.play_clear()
 		hud.banner("清场", "生命 +%d · 下一波马上来" % int(WAVE_HEAL), 1.6)
 
 
 func _on_encounter_cleared() -> void:
+	audio.play_clear()
 	_unlock_arena()
 	encounter_index += 1
 	if encounter_index % ROUND.size() == 0:
@@ -370,6 +377,7 @@ func _on_player_died() -> void:
 	encounter.running = false
 	style.take_damage(0.0)
 	hud.banner("倒下了", "马上从这一波重新开始", 2.4)
+	audio.play_die()
 	camera.add_shake(12.0 * shake_mul)
 
 
@@ -395,6 +403,8 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.parried.connect(_on_shade_parried)
 	s.died.connect(_on_shade_died.bind(s))
 	s.strike_landed.connect(_on_strike_landed.bind(s))
+	s.windup_started.connect(audio.play_shade_windup)
+	s.strike_started.connect(audio.play_shade_swing)
 	fx.spawn_dust(Vector2(s.global_position.x, floor_y), 0.6)
 	if s.kind == B and not _hints_done.has(&"brute"):
 		_queue_hint(&"brute", "甲影出刀时有霸体（白光打不断）→ 弹刀 / 按住 J 蓄力斩 来破防", 6.0)
@@ -426,7 +436,7 @@ func _on_shade_broken(point: Vector2, s: Node2D) -> void:
 	else:
 		hud.callout("眩晕！", Color("ffe066"), 38)
 	camera.add_shake(7.0 * shake_mul, Vector2.UP)
-	audio.play_parry(0.9)
+	audio.play_stun()
 	fx.spawn_parry(point, Vector2.UP)
 	_queue_hint(&"stun", "眩晕中！W + J 把它挑飞（眩晕中挑得更高）", 5.0, true)
 
@@ -434,6 +444,7 @@ func _on_shade_broken(point: Vector2, s: Node2D) -> void:
 func _on_shade_launched(point: Vector2) -> void:
 	style.add_event(&"launch")
 	hud.callout("挑飞！", Color("9fd8ff"), 36)
+	audio.play_launch()
 	fx.spawn_dust(Vector2(point.x, floor_y), 0.7)
 	_queue_hint(&"air", "跳起来 J 空中连斩 · S + J 下砸 · 按住前方再 J 横扫撞墙", 6.0, true)
 
@@ -442,7 +453,7 @@ func _on_slam_impact(point: Vector2, strength: float) -> void:
 	style.add_event(&"slam", clampf(strength, 0.5, 1.5))
 	hud.callout("下砸！", Color("ffb054"), 40)
 	camera.add_shake(15.0 * strength * shake_mul, Vector2.DOWN)
-	audio.play_wall(0.9)
+	audio.play_slam(strength)
 	fx.spawn_wall_slam(point, Vector2.DOWN, 1.0)
 	fx.spawn_dust(point, 1.0)
 
@@ -464,7 +475,7 @@ func _on_chain_hit(level: int, point: Vector2) -> void:
 	style.add_event(&"chain", 1.0 + 0.25 * float(level - 1))
 	hud.callout("连锁 ×%d！" % level, Color("7fe3c8"), 36)
 	fx.spawn_hit(point, 0.8, false)
-	audio.play_hit(0.75)
+	audio.play_chain(level)
 	camera.add_shake(6.0 * shake_mul)
 
 
@@ -474,6 +485,7 @@ func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 
 
 func _on_shade_died(s: Node2D) -> void:
+	audio.play_shade_die()
 	var airborne: bool = s.position.y < s.ground_y() - 10.0
 	if airborne:
 		style.add_event(&"air_kill")
@@ -496,7 +508,7 @@ func _on_strike_landed(point: Vector2, s: Node2D) -> void:
 		hud.callout("连击中断", Color("8d96ab"), 26)
 	hud.hurt()
 	camera.add_shake(s.strike_move.shake_amount * shake_mul, player.global_position - s.global_position)
-	audio.play_impact(s.strike_move)
+	audio.play_hurt(0.8 if s.kind == B else 0.4)
 	fx.spawn_hit(point, 0.6, false)
 	fx.spawn_text(point + Vector2(0, -30), "-%.0f" % dmg, dmg)
 
@@ -513,7 +525,7 @@ func _on_parry(attacker: Node, point: Vector2) -> void:
 func _on_plunge_landed(point: Vector2) -> void:
 	fx.spawn_dust(point, 1.0)
 	camera.add_shake(8.0 * shake_mul, Vector2.DOWN)
-	audio.play_land()
+	# 声音交给紧接着的 landed（重落地）
 
 
 func _on_player_wall(speed: float, damage: float, point: Vector2) -> void:

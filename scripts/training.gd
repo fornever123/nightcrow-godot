@@ -119,7 +119,11 @@ func _ready() -> void:
 	player.hit_confirmed.connect(_hit)
 	player.parry_success.connect(_parry)
 	player.block_success.connect(_block)
-	player.move_started.connect(func(move: Resource, index: int): audio.play_swing_of(move,index))
+	player.move_started.connect(func(move: Resource, _index: int):
+		if move == player.dash_move or move == player.dash_left_move:
+			audio.play_dash())
+	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move,index))
+	audio.attach_player(player)
 	player.jumped.connect(audio.play_jump)
 	player.landed.connect(_landed)
 	player.charge_started.connect(audio.play_charge_start)
@@ -240,7 +244,7 @@ func _parry(attacker: Node, point: Vector2) -> void:
 	last_feedback = "弹刀成功 · 零伤害"
 
 func _block(_attacker: Node, point: Vector2) -> void:
-	audio.play_parry()
+	audio.play_block()
 	fx.spawn_text(point, "格挡")
 	last_feedback = "格挡成功"
 
@@ -270,7 +274,7 @@ func _physics_process(delta: float) -> void:
 				last_feedback = "木桩测试命中 · 按 L 防守"
 
 func _landed() -> void:
-	audio.play_land()
+	audio.play_land(player.last_landing_heavy)
 	fx.spawn_dust(player.global_position+Vector2(0,player.foot_offset))
 
 func _knockdown() -> void:
