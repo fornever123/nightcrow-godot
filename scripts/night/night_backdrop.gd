@@ -1,24 +1,24 @@
 extends Node2D
-## 「月下堤岸」夜景（节点 4，设计见 docs/HANDOFF-试玩版.md §11）。
+## 「月下堤岸」夜景（节点 4 建，第二轮节点 9 改成多层视差，设计见 docs/HANDOFF-试玩版.md §11、§13）。
 ##
-## 三层图（用户用 GPT 出的原图 → tools/art/make_night_layers.py 抠图 + 无缝 → base64 文本）：
-##   远景 far  ：星空 + 月亮 + 海，固定在屏幕上（无限远），海面波光 / 星星闪烁用 shader 做
-##   中景 mid  ：雪山 + 城堡 + 石桥，0.25 倍视差，横向无限重复
-##   近景 near ：石砌堤岸步道 + 石灯笼 + 野花，跟地面一起走（1 倍），横向无限重复
-## 另外全是程序特效：桥和步道在水里的倒影、地平线雾、萤火虫、花瓣、流星、灯笼暖光。
+## 图层（用户用 GPT 出的原图 → tools/art/make_night_layers_v2.py 拆层 + 无缝 → base64 文本）。
+## 括号里是跟镜头移动的倍率（0 = 贴在屏幕上不动，1 = 跟地面一起走）：
+##   月亮 moon + 月晕 halo（0，超远景）  星空银河 sky（0.01）  云 clouds（0.05，另加风飘）
+##   海面 sea（逐行视差：桥脚 0.42 → 步道后沿 1.0；步道下面 1.0 → 屏幕底 1.25；月光带固定在月亮下方）
+##   雪山 mountains（0.12）  城堡小镇 castle（0.3）  雾（0.36，程序噪声）  石桥 bridge（0.42）
+##   近景步道 near（1.0，沿用 v1）
+## 另外全是程序特效：桥和步道在水里的倒影、萤火虫、花瓣、流星、灯笼暖光、桥灯呼吸。
 ## 所有东西 z_index 为负，画在角色和敌人后面（花瓣和少量萤火在前面，很淡）。
 ##
 ## 坐标：屏幕 1280×720、镜头只横向移动（竖直固定在 360）。步道顶面 = floor_y。
 
 const DIR := "res://assets/scenery/moon_embankment/"
-const MID_SCROLL := 0.25
-const FOG_SCROLL := 0.4
+const FOG_SCROLL := 0.36
 const NEAR_STAND_ROW := 139.0     ## 近景图块里“脚踩的那一行”（石板顶面中间）
 const LANTERN_IN_TILE := Vector2(639.0, 61.0)   ## 近景图块里灯笼火光的位置
-const BRIDGE_LAMPS := [65.0, 124.0, 184.0, 245.0, 307.0, 368.0, 731.0, 791.0, 848.0, 908.0]
-const BRIDGE_LAMP_Y := 203.0       ## 中景图块里桥灯的行
 const MARGIN := 48.0
 const LANTERN_REACH := 330.0      ## 灯笼暖光照到角色身上的半径
+const LAYERS := ["sky", "halo", "moon", "clouds", "sea", "mountains", "castle", "bridge", "near"]
 
 static var _cache: Dictionary = {}
 
@@ -27,19 +27,17 @@ var floor_y: float = 580.0
 var meta: Dictionary = {}
 var ok: bool = false
 
-var far_tex: Texture2D
-var mid_tex: Texture2D
+var tex: Dictionary = {}          ## 图层名 → Texture2D
 var near_tex: Texture2D
-var _far: Sprite2D
-var _mid: Sprite2D
-var _mid_reflect: Sprite2D
+var _spr: Dictionary = {}         ## 图层名 → Sprite2D
+var _bridge_reflect: Sprite2D
 var _fog: Sprite2D
-var _near: Sprite2D
 var _near_reflect: Sprite2D
-var _glow_back: Node2D           ## 加色混合：灯笼光、桥灯、萤火（在角色后面）
+var _glow_back: Node2D           ## 加色混合：灯笼光、萤火（在角色后面）
 var _front: Node2D               ## 普通混合：花瓣、少量萤火（在角色前面）
-var _sky: Node2D                 ## 流星（在中景后面）
-var _mid_glow: Node2D            ## 桥灯（中景上面、雾下面）
+var _meteors: Node2D             ## 流星（在月亮和云后面）
+var _mid_glow: Node2D            ## 桥灯（桥上面）
+var _sea_mat: ShaderMaterial
 var _time: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _meteor := {"t": -1.0, "next": 4.0, "from": Vector2.ZERO, "dir": Vector2.ZERO, "len": 0.0}
@@ -80,6 +78,11 @@ func horizon_y() -> float:
 	return float(meta.get("far", {}).get("horizonY", 417))
 
 
+## 各层跟镜头移动的倍率（layers.json 里有就用它）
+func _scroll(layer: String, def: float) -> float:
+	return float(meta.get(layer, {}).get("scroll", def))
+
+
 static func load_b64_texture(path: String) -> Texture2D:
 	if _cache.has(path):
 		return _cache[path]
@@ -91,9 +94,9 @@ static func load_b64_texture(path: String) -> Texture2D:
 	if img.load_webp_from_buffer(raw) != OK:
 		push_warning("夜景图层解码失败：" + path)
 		return null
-	var tex := ImageTexture.create_from_image(img)
-	_cache[path] = tex
-	return tex
+	var t := ImageTexture.create_from_image(img)
+	_cache[path] = t
+	return t
 
 
 func _ready() -> void:
@@ -102,42 +105,58 @@ func _ready() -> void:
 	var parsed: Variant = JSON.parse_string(mf) if mf != "" else null
 	if parsed is Dictionary:
 		meta = parsed
-	far_tex = load_b64_texture(DIR + "far.webp.b64")
-	mid_tex = load_b64_texture(DIR + "mid.webp.b64")
-	near_tex = load_b64_texture(DIR + "near.webp.b64")
-	ok = far_tex != null and mid_tex != null and near_tex != null and meta.has("near") and meta.has("mid")
+	ok = true
+	for n in LAYERS:
+		var t := load_b64_texture(DIR + n + ".webp.b64")
+		ok = ok and t != null and meta.has(n)
+		tex[n] = t
 	if not ok:
 		return
+	near_tex = tex.near
 	# 镜头在本帧移动后再摆夜景（否则冲刺时远景会晚一帧，屏幕边露出底色）
 	process_priority = 100
-	_far = _sprite(far_tex, -100, false)
-	# 远景左右各多画 MARGIN（镜像延伸）兜底
-	_far.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR
-	_far.region_enabled = true
-	_far.region_rect = Rect2(-MARGIN, 0, 1280.0 + MARGIN * 2.0, 720.0)
-	_far.material = _shader_mat(preload("res://assets/shaders/night_far.gdshader"), {"horizon": horizon_y() / 720.0})
-	_sky = Node2D.new()
-	_sky.z_index = -98
-	_sky.material = _add_mat()
-	_sky.draw.connect(_draw_sky)
-	add_child(_sky)
-	_mid_reflect = _sprite(mid_tex, -96, true)
-	_mid_reflect.flip_v = true
-	_mid_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
-			{"strength": 0.32, "ripple": 2.2, "tint": Color(0.2, 0.32, 0.6)})
-	_mid = _sprite(mid_tex, -94, true)
+	var sky := _sprite(tex.sky, -100, true)
+	sky.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR   # 0.01 倍，走十几万像素才会看到镜像处
+	sky.material = _shader_mat(preload("res://assets/shaders/night_sky.gdshader"), {})
+	_spr.sky = sky
+	_meteors = Node2D.new()
+	_meteors.z_index = -99
+	_meteors.material = _add_mat()
+	_meteors.draw.connect(_draw_meteors)
+	add_child(_meteors)
+	var halo := _sprite(tex.halo, -98, false)
+	halo.centered = true
+	halo.material = _add_mat()
+	_spr.halo = halo
+	var moon := _sprite(tex.moon, -97, false)
+	moon.centered = true
+	_spr.moon = moon
+	_spr.clouds = _sprite(tex.clouds, -96, true)
+	var sea := _sprite(tex.sea, -95, true)
+	_sea_mat = _shader_mat(preload("res://assets/shaders/night_sea.gdshader"), {
+		"margin": MARGIN, "top_y": float(meta.sea.top), "band_x": float(meta.moon.center[0]) - 50.0,
+		"bridge_f": _scroll("bridge", 0.42)})
+	sea.material = _sea_mat
+	_spr.sea = sea
+	_bridge_reflect = _sprite(tex.bridge, -94, true)
+	_bridge_reflect.flip_v = true
+	_bridge_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
+			{"strength": 0.36, "ripple": 2.2, "tint": Color(0.2, 0.32, 0.6)})
+	_spr.mountains = _sprite(tex.mountains, -93, true)
+	_spr.castle = _sprite(tex.castle, -92, true)
+	_fog = _sprite(_make_fog_texture(), -91, true)
+	_fog.material = _shader_mat(preload("res://assets/shaders/night_fog.gdshader"), {})
+	_spr.bridge = _sprite(tex.bridge, -90, true)
 	_mid_glow = Node2D.new()
-	_mid_glow.z_index = -93
+	_mid_glow.z_index = -89
 	_mid_glow.material = _add_mat()
 	_mid_glow.draw.connect(_draw_mid_glow)
 	add_child(_mid_glow)
-	_fog = _sprite(_make_fog_texture(), -92, true)
-	_fog.material = _shader_mat(preload("res://assets/shaders/night_fog.gdshader"), {})
-	_near_reflect = _sprite(near_tex, -91, true)
+	_near_reflect = _sprite(near_tex, -88, true)
 	_near_reflect.flip_v = true
 	_near_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
 			{"strength": 0.72, "ripple": 3.0, "tint": Color(0.1, 0.16, 0.34), "tint_amt": 0.38})
-	_near = _sprite(near_tex, -90, true)
+	_spr.near = _sprite(near_tex, -87, true)
 	_glow_back = Node2D.new()
 	_glow_back.z_index = -80
 	_glow_back.material = _add_mat()
@@ -151,9 +170,9 @@ func _ready() -> void:
 		_petals.append(_new_petal(true))
 
 
-func _sprite(tex: Texture2D, z: int, repeat: bool) -> Sprite2D:
+func _sprite(t: Texture2D, z: int, repeat: bool) -> Sprite2D:
 	var s := Sprite2D.new()
-	s.texture = tex
+	s.texture = t
 	s.centered = false
 	s.z_index = z
 	s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -193,43 +212,67 @@ func screen_left() -> float:
 	return camera.get_screen_center_position().x - 640.0
 
 
+func _top_y() -> float:
+	return camera.get_screen_center_position().y - 360.0 if camera else 0.0
+
+
+## 横向重复的一层：屏幕第 0 列显示图块的 cl×倍率 + 偏移 列；精灵本身从 cl−MARGIN 开始画
+func _place_strip(s: Sprite2D, layer: String, factor: float, extra: float, y: float) -> void:
+	var m: Dictionary = meta[layer]
+	var cl := screen_left()
+	s.position = Vector2(cl - MARGIN, y)
+	s.region_rect = Rect2(fposmod(cl * factor + extra - MARGIN, float(m.period)), 0, 1280.0 + MARGIN * 2.0, float(m.size[1]))
+
+
 func _process(delta: float) -> void:
 	if not ok:
 		return
 	_time += delta
 	var cl := screen_left()
-	var top_y := 0.0
-	if camera != null:
-		top_y = camera.get_screen_center_position().y - 360.0
+	var top_y := _top_y()
 	var w := 1280.0 + MARGIN * 2.0
-	# 远景：贴着屏幕
-	_far.position = Vector2(cl - MARGIN, top_y)
-	# 中景：0.25 倍视差
-	var mp := float(meta.mid.period)
-	var mh := float(meta.mid.size[1])
-	var mtop := float(meta.mid.top)
-	_mid.position = Vector2(cl - MARGIN, top_y + mtop)
-	# 屏幕第 0 列显示图块的 cl×0.25 列；精灵本身从 cl−MARGIN 开始画
-	_mid.region_rect = Rect2(fposmod(cl * MID_SCROLL - MARGIN, mp), 0, w, mh)
-	# 中景倒影：只取桥的下半截（最后 46 行）翻到水里
-	var rh := 46.0
-	_mid_reflect.position = Vector2(cl - MARGIN, top_y + mtop + mh - 3.0)
-	_mid_reflect.region_rect = Rect2(_mid.region_rect.position.x, mh - rh, w, rh)
+	# 星空：0.01 倍，镜像重复
+	var sky: Sprite2D = _spr.sky
+	sky.position = Vector2(cl - MARGIN, top_y)
+	sky.region_rect = Rect2(cl * _scroll("sky", 0.01) - MARGIN, 0, w, float(meta.sky.size[1]))
+	# 月亮 + 月晕：贴在屏幕上
+	var mc := Vector2(float(meta.moon.center[0]), float(meta.moon.center[1]))
+	(_spr.moon as Sprite2D).position = Vector2(cl, top_y) + mc
+	(_spr.halo as Sprite2D).position = Vector2(cl, top_y) + mc
+	# 云：0.05 倍 + 风飘（向左）
+	_place_strip(_spr.clouds, "clouds", _scroll("clouds", 0.05), _time * float(meta.clouds.get("drift", 3.0)), top_y)
+	# 海面：逐行视差在着色器里算
+	var sea: Sprite2D = _spr.sea
+	sea.position = Vector2(cl - MARGIN, top_y + float(meta.sea.top))
+	sea.region_rect = Rect2(0, 0, w, float(meta.sea.size[1]))
+	var nh := float(meta.near.size[1])
+	_sea_mat.set_shader_parameter("cam_x", cl)
+	_sea_mat.set_shader_parameter("bridge_y", float(meta.bridge.top) + float(meta.bridge.size[1]))
+	_sea_mat.set_shader_parameter("back_y", floor_y - 8.0)
+	_sea_mat.set_shader_parameter("front_y", near_top() + nh)
+	# 雪山 / 城堡小镇 / 石桥
+	_place_strip(_spr.mountains, "mountains", _scroll("mountains", 0.12), 0.0, top_y + float(meta.mountains.top))
+	_place_strip(_spr.castle, "castle", _scroll("castle", 0.3), 0.0, top_y + float(meta.castle.top))
+	var bridge: Sprite2D = _spr.bridge
+	_place_strip(bridge, "bridge", _scroll("bridge", 0.42), 0.0, top_y + float(meta.bridge.top))
+	# 桥的倒影：整座桥翻到水里
+	var bh := float(meta.bridge.size[1])
+	_bridge_reflect.position = Vector2(cl - MARGIN, bridge.position.y + bh - 2.0)
+	_bridge_reflect.region_rect = bridge.region_rect
 	# 雾：在地平线上慢慢飘
 	_fog.position = Vector2(cl - MARGIN, top_y + horizon_y() - 70.0)
 	_fog.region_rect = Rect2(fposmod(cl * FOG_SCROLL + _time * 9.0, 768.0), 0, w, 96)
 	# 近景：和地面一起走
-	var np := float(meta.near.period)
-	var nh := float(meta.near.size[1])
-	_near.position = Vector2(cl - MARGIN, near_top())
-	_near.region_rect = Rect2(fposmod(cl - MARGIN, np), 0, w, nh)
+	var near: Sprite2D = _spr.near
+	near.position = Vector2(cl - MARGIN, near_top())
+	near.region_rect = Rect2(fposmod(cl - MARGIN, float(meta.near.period)), 0, w, nh)
 	# 近景倒影：石墙在水里的影子（只取墙面那一段，翻下来）
 	var wall_rows := nh - 131.0
 	_near_reflect.position = Vector2(cl - MARGIN, near_top() + nh - 1.0)
-	_near_reflect.region_rect = Rect2(_near.region_rect.position.x, 131.0, w, wall_rows)
+	_near_reflect.region_rect = Rect2(near.region_rect.position.x, 131.0, w, wall_rows)
 	_update_meteor(delta)
 	_update_petals(delta)
-	_sky.queue_redraw()
+	_meteors.queue_redraw()
 	_mid_glow.queue_redraw()
 	_glow_back.queue_redraw()
 	_front.queue_redraw()
@@ -254,9 +297,9 @@ func _update_meteor(delta: float) -> void:
 			_meteor.next = _rng.randf_range(5.0, 11.0)
 
 
-func _draw_sky() -> void:
+func _draw_meteors() -> void:
 	# 画在屏幕坐标系：节点跟着镜头左上角
-	var origin := Vector2(screen_left(), camera.get_screen_center_position().y - 360.0 if camera else 0.0)
+	var origin := Vector2(screen_left(), _top_y())
 	if _meteor.t >= 0.0:
 		var k: float = _meteor.t / 0.75
 		var head: Vector2 = _meteor.from + _meteor.dir * _meteor.len * 1.6 * k
@@ -266,24 +309,25 @@ func _draw_sky() -> void:
 			var a := float(i) / 6.0
 			var p0: Vector2 = head - _meteor.dir * tail_len * a
 			var p1: Vector2 = head - _meteor.dir * tail_len * (a + 1.0 / 6.0)
-			_sky.draw_line(origin + p0, origin + p1, Color(0.75, 0.85, 1.0, 0.75 * fade * (1.0 - a)), 2.2 - a * 1.6)
-		_sky.draw_circle(origin + head, 2.6, Color(1, 1, 1, 0.9 * fade))
+			_meteors.draw_line(origin + p0, origin + p1, Color(0.75, 0.85, 1.0, 0.75 * fade * (1.0 - a)), 2.2 - a * 1.6)
+		_meteors.draw_circle(origin + head, 2.6, Color(1, 1, 1, 0.9 * fade))
 
 
 func _draw_mid_glow() -> void:
-	# 桥灯（中景，0.25 倍视差）微微呼吸
-	var origin := Vector2(screen_left(), camera.get_screen_center_position().y - 360.0 if camera else 0.0)
-	var mp := float(meta.mid.period)
-	var y := origin.y + float(meta.mid.top) + BRIDGE_LAMP_Y
-	var base := screen_left() * MID_SCROLL
-	var k0 := floorf((base - 40.0) / mp)
-	for t in 3:
-		for lx in BRIDGE_LAMPS:
-			var wx: float = (k0 + float(t)) * mp + float(lx)
+	# 桥灯（跟桥一起 0.42 倍视差）微微呼吸
+	var origin := Vector2(screen_left(), _top_y())
+	var bm: Dictionary = meta.bridge
+	var bp := float(bm.period)
+	var y := origin.y + float(bm.lampY)
+	var base := screen_left() * _scroll("bridge", 0.42)
+	var k0 := floorf((base - 40.0) / bp)
+	for t in 5:
+		for lx in bm.lamps:
+			var wx: float = (k0 + float(t)) * bp + float(lx)
 			var sx := wx - base
 			if sx < -30.0 or sx > 1310.0:
 				continue
-			var fl := 0.75 + 0.25 * sin(_time * 2.3 + float(lx) * 0.37)
+			var fl := 0.75 + 0.25 * sin(_time * 2.3 + wx * 0.37)
 			_mid_glow.draw_circle(origin + Vector2(sx, y), 9.0, Color(1.0, 0.7, 0.35, 0.10 * fl))
 			_mid_glow.draw_circle(origin + Vector2(sx, y), 4.0, Color(1.0, 0.8, 0.5, 0.22 * fl))
 

@@ -1,4 +1,48 @@
 {
+ "version": 2,
+ "sky": {
+  "size": [
+   1280,
+   420
+  ],
+  "scroll": 0.01
+ },
+ "halo": {
+  "size": [
+   664,
+   664
+  ]
+ },
+ "moon": {
+  "center": [
+   1064.1,
+   159.5
+  ],
+  "radius": 95.4,
+  "size": [
+   198,
+   198
+  ]
+ },
+ "clouds": {
+  "size": [
+   1720,
+   417
+  ],
+  "period": 1720,
+  "scroll": 0.05,
+  "drift": 3.0
+ },
+ "sea": {
+  "top": 417,
+  "size": [
+   1024,
+   303
+  ],
+  "period": 1024,
+  "bandX": 981,
+  "match": 0.0
+ },
  "far": {
   "size": [
    1280,
@@ -6,16 +50,45 @@
   ],
   "horizonY": 417
  },
- "mid": {
-  "period": 1026,
-  "overlap": 120,
-  "match": 0.13676,
-  "seamCost": 3.329,
-  "top": 191,
+ "bridge": {
+  "top": 381,
   "size": [
-   1026,
-   236
-  ]
+   490,
+   44
+  ],
+  "period": 490,
+  "scroll": 0.42,
+  "railY": 403,
+  "lamps": [
+   0.0,
+   60.06,
+   121.62,
+   183.19,
+   245.25,
+   305.81,
+   366.87,
+   428.94
+  ],
+  "lampY": 390
+ },
+ "castle": {
+  "top": 192,
+  "size": [
+   1159,
+   219
+  ],
+  "period": 1159,
+  "scroll": 0.3,
+  "match": 0.2342
+ },
+ "mountains": {
+  "top": 196,
+  "size": [
+   751,
+   203
+  ],
+  "period": 751,
+  "scroll": 0.12
  },
  "near": {
   "period": 1125,
