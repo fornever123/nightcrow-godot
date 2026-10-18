@@ -1,5 +1,13 @@
 [
   {
+    "clip": "draw",
+    "facing": 1,
+    "frame": 6,
+    "label": "draw",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
     "clip": "idle",
     "facing": 1,
     "frame": 6,
@@ -133,6 +141,54 @@
     "frame": 1,
     "label": "air_light_3",
     "position": "(500.248, 280.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "sheathe",
+    "facing": 1,
+    "frame": 38,
+    "label": "sheathe",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "parry_react_1",
+    "facing": 1,
+    "frame": 5,
+    "label": "parry_react_1",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.400694, 0.420822)"
+  },
+  {
+    "clip": "parry_react_2",
+    "facing": 1,
+    "frame": 5,
+    "label": "parry_react_2",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.400694, 0.420822)"
+  },
+  {
+    "clip": "parry_react_3",
+    "facing": 1,
+    "frame": 5,
+    "label": "parry_react_3",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.400694, 0.420822)"
+  },
+  {
+    "clip": "death",
+    "facing": 1,
+    "frame": 60,
+    "label": "death",
+    "position": "(450.0, 496.0)",
+    "spriteScale": "(0.410758, 0.410758)"
+  },
+  {
+    "clip": "death",
+    "facing": 1,
+    "frame": 123,
+    "label": "death_last",
+    "position": "(450.0, 496.0)",
     "spriteScale": "(0.410758, 0.410758)"
   }
 ]
