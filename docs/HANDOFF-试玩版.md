@@ -159,6 +159,12 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - [x] 节点 6：整合 + 整轮实机复查（镜头/遭遇战/HUD/主场景在节点 3，夜景在节点 4，环境光在节点 5）
 - [x] 节点 7：测试全过 + 实机截图/录屏验证
 - [x] 节点 8：合并到 main（PR #1）+ 用户说明（Windows 包不做，见 §9）
+- 第二轮（§13，分支 trial-wip2）：
+  - [x] 节点 9：环境分层视差
+  - [x] 节点 10：角色画质（高清采样 + 代码修帧；修不了的见 `docs/GPT-重画清单.md`）
+  - [x] 节点 11：手感大改（跑速、跳跃、落地轻重、招式变速、后摇取消、镜头前瞻）
+  - [x] 节点 12：音效（`assets/audio/sfx_v3/`）
+  - [x] 节点 13：整合、录屏、合并 main、试玩说明
 
 ## 9. 进度日志
 
@@ -341,3 +347,15 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - **镜头前瞻**：`camera.lookAhead 110`，速度超过半个跑速才往移动方向平滑偏移（打怪锁场时不影响）。
   - 测量工具：`tests/dev/feel_probe.gd`（无头跑，打印起步/急停/跳高/滞空/各招时长）。新测试 `tests/test_feel.gd`（27 项：跑速、急停、跳高范围、下落比上升快、下落上限、小跳、轻/重落地、各招整招时长上限、命中帧不早于原来的 60%、后摇可冲刺/弹刀/方向键取消、没写速度的招式不变）；改了 test_desktop_integration（步幅一致、speed ≥ 300）、test_training（动画播满且整招更短）、test_framebaker_runtime（tick 测试前清掉 light_1 的速度键）。
   - 验证：全套 training 36 / combat_feedback 52 / framebaker_runtime 52 / locomotion 12 / action_flow 45 / desktop_integration 28 / night_combat 50 / feel 27，全部 0 失败。机器人整轮：SEED 3 → 112.7s 清 3 场 0 死；SEED 7 → 115.6s 0 死（以前 126–139s）。录屏抽帧检查，跑/跳/空连/落地/取消没有画面问题。
+- **节点 12 音效：完成**（新音效库 `assets/audio/sfx_v3/`，71 个变体，vorbis q5 44.1k 单声道，存成 `<事件>_<序号>.ogg.b64` 文本 + `manifest.json`；仓库只能推文本，所以用 base64）。
+  - **素材**：`art/selected-video-audio/` 6 段原声（A=action_00014 刀风 11 段 + 低频闷响；D=冲刺攻击 3 段长刀风；G=左侧格挡 刀风 + 闷响；B=拔刀40 低频闷响 + 1.78–2.4s 金属“铮”尾音；X=死亡 0.7–2.2s 是人声（**不用**）、3.01s 倒地闷响；K=空中a 3 段刀风）。刀风全部切自原声（`make_sfx_v3.py` 的 `WHOOSH` 表），按招式变速/变调、峰值对齐到 0.05s；其余（脚步、起跳、落地、命中肉感、弹刀金属、格挡、眩晕、挑飞、下砸碎石、撞墙、连锁、影卒蓄力/挥击/消散、封场、清场、倒下、冲刺）用 numpy 代码合成，部分叠原声闷响/“铮”。
+  - **再生成**：`python3 tools/audio/make_sfx_v3.py`（只写游戏文件）；`python3 tools/audio/make_sfx_v3.py <目录>` 额外写 wav 预览。工具库 `tools/audio/sfxlib.py`（解码/编码、滤波、包络、金属/铃声、混响、限幅、按 50ms RMS 归一）。每个事件的变体数、目标响度、总线、随机音高写在 `SPEC` 表。
+  - **播放**（`scripts/presentation/audio_feedback.gd`）：启动时读 b64 → `AudioStreamOggVorbis.load_from_buffer`（静态缓存，训练场/夜战共用）；同一事件不连续挑同一个变体 + 小幅随机音高；音效库缺某个事件时退回旧的 13 个 wav（蓄力、手里剑仍用旧的）。配置在 `battle.json` 的 `audio`：`swingByMove`（招式 → 刀风）、`hitTier`（招式 → 轻/重/终结命中）、`footstepStride 56`（每跑 56px 一步，起跑先垫 0.6 步）、`gainDb`（按事件微调音量，dB，目前为空）。
+  - **事件表**：刀风 = 玩家 `swing_cue` 信号（判定帧前 `swing_cue_lead_frames=3` 帧发，一招一次；弹刀/格挡反应/远程不出刀风）；冲刺斩起步另加 `dash`；起跳 `jump` / 二段跳 `jump_double`；落地 `land_light` / `land_heavy`（看 `player.last_landing_heavy`，下砸落地也走这里）；命中 `hit_light/heavy/finisher`（一击二击、空中 1/2 段、空中挑 = 轻；挑飞、冲刺斩 = 重；三击、强普、空中 3 段 = 终结）；被打 `hurt`（影卒）/ `hurt_heavy`（甲影）；弹刀 `parry`；格挡 `block`；破防眩晕 `stun`；挑飞 `launch`；下砸 `slam`；撞墙 `wall`；连锁 `chain`（层数越高音越高）；影卒 `shade_windup(_heavy)`（`shade.windup_started`）、`shade_swing(_heavy)`（`shade.strike_started`）、`shade_die`；封场 `seal`；清场 `clear`；倒下 `die`；脚步 `step`（地面、空闲状态、速度 > 0.45 跑速）。
+  - **混音**：主总线加了硬限幅（`AudioEffectHardLimiter`，上限 -1 dB，`_ensure_limiter()`）——第一次录屏里命中 + 刀风 + 下砸叠在一起有 488 个削波采样，加限幅后 0 个；脚步在跑步时只有 -42 dB 太轻，`audio.gainDb.step = 6`。
+  - **测试**：新 `tests/test_audio.gd`（25 项：清单每个变体都能加载、映射表完整、刀风在判定帧前 3 帧且只发一次、弹刀不出刀风、轻/重落地、站着没脚步 / 跑多远响几步、变体不连续重复、影卒信号、主总线有限幅）。`test_combat_feedback` 改成检查新事件名（hit_light / hit_finisher）。全套 training 36 / combat_feedback 52 / framebaker_runtime 52 / locomotion 12 / action_flow 45 / desktop_integration 28 / feel 27 / audio 25 / night_combat 50（共 327 项），全部 0 失败。机器人：SEED 3 → 112.7s 0 死；SEED 7 两次 138.6s 1 死 / 188.2s 2 死（**机器人结果每次会变**：`shade.gd` 的 `_rng.randomize()` 让出手冷却每次不同，SEED 只管机器人自己的决定；音效改动不碰玩法）。
+  - **限制**：所有声音是分析原声 + 代码合成，没有人耳试听；用户试玩后觉得哪个不对，直接说事件名（或“第几刀的声音”），改 `SPEC`/`WHOOSH` 重新生成，或在 `audio.gainDb` 里调音量。
+- **节点 13 整合：完成**
+  - 录屏（带声音）：`SEED=3 SKILL=0.8 BOT_ENC=3`，1280×720 30fps，114.6s 清 3 场 0 死；音轨峰值 -1.0 dB、0 削波，50ms 响度中位 -31 dB / 最响 -7 dB；跑步脚步 -34 dB。把最响的 6 个起音时刻抽帧对照，起音那一帧正好是敌人受击白闪（音画对齐在 1 帧内）。
+  - 全套测试见下方节点 12；试玩说明 `docs/试玩说明.md` 加了“第二轮更新”一节。
+  - trial-wip2 通过 PR 合并进 main。

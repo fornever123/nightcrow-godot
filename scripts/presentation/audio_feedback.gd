@@ -433,6 +433,23 @@ func _ensure_buses() -> void:
 		AudioServer.set_bus_name(idx, bus_name)
 		AudioServer.set_bus_send(idx, &"Master")
 		AudioServer.set_bus_volume_db(idx, float(BUS_VOLUME_DB[bus_name]))
+	_ensure_limiter()
+
+
+## 总线上的硬限幅：几个重音效同一帧叠在一起（命中 + 刀风 + 下砸）时不爆音
+func _ensure_limiter() -> void:
+	var master := AudioServer.get_bus_index(&"Master")
+	if master < 0:
+		return
+	for i in AudioServer.get_bus_effect_count(master):
+		if AudioServer.get_bus_effect(master, i) is AudioEffectHardLimiter:
+			return
+	var lim := AudioEffectHardLimiter.new()
+	lim.ceiling_db = -1.0
+	lim.release = 0.12
+	AudioServer.add_bus_effect(master, lim)
+
+
 func bus_for(key: String) -> StringName:
 	return BUS_BY_KEY.get(StringName(key), BUS_IMPACT)
 func _repeat_trim(key: StringName) -> float:

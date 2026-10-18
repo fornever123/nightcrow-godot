@@ -172,5 +172,11 @@ func run() -> void:
 			failures.append("缺少事件 " + key)
 	check(failures.is_empty() or not failures[-1].begins_with("缺少"), "夜战用到的事件全部有声音")
 
+	var master := AudioServer.get_bus_index(&"Master")
+	var has_lim := false
+	for i in AudioServer.get_bus_effect_count(master):
+		has_lim = has_lim or AudioServer.get_bus_effect(master, i) is AudioEffectHardLimiter
+	check(has_lim, "主总线有硬限幅（叠音不爆）")
+
 	print("AUDIO_TESTS: %d checks / %d failures" % [checks, failures.size()])
 	quit(1 if failures.size() > 0 else 0)
