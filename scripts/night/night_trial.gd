@@ -16,6 +16,7 @@ const Shade := preload("res://scripts/night/shade.gd")
 const Encounter := preload("res://scripts/night/encounter.gd")
 const Style := preload("res://scripts/night/style_meter.gd")
 const Hud := preload("res://scripts/night/combat_hud.gd")
+const Backdrop := preload("res://scripts/night/night_backdrop.gd")
 const CameraScript := preload("res://scripts/presentation/camera_shake.gd")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
@@ -108,6 +109,7 @@ func _ready() -> void:
 	add_child(player)
 	_hp_seen = player.hp
 	_build_camera()
+	_build_backdrop()
 	audio = AudioFeedback.new()
 	audio.configure(config.get("audio", {}))
 	add_child(audio)
@@ -160,6 +162,19 @@ func _make_wall(x: float) -> StaticBody2D:
 	body.add_child(shape)
 	add_child(body)
 	return body
+
+
+func _build_backdrop() -> void:
+	var b: Node2D = Backdrop.new()
+	b.name = "Backdrop"
+	b.camera = camera
+	b.floor_y = floor_y
+	add_child(b)
+	move_child(b, 0)
+	if b.ok:
+		backdrop = b
+	else:
+		b.queue_free()   # 图层缺失时退回占位背景，游戏照样能玩
 
 
 func _build_camera() -> void:

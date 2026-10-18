@@ -123,6 +123,7 @@ func run() -> void:
 	check(p != null and p.can_die, "试玩关卡的角色可以倒下")
 	check(p.launcher_cancel and String(p.root_motion_block_group) == "shade", "试玩关卡开启挑飞取消与贴身刹车")
 	check(int(p._guard_config().get("parryWindowFrames", 0)) == stage.PARRY_WINDOW, "弹刀窗口 = 试玩关卡设置")
+	test_backdrop()
 	stage.set_physics_process(false)   # 先不触发封印，单独测战斗
 	await test_slam_route()
 	await test_drive_route()
@@ -132,6 +133,19 @@ func run() -> void:
 	await test_encounter_flow()
 	print("NIGHT_COMBAT_TESTS: ", checks, " checks / ", failures.size(), " failures")
 	quit(0 if failures.is_empty() else 1)
+
+
+func test_backdrop() -> void:
+	var b: Node2D = stage.backdrop
+	check(b != null and b.ok, "夜景图层加载成功（webp + 着色器）")
+	if b == null:
+		return
+	check(b.far_tex.get_width() == 1280 and b.far_tex.get_height() == 720, "远景 1280×720")
+	check(b.mid_tex.get_width() == int(b.meta.mid.period) and b.near_tex.get_width() == int(b.meta.near.period), "中景/近景宽度 = 无缝周期")
+	check(is_equal_approx(b.near_top() + b.NEAR_STAND_ROW, stage.floor_y), "近景石板顶面对齐脚下地面")
+	var lan: Vector2 = b.nearest_lantern(p.global_position.x)
+	check(is_finite(lan.x) and absf(lan.x - p.global_position.x) <= float(b.meta.near.period) * 0.5 + 1.0, "能找到最近的灯笼")
+	check(stage.get_child(0) == b, "夜景在最底层")
 
 
 func test_slam_route() -> void:

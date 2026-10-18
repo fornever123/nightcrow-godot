@@ -154,9 +154,9 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - [x] 节点 1：序列帧对位脚本 + battle.json 锚点/根位移 + 运行时根位移
 - [x] 节点 2：手感参数（跑步/转身/跳跃/缓冲/判定框/顿帧）+ 序列帧横线瑕疵清理
 - [x] 节点 3：战斗系统（敌人、失衡/眩晕、浮空连段、方向终结、连锁）+ 试玩关卡/HUD/评价（原节点 6 的大部分）
-- [ ] 节点 4：夜景场景（抠图/无缝/视差/特效）
+- [x] 节点 4：夜景场景（抠图/无缝/视差/特效，设计见 §11）
 - [ ] 节点 5：角色环境光
-- [ ] 节点 6：整合（镜头/遭遇战/HUD/主场景已在节点 3 做完；剩：接夜景 backdrop + 环境光 + 整轮实机复查）
+- [ ] 节点 6：整合（镜头/遭遇战/HUD/主场景已在节点 3 做完；夜景 backdrop 已在节点 4 接入；剩：环境光接入后的整轮实机复查）
 - [ ] 节点 7：测试全过 + 实机截图/录屏验证
 - [ ] 节点 8：GitHub 推送 + Windows 包（如可行）+ 用户说明
 
@@ -189,7 +189,50 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - `scripts/training.gd`：F3 返回试玩，说明文字加“F3 返回试玩”（其余不动）。
   - night_trial 的 `backdrop` 变量为空时画占位天空/地面 → 节点 4 接夜景。
   - 新测试 test_night_combat 41/0；全部 262/0。临时调试脚本已删，有用的三个移到 `tests/dev/`。
+  - 本地提交 d0b5115，已推送为 trial-wip 提交 488e27e。
+- 2026-10-18 节点 4 完成（细节全在 §11）：
+  - 新增 `tools/art/make_night_layers.py`、`assets/scenery/moon_embankment/{far,mid,near}.webp.b64 + layers.json`、`assets/shaders/{night_far,night_reflect,night_fog}.gdshader`、`scripts/night/night_backdrop.gd`；`night_trial.gd` 加 `_build_backdrop()`。
+  - 新增开发工具 `tests/dev/scene_shot.gd`（静帧截图）。
+  - 截图检查：x=300/1400/2600 三处构图、月亮/云无噪点、接缝看不出、灯笼/倒影/雾正常；capture_night 战斗截图里影卒在亮海面上轮廓清楚，封印墙和底部提示框不挡战斗。近景倒影原来太淡被月光路盖住 → strength 0.72、tint_amt 0.38。
+  - test_night_combat 加 6 项夜景检查（47 项）；全部 268/0；无头模式加载 webp/着色器无报错。
 
 ## 10. 仍待用户拍板的旧事项（本任务不阻塞）
 
 主题名“凝时天都”是否确定；是否更新仓库旧《视觉设计规范》；HUD 布局（`/data/ui/hud-mock.png`）；主角名字；文档放 Notion 还是仓库；格挡特效（`/data/vfx/parry/`）是否放进 assets。
+
+## 11. 夜景「月下堤岸」（节点 4 定稿）
+
+### 11.1 素材与再生成
+- 原图 = §5 的三张（远景 eca8dab9…、中景 58fc0374…、近景 6fc5b889…，都在 `/data/.agent-service/files/<id>/image.png`；沙盒重置后需要用户重新发或从会话附件取）。
+- 再生成：`python3 tools/art/make_night_layers.py <远景> <中景> <近景>` → 覆盖 `assets/scenery/moon_embankment/` 下的 `far/mid/near.webp.b64` 与 `layers.json`。
+  - 远景：直接缩放到 1280×720，测地平线 horizonY=417。
+  - 中景/近景：缩放到 720 高 → 洋红抠图（去溢色；半透明边缘 G≤max(R,B) 去绿边）→ 裁到有内容的行 → 在 [0.8W, W−120] 搜周期 P + 最小误差竖向切缝拼接（羽化 2px）→ webp → base64。
+  - 当前结果：mid period 1026、top 191、1026×236；near period 1125、top 267、1125×207。
+- 为什么存 base64：推送通道只能传文本（§3）。运行时 `NightBackdrop.load_b64_texture()`（Marshalls → `Image.load_webp_from_buffer`，静态缓存）解码。**以后如果做导出包**：仓库目前没有 `export_presets.cfg`；建导出预设时要把 `*.b64, *.json` 加进“非资源文件包含过滤”，否则夜景加载失败（会自动退回占位背景）。
+
+### 11.2 关键坐标（世界坐标，屏幕 1280×720，镜头竖直固定 360）
+- 近景图块：石板顶面从第 131 行开始，**脚踩第 139 行**（`NEAR_STAND_ROW`）→ `near_top() = floor_y − 139 = 441`；墙底第 205 行（世界 y≈646），下面是倒影和海。
+- 灯笼火光在近景图块 (639, 61)，每 1125px 一盏；`nearest_lantern(x)` 返回离 x 最近那盏的世界坐标（节点 5 环境光用）。
+- 中景桥灯：图块第 203 行，x = 65,124,184,245,307,368,731,791,848,908。
+
+### 11.3 层次（z_index，全部在角色后面，除了花瓣）
+| z | 内容 | 滚动 |
+|---|---|---|
+| −100 | 远景（`night_far.gdshader`：海面扭动、局部高对比小亮点才闪的星星、月光路偶尔亮点；月亮/云不加噪点） | 固定在屏幕 |
+| −98 | 流星（加色混合，第一颗 4 秒，之后每 5–11 秒一颗） | 屏幕 |
+| −96 | 中景倒影（flip_v，取最后 46 行，`night_reflect` strength 0.32） | 0.25 |
+| −94 | 中景（region x = fposmod(cl×0.25 − MARGIN, P)） | 0.25 |
+| −93 | 桥灯光点 | 0.25 |
+| −92 | 地平线雾（FastNoiseLite 无缝噪声 768×96，`night_fog`，在 horizon−70，另外每秒自己飘 9px） | 0.4 |
+| −91 | 近景倒影（墙面第 131 行以后，翻转后贴在墙底下；strength 0.72、tint (0.1,0.16,0.34)、tint_amt 0.38） | 1 |
+| −90 | 近景步道 | 1 |
+| −80 | 灯笼光晕 + 地面暖光圈 + 萤火虫（每 220px 一格程序生成；加色） | 1 |
+| 15 | 花瓣 9 片（很淡，在角色前面） | 屏幕 |
+
+- 无限滚动：Sprite2D + `region_enabled` + `texture_repeat`，region 宽 = 屏宽 + 2×MARGIN(48)。
+- `night_trial._build_backdrop()` 在 `_build_camera()` 之后调用并 `move_child(b, 0)`；`ok=false` 时删掉夜景，退回占位天空/地面（游戏照样能玩）。
+
+### 11.4 验证方法
+- 静帧：`DISPLAY=:99 SHOT_DIR=/data/work/shots XS="300,1400,2600" /data/tools/godot --path . --script res://tests/dev/scene_shot.gd --resolution 1280x720` → `scene_x<x>.png`。
+- 战斗：`DISPLAY=:99 SHOT_DIR=… SEED=3 godot --path . --script res://tests/dev/capture_night.gd --resolution 1280x720`（眩晕/挑飞/下砸/连锁/波次自动截图）。
+- 测试：test_night_combat 里 `test_backdrop()`（加载成功、尺寸 = 周期、步道对齐 floor_y、灯笼可查、夜景在最底层）。

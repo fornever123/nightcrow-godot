@@ -1,0 +1,31 @@
+{
+ "far": {
+  "size": [
+   1280,
+   720
+  ],
+  "horizonY": 417
+ },
+ "mid": {
+  "period": 1026,
+  "overlap": 120,
+  "match": 0.13676,
+  "seamCost": 3.329,
+  "top": 191,
+  "size": [
+   1026,
+   236
+  ]
+ },
+ "near": {
+  "period": 1125,
+  "overlap": 120,
+  "match": 0.02633,
+  "seamCost": 0.654,
+  "top": 267,
+  "size": [
+   1125,
+   207
+  ]
+ }
+}
