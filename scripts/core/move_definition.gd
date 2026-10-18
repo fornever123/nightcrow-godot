@@ -135,6 +135,10 @@ func knockback_velocity(facing: int) -> Vector2:
 @export var movement_timeline: Array = []
 @export var air_gravity_scale: float = 1.0
 @export var air_suspend_frames: int = 0
+## 根位移：动画每一帧的累计横向位移（世界像素，朝前为正），由 tools/art/align_sequences.py
+## 从画面里提取。运行时角色真的跟着身体走，招式结束不会被"拉回"原地。
+@export var root_motion_x: Array = []
+@export var root_motion_scale: float = 1.0
 
 func distance_at(progress: float) -> float:
 	var t := clampf(progress, 0.0, 1.0)

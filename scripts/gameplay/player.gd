@@ -962,7 +962,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			return
 
 	_apply_air_attack_gravity(delta, mv)
-	move_and_slide()
+	_move_with_root_motion(delta, mv)
 	if not air_combo.is_empty() and air_combo.has(mv) and is_on_floor():
 		_end_attack()
 		_reset_air_combo()
@@ -1621,6 +1621,7 @@ func _process_dash_attack(delta: float, mv: Resource, phase: StringName) -> void
 	var before: float = mv.distance_at(float(move_frame) / total)
 	var after: float = mv.distance_at(float(move_frame + 1) / total)
 	velocity.x = (after - before) * float(_dash_facing) / maxf(delta, 0.000001)
+	velocity.x += _root_motion_step(mv) * float(_dash_facing) / maxf(delta, 0.000001)
 	_set_facing(_dash_facing)
 	_apply_gravity(delta, _gravity)
 	move_and_slide()
@@ -1628,6 +1629,32 @@ func _process_dash_attack(delta: float, mv: Resource, phase: StringName) -> void
 	if move_frame >= mv.total_frames():
 		_end_attack()
 		velocity.x = 0.0
+
+## 这一物理帧的根位移（世界像素，朝前为正）。
+## 画面在本帧结束后显示 move_frame+1 对应的动画帧，所以取两帧之差。
+func _root_motion_step(mv: Resource) -> float:
+	if mv == null or mv.root_motion_x.is_empty():
+		return 0.0
+	var clip: Dictionary = _sprite_config().get("animations", {}).get(mv.animation, {})
+	if clip.is_empty():
+		return 0.0
+	var n: int = mv.root_motion_x.size()
+	var i0 := clampi(Timeline.frame_at(clip, float(move_frame) / 60.0, mv.animation_fps, true, false), 0, n - 1)
+	var i1 := clampi(Timeline.frame_at(clip, float(move_frame + 1) / 60.0, mv.animation_fps, true, false), 0, n - 1)
+	return (float(mv.root_motion_x[i1]) - float(mv.root_motion_x[i0])) * mv.root_motion_scale
+
+
+## 普通招式：输入/惯性速度 + 本帧根位移，一起交给物理（撞墙会停住）。
+## 根位移只作用这一帧，不留在 velocity 里，免得变成惯性滑步。
+func _move_with_root_motion(delta: float, mv: Resource) -> void:
+	var rv := _root_motion_step(mv) * float(facing) / maxf(delta, 0.000001)
+	velocity.x += rv
+	move_and_slide()
+	if rv != 0.0 and is_on_wall() and signf(velocity.x) != signf(rv):
+		velocity.x = 0.0
+	else:
+		velocity.x -= rv
+
 
 func _guard_config() -> Dictionary:
 	var character: Dictionary = get_meta("character", {})
