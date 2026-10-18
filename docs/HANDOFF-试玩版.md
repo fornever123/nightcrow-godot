@@ -59,6 +59,7 @@
   - 二进制图（场景图层）以 **base64 文本**存进仓库，运行时 `Marshalls.base64_to_raw` + `Image.load_*_from_buffer` 解码。
   - battle.json 约 1MB+，推送时用紧凑 JSON 或拆分，确保参数文件 <1 MiB。
   - 推送前先 `list_commits` 确认 main 没被用户更新；有更新先合并。
+- **工作分支是 `trial-wip`**（每个节点推一次，本地分支叫 `trial`）；最终交付时再合到 main。推送辅助脚本 `/data/work/mkpush.py <分支> <提交说明> <文件…>` → `/data/work/push_N.json`，再 `mcp_run_tool GitHub push_files arguments_file_path=...`（沙盒被重置的话照 §2 重写这个脚本：读文件 → battle.json 用 `separators=(',',':')` 压缩 → 按 <880KB 分块）。
 - 用户本机需拉取新提交才能用 OPEN_GAME.bat 玩到（他本机有 Godot exe）。另尝试打包 Windows 试玩 zip（导出模板很大，见 §8 节点 8 记录）。
 
 ## 4. 体检结论（改之前，2026-10-18）
@@ -94,7 +95,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 
 - [x] 节点 0：拉取更新、体检、计划获批、环境搭好
 - [x] 节点 1：序列帧对位脚本 + battle.json 锚点/根位移 + 运行时根位移
-- [ ] 节点 2：手感参数（跑步/转身/跳跃/缓冲/判定框/顿帧）
+- [x] 节点 2：手感参数（跑步/转身/跳跃/缓冲/判定框/顿帧）+ 序列帧横线瑕疵清理
 - [ ] 节点 3：战斗系统（敌人、失衡/眩晕、浮空连段、方向终结、连锁）
 - [ ] 节点 4：夜景场景（抠图/无缝/视差/特效）
 - [ ] 节点 5：角色环境光
@@ -113,6 +114,16 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - 根位移结果（世界像素，末帧）：第一刀 +44、第二刀 +93（峰值 108）、第三刀 +38（峰值 85）、强化挑飞/蓄力/上挑 +89、冲刺右 -130、冲刺左 -94（冲刺另有 movementTimeline 210，相加；节点 2 会补滑行距离）、格挡反馈 ±20。
   - 运行时：`MoveDefinition.root_motion_x/root_motion_scale`（battle.json 招式可写 `rootMotionScale`），`configuration.gd` 从动画读取；`player.gd` 新增 `_root_motion_step`（本帧根位移 = rootMotionX[帧(move_frame+1)] − rootMotionX[帧(move_frame)]，帧号算法与 character_view 一致）与 `_move_with_root_motion`（只作用一帧，不留惯性；撞墙停）；冲刺斩在 movementTimeline 之外叠加根位移。
   - 测试仍 220/0。
+- 2026-10-18 节点 2 完成：
+  - 新增 `tools/art/clean_lines.py`：源视频带进来的“横贯画面的直线”（上挑/强化挑飞第 9–10 帧最明显，还有 a2 前摇第 1 帧的地平线等）→ 写成 `sprite.assetCleanup = {资源路径: [[x,y,w,h],…]}`，`art_cache.get_texture` 加载时用 `fill_rect` 抹透明。**原 PNG 不改**（GitHub 通道传不了二进制）。141 帧、541 个矩形。判定：竖向厚度<17 的细长直线（≥120px、高≤26、逐列中心 y 标准差≤3、碰左右边或长≥25% 画宽）+ 粗光束（厚<48、≥400px、很直）。已核对第一刀刀光尖端不会误删。
+  - 新增 `tools/art/tune_feel.py`（写绝对值，可重复运行；顺序：align_sequences → clean_lines → tune_feel）：
+    - 跑步 fps 4→10，速度 = 步幅 18.6 × 10 = 186（原 170），脚不打滑。
+    - 转身 fps 18；turnRight（turn_left_right）flip 3 / cancel 4；turnLeft（turn_right_left）flip 2 / cancel 3；landingCancelFrame 2。
+    - 输入缓冲保持 C 盘原值 36 帧（试过 15，顿帧里按的下一刀会丢，三个测试挂了）。顿帧也保持 C 盘原值（轻 6/7、6/8，第三刀 11/15，蓄力 13/16，上挑 9/11，冲刺 11/15）——终结技加重放到节点 3。
+    - 判定框按出刀帧像素重算（先应用 assetCleanup；alpha>110、9×9 开运算、只取身前 x>10、百分位裁剪、有 HITBOX_MIN 下限），原值存 `hitboxAuthored`。第一刀 249×195、第二刀 250×135、第三刀 233×205、蓄力 240×214、上挑 200×230、空中 180–190 宽、冲刺 190×170。
+    - 攻击中按方向键的走位倍率 `movementSpeedMultiplier`：轻攻击 1→0.3、蓄力/上挑 0.2、远程 0.45、弹刀 0.3（前冲交给根位移，不再“滑着砍”）；空中保持 0.6。
+    - 冲刺斩时间轴 = 原值 + 抵消画里身体落后于脚的部分（右 339.6、左 303.8；原值存 `movementTimelineAuthored`），净位移约 210。
+  - 测试更新：test_desktop_integration 帧率检查改为 run 10 / 转身 18 / 7 帧，并新增跑速=186 检查；test_combat_feedback “轻攻击走位 C 盘速度”改为“走位倍率≤0.35 且有根位移”。全部 221/0。
 
 ## 10. 仍待用户拍板的旧事项（本任务不阻塞）
 

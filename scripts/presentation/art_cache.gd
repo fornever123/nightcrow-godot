@@ -2,9 +2,18 @@ extends RefCounted
 ## Read original source images, including newly imported files, without an editor import step.
 static var textures: Dictionary = {}
 static var pending: Array[String] = []
+## 资源路径 -> [[x, y, w, h], ...]：加载时抹成透明（源视频带进来的横线，见 tools/art/clean_lines.py）
+static var cleanup: Dictionary = {}
 
 static func reset(sprite: Dictionary) -> void:
 	pending.clear()
+	var new_cleanup: Dictionary = sprite.get("assetCleanup", {})
+	if new_cleanup.hash() != cleanup.hash():
+		for path in new_cleanup:
+			textures.erase(path)
+		for path in cleanup:
+			textures.erase(path)
+		cleanup = new_cleanup.duplicate(true)
 	var used: Dictionary = {}
 	var animations: Dictionary = sprite.get("animations", {})
 	var effects: Dictionary = sprite.get("effects", {})
@@ -40,6 +49,12 @@ static func get_texture(path: String) -> Texture2D:
 	if error != OK or image.is_empty():
 		textures[path] = null
 		return null
+	var rects: Array = cleanup.get(path, [])
+	if not rects.is_empty():
+		if image.get_format() != Image.FORMAT_RGBA8:
+			image.convert(Image.FORMAT_RGBA8)
+		for r in rects:
+			image.fill_rect(Rect2i(int(r[0]), int(r[1]), int(r[2]), int(r[3])), Color(0, 0, 0, 0))
 	var texture := ImageTexture.create_from_image(image)
 	textures[path] = texture
 	return texture
