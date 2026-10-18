@@ -43,7 +43,7 @@
 
 ## 2. 沙盒环境（如何复现）
 
-> 注意：沙盒可能被重置（2026-10-18 发生过一次：/data/tools、/data/work、交接文档全部丢失，仓库退回旧提交）。开工先检查，缺了就按下面重建。
+> 注意：沙盒可能被重置（2026-10-18 已发生两次：/data/tools、/data/work、未推送的改动全部丢失，仓库退回旧提交）。开工先检查，缺了就按下面重建；进度以 GitHub 的 `trial-wip` 为准：`git fetch origin trial-wip:refs/remotes/origin/trial-wip && git checkout -b trial origin/trial-wip`。所以**每个节点做完立刻推送**。
 
 - 仓库：`cd /data/nightcrow-godot && git fetch origin && git merge --ff-only origin/main`（沙盒 git 没有 push 凭据）。
 - Godot Linux：`/data/tools/godot` → 下载 `https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip` 解压后软链。
@@ -157,7 +157,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - [x] 节点 4：夜景场景（抠图/无缝/视差/特效，设计见 §11）
 - [x] 节点 5：角色环境光（设计见 §12）
 - [x] 节点 6：整合 + 整轮实机复查（镜头/遭遇战/HUD/主场景在节点 3，夜景在节点 4，环境光在节点 5）
-- [ ] 节点 7：测试全过 + 实机截图/录屏验证
+- [x] 节点 7：测试全过 + 实机截图/录屏验证
 - [ ] 节点 8：GitHub 推送 + Windows 包（如可行）+ 用户说明
 
 ## 9. 进度日志
@@ -211,6 +211,14 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
   - 开发工具修正：capture_night 的整轮结算截图条件原来写成 `encounter_index == 2`（实际截到的是第 2 处封印的横幅）→ 改为 `encounter_index % ROUND.size() == 0`，并且截完最后一张才退出；bot_night/capture_night 每帧缓存 `snap = style.stats.duplicate()`，第 3 处封印的统计不再被整轮重置成 0。
   - 已知、不改：挑飞刀光是原图的灰白笔触（见节点 5）；结算面板会挡住角色上半身约 1 秒（角色可以继续走）。
   - 全部测试 270/0。
+  - 本地提交 2f32bac，已推送为 trial-wip 提交 893e4ba。
+- 2026-10-18 节点 7 完成（测试 + 录屏）：
+  - 全部测试 270/0（沙盒第二次被重置后重建环境再跑，结果一样）。
+  - `tests/dev/bot_night.gd` 加 `BOT_TAIL=N`：打完 BOT_ENC 处封印后继续空跑 N 帧（把结算面板录进去）。
+  - 录屏命令：`DISPLAY=:99 SEED=3 SKILL=0.8 BOT_ENC=3 BOT_TAIL=240 /data/tools/godot --path . --script res://tests/dev/bot_night.gd --resolution 1280x720 --fixed-fps 30 --write-movie /data/work/movie/demo.avi`（后台跑，Xvfb 下约 7 分钟，AVI 约 900MB）→ `ffmpeg -c:v libx264 -preset slow -crf 30 -pix_fmt yuv420p -c:a aac -b:a 112k -movflags +faststart`（crf 27 是 44MB，太大）。
+  - 这一局：2 分 19 秒，0 死；三处封印 57.6s / 95.6s / 135.0s 清完；最高评价 S，第 1 轮结算 A（最高连击 34、眩晕/挑飞 22/11、下砸/撞墙/连锁 3/3/4、弹刀 7）。抽帧检查：浮空连段、S 评价、封印解除横幅、情境提示、结算面板都正常。
+  - 录屏文件不进仓库（太大），直接发给用户：`月下堤岸试玩录屏.mp4`。
+  - 新增 `docs/试玩说明.md`（给用户看的：怎么更新、怎么启动、操作、眩晕连段、关卡、已知问题）和 `PULL_GITHUB.bat` / `下载GitHub更新.bat`（`git pull --ff-only origin main`；冲突时停下、不覆盖本机文件）。原来的 SYNC_GITHUB.bat 只会上传，GitHub 上更新时它会拒绝，所以用户需要这个下载入口。
 
 ## 10. 仍待用户拍板的旧事项（本任务不阻塞）
 

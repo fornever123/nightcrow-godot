@@ -127,6 +127,12 @@ func run() -> void:
 		p.set_injected_frame(decide())
 		await physics_frame
 		best = maxi(best, stage.style.rank_index())
+	# 录屏用：打完后继续空跑 BOT_TAIL 帧，把结算面板录进去
+	var tail := int(OS.get_environment("BOT_TAIL")) if OS.get_environment("BOT_TAIL") != "" else 0
+	for _i in tail:
+		tick += 1
+		p.set_injected_frame(fr())
+		await physics_frame
 	for c in enc_clear:
 		print("ENC ", c)
 	print("RESULT frames ", tick, " (", "%.1f" % (tick / 60.0), "s) deaths ", deaths[0], " clears ", enc_clear, " hp ", int(p.hp))
