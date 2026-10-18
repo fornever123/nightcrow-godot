@@ -185,7 +185,7 @@ func _build_hud() -> void:
 	panel.add_child(hud)
 	help_label = Label.new()
 	help_label.position = Vector2(28,622)
-	help_label.text = "A / D 跑动与转身   空格 / W 二段跳   J 地面 / 空中三连   按住 J 蓄力\nShift + J 冲刺斩   K 远射   W + J 挑飞   L 弹刀 / 按住格挡   F2 测试来袭开关   R 重置   F1 判定框"
+	help_label.text = "A / D 跑动与转身   空格 / W 二段跳   J 地面 / 空中三连   按住 J 蓄力\nShift + J 冲刺斩   K 远射   W + J 挑飞   L 弹刀 / 按住格挡   F2 测试来袭开关   R 重置   F1 判定框   F3 返回试玩"
 	help_label.add_theme_font_size_override("font_size",16)
 	help_label.visible = bool(config.ui.get("showMoveHints",true))
 	panel.add_child(help_label)
@@ -306,6 +306,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_reset()
 	if event.is_action_pressed("debug_toggle"):
 		debug_boxes = not debug_boxes
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		# 试玩版：F3 回到月下堤岸试玩关卡
+		get_tree().change_scene_to_file.call_deferred("res://scenes/night_trial.tscn")
 	if event.is_action_pressed("training_attack_toggle"):
 		training_attacks = not training_attacks
 		training_attack_clock = 0.0

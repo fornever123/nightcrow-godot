@@ -31,12 +31,27 @@ signal wall_slam(impact_speed: float, damage: float, point: Vector2)
 ## 而 take_hit 只把 attacker 交给了防守方 —— 不转发出去，外面永远拿不到。
 signal parry_success(attacker: Node, point: Vector2)
 signal block_success(attacker: Node, point: Vector2)
+## 试玩版：S+J 下砸落地（表现层拿去放冲击尘土/震屏）
+signal plunge_landed(point: Vector2)
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const ProjectileScene := preload("res://scenes/actors/projectile.tscn")
 
 enum State { NEUTRAL, ATTACK, LAUNCHED, DOWN, DEAD }
+
+## 方向终结（试玩版，docs/HANDOFF-试玩版.md §7）：空中出刀时方向键决定把敌人送去哪。
+##   &"slam"  = 空中 S+J：直接出空中终结刀，自己急坠，把敌人砸向地面（落地反弹 + 冲击波连锁）
+##   &"drive" = 空中第三刀时按住前：横斩，把敌人水平打飞（撞墙 / 撞人连锁）
+##   &""      = 普通
+## 敌人在 take_hit 里通过 attacker.combat_intent() 读取。
+var finisher_intent: StringName = &""
+const PLUNGE_SPEED := 1250.0
+## 见 _clamp_root_motion。试玩场景设为 &"shade"。
+var root_motion_block_group: StringName = &""
+## 见 _process_attack 的 recovery 分支。试玩场景设为 true。
+var launcher_cancel: bool = false
+const ROOT_MOTION_CONTACT := 40.0
 
 const TRACKED_ACTIONS: Array[StringName] = [
 	&"jump", &"attack_light", &"attack_ranged", &"aim_up",
@@ -462,6 +477,9 @@ func _update_ground_air() -> void:
 		_air_jumps_left = extra_air_jumps
 		_air_light_left = air_light_uses
 		if ground_frames == 1:
+			if finisher_intent == &"slam":
+				finisher_intent = &""
+				plunge_landed.emit(global_position + Vector2(0, foot_offset))
 			if not air_combo.is_empty():
 				if current_move != null and air_combo.has(current_move):
 					_end_attack()
@@ -650,6 +668,11 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 		return &"dash"
 
 	if airborne and _has_edge(&"attack_light"):
+		var finisher := _wants_air_finisher()
+		if finisher == &"slam":
+			return &"air_slam"
+		if finisher == &"drive":
+			return &"air_drive"
 		if not air_combo.is_empty():
 			if air_combo_index == 0:
 				return &"air_combo"
@@ -721,6 +744,10 @@ func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 		&"air_combo":
 			_take_edge(&"attack_light")
 			_start_air_combo_move()
+		&"air_slam":
+			_start_air_finisher(&"slam")
+		&"air_drive":
+			_start_air_finisher(&"drive")
 		&"parry":
 			_take_edge(&"parry")
 			_begin_guard_or_parry()
@@ -756,6 +783,11 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	action_idle_frames = 0
 	_dash_facing = facing
 	current_move = mv
+	finisher_intent = &""
+	if not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
+		var intent_frame := input_buffer.frame_at(0)
+		if intent_frame != null and intent_frame.axis.x * float(facing) > 0.4:
+			finisher_intent = &"drive"
 	if not mv.is_charge:
 		_charge_t = 0.0
 	current_is_up = is_up
@@ -934,6 +966,14 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		_move_horizontal(delta, frame, mv.movement_scale)
 
 	elif phase == &"recovery":
+		# 挑飞取消（试玩版，launcher_cancel=true 时）：地面招式的后摇一开始就能 W+J 接上挑，
+		# 和"后摇按 W 跳起取消"同一时机。让"打满失衡 → 眩晕 → 立刻挑飞"这一步不被长后摇拖住。
+		if launcher_cancel and not link_open and is_on_floor() and up_strike_move != null \
+				and mv != up_strike_move and light_combo.has(mv):
+			var lf := _unconsumed_edge_frame(&"attack_light")
+			if lf != null and (lf.actions.has(&"aim_up") or frame.actions.has(&"aim_up")):
+				_link_into(&"attack_light")
+				return
 		# 取消窗口：后摇开始后第 cancel_frame 帧起。
 		# 窗口一开就【立刻】尝试消费连段输入 —— 不然窗口期内每帧都会重新命中
 		# 同一个边沿，把连段自动推到底。
@@ -959,6 +999,10 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		_move_horizontal(delta, frame, mv.recovery_movement_scale)
 		# 后摇里按 W 可以跳起来取消（地面常用）
 		if _try_buffered_jump(frame):
+			# 地面招式跳起取消 = 这一招真正结束：人在空中回到中立，
+			# 马上能接空中连段（挑飞 → 起跳追击）。空中招式保持原行为。
+			if not air_combo.has(mv):
+				_end_attack()
 			return
 
 	_apply_air_attack_gravity(delta, mv)
@@ -1032,6 +1076,10 @@ func _resolve_light_press() -> bool:
 	if not air_combo.is_empty() and not is_on_floor():
 		if not _has_edge(&"attack_light"):
 			return false
+		var finisher := _wants_air_finisher()
+		if finisher != &"":
+			_start_air_finisher(finisher)
+			return true
 		_take_edge(&"attack_light")
 		if current_move != null and air_combo.has(current_move) and air_combo_index < air_combo.size():
 			_start_air_combo_move()
@@ -1070,9 +1118,13 @@ func _link_into(action: StringName) -> void:
 		_take_edge(&"parry")
 		_begin_guard_or_parry()
 		return
+	var edge_frame := _unconsumed_edge_frame(&"attack_light")
 	_take_edge(&"attack_light")
 	var frame_ctx := input_buffer.frame_at(0)
-	var aim_up := frame_ctx != null and frame_ctx.actions.has(&"aim_up")
+	# 方向以【按下 J 的那一帧】为准（或者现在还按着）：连段里缓冲的 W+J，
+	# 等取消窗口打开时手早就松开 W 了，只看当前帧会被误判成普通第三刀。
+	var aim_up := (frame_ctx != null and frame_ctx.actions.has(&"aim_up")) \
+			or (edge_frame != null and edge_frame.actions.has(&"aim_up"))
 	if aim_up and up_strike_move != null:
 		_start_move(up_strike_move, true)
 		return
@@ -1437,6 +1489,45 @@ func reset_state(pos: Vector2) -> void:
 		_sync_visual_pivot()
 
 
+func combat_intent() -> StringName:
+	return finisher_intent if state == State.ATTACK else &""
+
+
+func _wants_air_slam(frame: InputBuffer.Frame) -> bool:
+	return frame != null and frame.axis.y > 0.5 and not air_combo.is_empty() \
+			and air_combo_index < air_combo.size() and not is_on_floor()
+
+
+## 空中已经出过至少一刀后，按住前方 + J：直接出横扫终结（把敌人水平打飞去撞墙/撞人）
+func _wants_air_drive(frame: InputBuffer.Frame) -> bool:
+	return frame != null and frame.axis.x * float(facing) > 0.5 and absf(frame.axis.y) < 0.5 \
+			and not air_combo.is_empty() and air_combo_index >= 1 and air_combo_index < air_combo.size() \
+			and not is_on_floor()
+
+
+func _wants_air_finisher() -> StringName:
+	var edge := _unconsumed_edge_frame(&"attack_light")
+	var now := input_buffer.frame_at(0)
+	if _wants_air_slam(now) or _wants_air_slam(edge):
+		return &"slam"
+	if _wants_air_drive(edge) or (edge == null and _wants_air_drive(now)):
+		return &"drive"
+	return &""
+
+
+func _start_air_slam() -> void:
+	_start_air_finisher(&"slam")
+
+
+func _start_air_finisher(intent: StringName) -> void:
+	_take_edge(&"attack_light")
+	air_combo_index = air_combo.size()
+	_start_move(air_combo[air_combo.size() - 1], false)
+	finisher_intent = intent
+	if intent == &"slam":
+		velocity.y = maxf(velocity.y, 240.0)
+
+
 func is_busy() -> bool:
 	return state != State.NEUTRAL
 
@@ -1599,6 +1690,9 @@ func _start_air_combo_move() -> void:
 	_start_move(mv, false)
 
 func _apply_air_attack_gravity(delta: float, mv: Resource) -> void:
+	if finisher_intent == &"slam" and not is_on_floor():
+		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
+		return
 	if air_combo.is_empty() or not air_combo.has(mv) or is_on_floor():
 		_apply_gravity(delta, _gravity)
 		return
@@ -1644,10 +1738,32 @@ func _root_motion_step(mv: Resource) -> float:
 	return (float(mv.root_motion_x[i1]) - float(mv.root_motion_x[i0])) * mv.root_motion_scale
 
 
+## 贴身刹车（试玩版）：敌人不是物理体、挡不住人，根位移往前推时
+## 最多推到"敌人身前 ROOT_MOTION_CONTACT"为止，不会把玩家推到敌人背后导致后续几刀打空。
+## 组里的节点需要 half_w 属性，可选 blocks_body() 方法（死了/还没出场就不挡）。
+## root_motion_block_group 为空（训练场）时完全不生效。
+func _clamp_root_motion(step_px: float) -> float:
+	if root_motion_block_group == &"" or step_px == 0.0 or not is_inside_tree():
+		return step_px
+	var dir := signf(step_px)
+	var allowed := absf(step_px)
+	for n in get_tree().get_nodes_in_group(root_motion_block_group):
+		if not (n is Node2D):
+			continue
+		if n.has_method(&"blocks_body") and not n.call(&"blocks_body"):
+			continue
+		var dx: float = ((n as Node2D).global_position.x - global_position.x) * dir
+		if dx <= 0.0 or absf((n as Node2D).global_position.y - global_position.y) > 110.0:
+			continue
+		var gap := dx - (float(n.get(&"half_w")) + ROOT_MOTION_CONTACT)
+		allowed = minf(allowed, maxf(gap, 0.0))
+	return allowed * dir
+
+
 ## 普通招式：输入/惯性速度 + 本帧根位移，一起交给物理（撞墙会停住）。
 ## 根位移只作用这一帧，不留在 velocity 里，免得变成惯性滑步。
 func _move_with_root_motion(delta: float, mv: Resource) -> void:
-	var rv := _root_motion_step(mv) * float(facing) / maxf(delta, 0.000001)
+	var rv := _clamp_root_motion(_root_motion_step(mv) * float(facing)) / maxf(delta, 0.000001)
 	velocity.x += rv
 	move_and_slide()
 	if rv != 0.0 and is_on_wall() and signf(velocity.x) != signf(rv):

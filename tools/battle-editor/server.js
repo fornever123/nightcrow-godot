@@ -175,7 +175,8 @@ async function startOrRefreshPreview() {
     if (gameChild && gameChild.exitCode === null) return {process_alive: true, pid: gameChild.pid, engine: 'Godot'};
     if (!existsSync(godotPath)) throw new Error('缺少随项目附带的 Godot');
     await fs.mkdir(runtimeRoot, {recursive: true});
-    const args = ['--path', projectRoot];
+    // 主场景已改成试玩关卡；编辑器的实时预览/热重载在木桩训练场里，所以显式指定训练场
+    const args = ['--path', projectRoot, 'res://scenes/training.tscn'];
     if (process.env.NIGHTCROW_TEST_HEADLESS === '1') args.unshift('--headless');
     gameChild = spawn(godotPath, args, {cwd: projectRoot, windowsHide: true, stdio: ['ignore','pipe','pipe']});
     const child = gameChild;
