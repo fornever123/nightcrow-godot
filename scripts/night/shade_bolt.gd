@@ -24,7 +24,7 @@ var _hurtbox: Area2D
 var _trail: Array[Vector2] = []
 
 
-func setup(p_shooter: Node2D, from: Vector2, dir: Vector2, mv: MoveDefinition) -> void:
+func setup(p_shooter: Node2D, from: Vector2, dir: Vector2, mv: MoveDefinition, hitstop_multiplier: float = 1.0) -> void:
 	shooter = p_shooter
 	if p_shooter != null:
 		victim = p_shooter.get(&"target")
@@ -37,7 +37,7 @@ func setup(p_shooter: Node2D, from: Vector2, dir: Vector2, mv: MoveDefinition) -
 	reflect_move.damage = 16.0
 	reflect_move.knockback = 380.0
 	reflect_move.knockback_angle = 22.0
-	reflect_move.victim_hitstop_frames = 6
+	reflect_move.victim_hitstop_frames = roundi(10 * hitstop_multiplier)
 	reflect_move.hitstop_frames = 0
 	reflect_move.shake_amount = 0.0
 

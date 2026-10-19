@@ -335,7 +335,7 @@ func test_ult() -> void:
 	var php: float = p.hp
 	var ok_inv: bool = p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g) == false and is_equal_approx(p.hp, php)
 	check(ok_inv, "大招中无敌")
-	for i in p.ult_total_frames + 10:
+	for i in p.ult_total_frames + p.ult_move().hitstop_frames + 10:
 		await hold(1)
 	await hold(2)
 	check(hits.hit == 1, "出刀一次")

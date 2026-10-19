@@ -25,6 +25,7 @@ static func build(config: Dictionary, moves: Dictionary, spawn: Vector2) -> Char
 	player.apply_movement_config(c, settings)
 	player.max_hp = c.maxHp
 	player.squash_strength = float(config.feedback.get("squashStrength", 0))
+	player.hitstop_multiplier = float(config.feedback.get("hitstopMultiplier", 1))
 	player.parry_hitstop_frames = roundi(float(config.feedback.get("parryHitstop", 0.05)) * 60 * float(config.feedback.get("hitstopMultiplier", 1)))
 	player.attack_buffer_frames = int(config.runtime.get("attackBufferFrames", 36))
 	player.hold_to_charge_frames = int(config.runtime.get("holdToChargeFrames", 10))

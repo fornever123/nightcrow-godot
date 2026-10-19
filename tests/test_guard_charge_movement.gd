@@ -205,6 +205,9 @@ func run() -> void:
 		"startup hit selects parry-success reaction without reopening precise parry")
 	var vx0 := p.velocity.x
 	var y0 := p.global_position.y
+	# First wait out the configured parry freeze; movement resumes after it.
+	for i in p.hitstop_frames:
+		await step(frame([&"parry", &"move_right"], [], Vector2.RIGHT))
 	for i in 4:
 		await step(frame([&"parry", &"move_right"], [], Vector2.RIGHT))
 	check(p.is_guarding() and p.velocity.x > vx0 and p.global_position.x > 450.0,

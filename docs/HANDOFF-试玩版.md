@@ -491,7 +491,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 沙盒被重置后：clone `trial-wip4` → `bash tools/dev/setup_sandbox.sh`（装 Godot、开 Xvfb :99、导入资源）。
 
 ### 16.6 没做 / 待定
-- 镜头（用户说先不做）、键位（先不动）、跑步序列帧（用户重做中）。
+- 镜头原规划待定；2026-10-19已按用户新要求先加强震屏/顿帧（见16.9）。键位（先不动）、跑步序列帧（用户重做中）。
 - 大招按键 J+K 是临时的，等键位统一时再定。
 
 
@@ -514,3 +514,25 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 禁止攻击：持L时在hitstop和 `_try_ult` 前消耗J/K边沿及ult配对seq，涵盖普攻、远射、Shift+J、J+K；松L后不补出被阻止的攻击。原先“J可打断持防反应”的测试已按本条更新。
 - 修改器：角色面板新增蓄力/格挡速度百分比、举剑动作倍率，保存到同一battle.json；Vue/TypeScript/Vite构建成功。
 - 验证：`test_guard_charge_movement.gd`29项（初版18项13失败），覆盖上述运动/起手/瞬时成功切片/攻击缓冲/大招/参数同步释放/自动与手动释放不漏运动。既有action_flow45、combat_feedback52、training36、feel27、air_movement14、night_combat50、shades_v4 52、framebaker_runtime52、audio28、selected_audio14、animation_timing21，共420项0失败。无整轮机器人/录屏。
+
+### 16.9 全局震屏/顿帧加强（节点23，2026-10-19）
+
+用户要求整个游戏大幅增加，并参考C盘game。参考工程 `C:/Users/MECHREVO/Downloads/game/data/moves` 与 `scripts/main.gd:impact_shake_multiplier` / `scripts/logic/level_director.gd:hit_shake_multiplier`；实际全局震屏倍率1.55，不能只看单招资源。
+
+| 动作 | 攻方/受方停顿（60FPS帧） | 基础震屏（再乘1.55） |
+|---|---|---|
+| 第一/二刀 | 6/7、6/8（原3/4） | 5.5、6.5（原0） |
+| 第三刀 | 11/15（原6/8） | 12（原4） |
+| 蓄力刀 | 13/16，满蓄力双方再加6 | 15（原7） |
+| 地面/空中上挑 | 9/11、6/7 | 10、6 |
+| 空中三刀 | 6/7、6/8、10/13 | 5.5、6.5、11 |
+| 左右冲刺斩 | 11/14 | 12 |
+| 远射 | 射手自由移动、受方5 | 3.5×0.2 |
+
+- 夜战镜头补偿从0.75/ZOOM恢复1/ZOOM，保留C盘同款噪声、方向偏置、42振幅积累上限和衰减7，2屏幕像素对齐。所有招式震幅已经在Config.moves乘倍率，事件不得二次乘。
+- 格挡停8帧、精准弹刀9帧；敌人近战攻方8/10、受方10/14，影矢受8、炸弹受16。补齐原先敌人资源写了攻方顿帧但实际命中未应用的路径，命中才停，挥空不停。
+- 敌人撞墙/砸地12、连锁10、破防16、被弹14帧；玩家/训练木桩撞击12帧。反弹箭受10、爆炸波受12。通过player/encounter/projectile注入全局顿帧倍率，修改器0和2倍可用。
+- 防守/敌人格挡/破防/打回飞行物/击杀补震屏，撞墙16、砸地22、爆炸18、弹刀10、大招28，以上事件再乘1.55。大招命中攻18/受26；开场冻结仍跟出刀时刻，没砍到人不新增攻方停顿。
+- 长停顿配套：按键采样仍在暂停前；InputBuffer.push可暂停逻辑过期时钟，_take_edge与_unconsumed_edge_frame用logic_age_at，常态16活动帧缓冲不变。原始frame_at仍按物理帧，J+K组合窗仍6真实帧。队列128格支持全局3倍。空中停顿不清vx/vy，恢复后接原轨迹；暂停无敌倒计时，保证大招末尾无敌不会被18帧停顿提前耗光。
+- `tools/dev/apply_feel_v4.py`同步强反馈档，重建不会恢复轻刀不震屏。源图片、动作前后摇时序及既有移动/防守规则不改。
+- 验证：新strong_feedback101，combat_feedback52、action_flow45、guard_charge_movement29、night_combat50、shades_v4 52、training36、air_movement14、feel27、framebaker_runtime52、desktop_integration28、animation_timing21，共507项0失败；主场景headless启动成功。旧防守移动/大招结束断言按实际强化停顿等待。恢复首tick输入年龄保留0，避免接招窗口边界丢掉暂停内提前按下的一刀；下一刀按既有连段指针推进，无强制重置第一刀。未跑整轮机器人或录屏。

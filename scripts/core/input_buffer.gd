@@ -30,6 +30,9 @@ var _frames: Array[Frame] = []
 var _head: int = 0
 var _count: int = 0
 var _seq: int = 0
+## Actor-active time: hitstop still records fresh input, without aging it out.
+var _logic_clock: int = 0
+var _logic_stamps: PackedInt64Array = []
 ## 上一帧压进来的是哪个对象。同一个对象被连续压入时，它代表的是
 ## "同一条按下边沿在多帧里被重放"（测试的粘住帧就是这样），
 ## 这时必须复用 seq，否则一次真实的按下会被数成很多次按下。
@@ -39,6 +42,7 @@ var _last_frame: Frame = null
 func _init(size: int = DEFAULT_SIZE) -> void:
 	_size = maxi(size, 4)
 	_frames.resize(_size)
+	_logic_stamps.resize(_size)
 	for i in _size:
 		_frames[i] = Frame.new()
 
@@ -48,7 +52,9 @@ func _init(size: int = DEFAULT_SIZE) -> void:
 ## seq 在这里统一盖章：只要压入的是【新的 Frame 对象】，就得到一个新的 seq，
 ## 边沿因此天然不会被重复消费。测试注入的粘住帧是同一个对象，会复用 seq，
 ## 于是"按住"= 一条边沿，和真人按住键的行为完全一致。
-func push(frame: Frame) -> void:
+func push(frame: Frame, advance_clock: bool = true) -> void:
+	if advance_clock:
+		_logic_clock += 1
 	if frame == _last_frame:
 		frame.seq = _seq
 	else:
@@ -57,7 +63,16 @@ func push(frame: Frame) -> void:
 		_last_frame = frame
 	_head = (_head + 1) % _size
 	_frames[_head] = frame
+	_logic_stamps[_head] = _logic_clock
 	_count = mini(_count + 1, _size)
+
+
+## Age measured in actionable ticks; raw frame_at remains real-time history
+## for tightly timed simultaneous commands such as J+K.
+func logic_age_at(ago: int) -> int:
+	if ago < 0 or ago >= _count:
+		return _size
+	return _logic_clock - _logic_stamps[_index(-ago)]
 
 
 ## 采样当前 Input 状态，组装成一个 Frame。

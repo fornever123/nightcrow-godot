@@ -263,6 +263,7 @@ var hp: float = 100.0
 var hitstop_frames: int = 0
 var hitstop_this_tick: bool = false
 var parry_hitstop_frames: int = 3
+var hitstop_multiplier: float = 1.0
 var ground_frames: int = 0
 var air_frames: int = 0
 var down_frames: int = 0
@@ -360,7 +361,8 @@ func clear_input_queue() -> void:
 
 
 func _ready() -> void:
-	input_buffer = InputBuffer.new(64)
+	# Room for a heavy hitstop at the editor's maximum 3x feedback setting.
+	input_buffer = InputBuffer.new(128)
 	hp = max_hp
 	_recalculate_jump()
 	up_direction = Vector2.UP
@@ -481,10 +483,11 @@ func _unsuffix(a: StringName) -> StringName:
 
 
 func _physics_process(delta: float) -> void:
+	var paused_last_tick := hitstop_this_tick
 	hitstop_this_tick = false
 	_frame_counter += 1
 	tick_count += 1
-	if invuln_frames > 0:
+	if invuln_frames > 0 and hitstop_frames <= 0:
 		invuln_frames -= 1
 
 	# ---- 1. 取这一帧的输入（必须在 hitstop 的 return 之前！）----
@@ -504,7 +507,9 @@ func _physics_process(delta: float) -> void:
 		_keyboard_frame = true
 	if frame == null:
 		frame = InputBuffer.Frame.new()
-	input_buffer.push(frame)
+	# Resume at age zero so the first actionable tick can use the entire
+	# input window; this also keeps the active/recovery boundary inclusive.
+	input_buffer.push(frame, hitstop_frames <= 0 and not paused_last_tick)
 	var guard_held := bool(_guard_config().get("enabled", false)) and frame.actions.has(&"parry")
 	if guard_held:
 		# Consume attacks before hitstop and the ultimate check: held L never
@@ -522,9 +527,8 @@ func _physics_process(delta: float) -> void:
 	if hitstop_frames > 0:
 		hitstop_this_tick = true
 		hitstop_frames -= 1
-		# 只在"站得住"的状态下清零；LAUNCHED 必须保留击退速度，
-		# 否则被击飞时挨顿帧会把自己钉在原地
-		if state != State.LAUNCHED and not is_guarding():
+		# 空中停住位置但保留速度，恢复后继续原跳跃/击飞轨迹。
+		if state != State.LAUNCHED and not is_guarding() and is_on_floor():
 			velocity = Vector2.ZERO
 		return
 
@@ -920,7 +924,9 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 ## 过几帧再按一次，新边沿同样落在 age=0 上，会被误判成"已消费"而丢掉 ——
 ## 实测表现就是"第二段接得上、第三段死活接不上"。
 func _take_edge(action: StringName) -> bool:
-	for i in mini(attack_buffer_frames, input_buffer.frame_count()):
+	for i in input_buffer.frame_count():
+		if input_buffer.logic_age_at(i) >= attack_buffer_frames:
+			break
 		var f := input_buffer.frame_at(i)
 		if f == null or not f.pressed_this_frame.has(action):
 			continue
@@ -937,7 +943,9 @@ func _has_edge(action: StringName) -> bool:
 
 ## Modifiers belong to the same sampled edge as the command, even across hitstop.
 func _unconsumed_edge_frame(action: StringName) -> InputBuffer.Frame:
-	for i in mini(attack_buffer_frames, input_buffer.frame_count()):
+	for i in input_buffer.frame_count():
+		if input_buffer.logic_age_at(i) >= attack_buffer_frames:
+			break
 		var f := input_buffer.frame_at(i)
 		if f != null and f.pressed_this_frame.has(action):
 			# 只看最新一条匹配边沿；若它已消费，就不能让更老的边沿复活。
@@ -1483,6 +1491,7 @@ func _process_launched(delta: float) -> void:
 			if impact >= min_wall_impact_speed:
 				var wall_damage := _wall_damage_for(impact)
 				hp -= wall_damage
+				hitstop_frames = maxi(hitstop_frames, roundi(12 * hitstop_multiplier))
 				_squash_timer = 8
 				_set_visual_scale(Vector2(0.72, 1.32))
 				if current_move != null:
@@ -1721,7 +1730,7 @@ func on_parried(cause: Node = null) -> void:
 		var d: float = global_position.x - (cause as Node2D).global_position.x
 		if absf(d) > 0.5:
 			dir = signf(d)
-	hitstop_frames = maxi(hitstop_frames, 8)
+	hitstop_frames = maxi(hitstop_frames, roundi(14 * hitstop_multiplier))
 	_set_visual_scale(Vector2(0.88, 1.16))
 	_squash_timer = 6
 	# current_move 置空：不然 _process_launched 里的撞墙结算会拿"上一个招式"
@@ -2200,7 +2209,8 @@ func _process_guard_reaction(delta: float, frame: InputBuffer.Frame, mv: Resourc
 func _do_block(attacker: Node, point: Vector2) -> void:
 	var config := _guard_config()
 	# Presentation is event-only; an empty L press never reaches this method.
-	hitstop_frames = maxi(hitstop_frames, int(config.get("blockHitstopFrames", parry_hitstop_frames)))
+	var pause := roundi(float(config.blockHitstopFrames) * hitstop_multiplier) if config.has("blockHitstopFrames") else parry_hitstop_frames
+	hitstop_frames = maxi(hitstop_frames, pause)
 	_play_guard_reaction(guard_reactions, false)
 	block_success.emit(attacker, point)
 
@@ -2264,8 +2274,8 @@ func ult_move() -> Resource:
 		_ult_move.knockback_angle = 38.0
 		_ult_move.forces_launch = true
 		_ult_move.launch_speed = 900.0
-		_ult_move.hitstop_frames = 10
-		_ult_move.victim_hitstop_frames = 16
+		_ult_move.hitstop_frames = roundi(18 * hitstop_multiplier)
+		_ult_move.victim_hitstop_frames = roundi(26 * hitstop_multiplier)
 		_ult_move.shake_amount = 0.0
 		_ult_move.wall_damage_factor = 1.0
 		_ult_move.lunge = 0.0

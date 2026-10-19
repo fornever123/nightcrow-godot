@@ -165,6 +165,7 @@ func _spawn(kind: int) -> void:
 
 
 func _add(s: Node2D) -> void:
+	s.hitstop_multiplier = target.hitstop_multiplier
 	host.add_child(s)
 	alive.append(s)
 	s.died.connect(_on_died.bind(s))

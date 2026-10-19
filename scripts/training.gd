@@ -61,6 +61,7 @@ func _ready() -> void:
 	player.apply_movement_config(c, config.settings)
 	player.max_hp = c.maxHp
 	player.squash_strength = float(config.feedback.get("squashStrength",0))
+	player.hitstop_multiplier = float(config.feedback.get("hitstopMultiplier",1))
 	player.parry_hitstop_frames = roundi(float(config.feedback.get("parryHitstop",0.05))*60*float(config.feedback.get("hitstopMultiplier",1)))
 	player.attack_buffer_frames = int(config.runtime.get("attackBufferFrames", 36))
 	player.hold_to_charge_frames = int(config.runtime.get("holdToChargeFrames", 10))
@@ -95,6 +96,7 @@ func _ready() -> void:
 	dummy.max_hp = d.get("maxHp", 320)
 	dummy.respawn_delay_frames = 60
 	dummy.flash_enabled = bool(config.feedback.get("effectsEnabled",true))
+	dummy.wall_hitstop_frames = roundi(12 * player.hitstop_multiplier)
 	add_child(dummy)
 	camera = Camera2D.new()
 	camera.set_script(CameraScript)
@@ -225,7 +227,7 @@ func _damage(amount: float, _hp: float, point: Vector2) -> void:
 func _wall_hit(speed: float, damage: float, point: Vector2, target: Node2D) -> void:
 	last_damage = damage
 	var dir := point-target.global_position
-	camera.add_shake(10.0*float(config.feedback.get("shakeMultiplier",1)),dir)
+	camera.add_shake(16.0*float(config.feedback.get("shakeMultiplier",1)),dir)
 	audio.play_wall(Feel.from_wall_speed(speed))
 	fx.spawn_wall_slam(point,dir,Feel.from_wall_speed(speed))
 	fx.spawn_text(point,"撞击 -%.0f" % damage,damage,true)
@@ -237,13 +239,14 @@ func _parry(attacker: Node, point: Vector2) -> void:
 		dir = dummy.global_position - player.global_position
 	elif attacker is Node2D:
 		dir = (attacker as Node2D).global_position-player.global_position
-	camera.add_shake(5.0*float(config.feedback.get("shakeMultiplier",1)),dir)
+	camera.add_shake(10.0*float(config.feedback.get("shakeMultiplier",1)),dir)
 	audio.play_parry()
 	fx.spawn_parry(point,dir)
 	fx.spawn_text(point,"弹刀")
 	last_feedback = "弹刀成功 · 零伤害"
 
 func _block(_attacker: Node, point: Vector2) -> void:
+	camera.add_shake(4.0 * float(config.feedback.get("shakeMultiplier", 1)), Vector2(player.facing, 0))
 	audio.play_block()
 	fx.spawn_text(point, "格挡")
 	last_feedback = "格挡成功"
@@ -265,7 +268,7 @@ func _physics_process(delta: float) -> void:
 			var strike: Resource = moves.light_1.duplicate()
 			strike.damage = 6.0
 			strike.knockback = 120.0
-			strike.victim_hitstop_frames = 4
+			strike.victim_hitstop_frames = roundi(10 * player.hitstop_multiplier)
 			var from_facing := 1 if player.global_position.x > dummy.global_position.x else -1
 			var point := player.global_position + Vector2(0, -20)
 			var blocked: bool = player.take_hit(strike, from_facing, point, 0.0, false, 1.0, self)

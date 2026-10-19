@@ -23,6 +23,7 @@ extends Node2D
 const MoveDefinition := preload("res://scripts/core/move_definition.gd")
 const Bolt := preload("res://scripts/night/shade_bolt.gd")
 const Bomb := preload("res://scripts/night/shade_bomb.gd")
+var hitstop_multiplier: float = 1.0
 
 signal damaged(amount: float, total: float, point: Vector2)
 signal wall_slam(impact_speed: float, damage: float, point: Vector2)
@@ -190,22 +191,22 @@ func _ready() -> void:
 	strike_move.damage = float(spec.damage)
 	strike_move.knockback = float(spec.knock)
 	strike_move.knockback_angle = 24.0
-	# 第四轮：受击顿帧缩短（疯狂小人：挨打的一方只停 1–2 帧，重击稍多）
-	strike_move.victim_hitstop_frames = 8 if kind == Kind.BRUTE else 5
-	strike_move.hitstop_frames = 4
+	# 强反馈档：命中双方独立停顿；统一倍率也覆盖敌人与次生碰撞。
+	strike_move.victim_hitstop_frames = roundi((14 if kind == Kind.BRUTE else 10) * hitstop_multiplier)
+	strike_move.hitstop_frames = roundi((10 if kind == Kind.BRUTE else 8) * hitstop_multiplier)
 	strike_move.squash = Vector2(1.25, 0.82)
-	strike_move.shake_amount = 6.0 if kind == Kind.BRUTE else 3.0
+	strike_move.shake_amount = 12.0 if kind == Kind.BRUTE else 7.0
 	if kind == Kind.ARCHER:
 		strike_move.id = &"shade_bolt"
 		strike_move.knockback_angle = 14.0
-		strike_move.victim_hitstop_frames = 4
-		strike_move.shake_amount = 2.0
+		strike_move.victim_hitstop_frames = roundi(8 * hitstop_multiplier)
+		strike_move.shake_amount = 4.0
 	elif kind == Kind.BOMBER:
 		strike_move.id = &"shade_bomb"
 		strike_move.knockback_angle = 58.0
 		strike_move.forces_launch = true
 		strike_move.launch_speed = absf(float(spec.knock)) * 0.85
-		strike_move.victim_hitstop_frames = 8
+		strike_move.victim_hitstop_frames = roundi(16 * hitstop_multiplier)
 		strike_move.shake_amount = 0.0
 	_hurtbox = Area2D.new()
 	_hurtbox.name = "Hurtbox"
@@ -626,7 +627,7 @@ func _update_aim() -> void:
 
 func _fire_bolt() -> void:
 	var b: Node2D = Bolt.new()
-	b.setup(self, global_position + Vector2(float(facing) * (half_w + 18.0), -half_h * 0.35), aim, strike_move)
+	b.setup(self, global_position + Vector2(float(facing) * (half_w + 18.0), -half_h * 0.35), aim, strike_move, hitstop_multiplier)
 	get_parent().add_child(b)
 	projectile_spawned.emit(b)
 
@@ -635,7 +636,7 @@ func _throw_bomb() -> void:
 	var b: Node2D = Bomb.new()
 	var from := global_position + Vector2(float(facing) * 10.0, -half_h - 16.0)
 	var land := global_position + aim
-	b.setup(self, from, land, strike_move, terrain, floor_y, arena_left, arena_right)
+	b.setup(self, from, land, strike_move, terrain, floor_y, arena_left, arena_right, hitstop_multiplier)
 	get_parent().add_child(b)
 	projectile_spawned.emit(b)
 
@@ -701,13 +702,19 @@ func _strike_check() -> void:
 	if absf(dx) > float(spec.range) + 24.0 or absf(dy) > 120.0:
 		return
 	var point := global_position + Vector2(float(facing) * minf(absf(dx), float(spec.range)) * 0.6, -10.0)
+	var hp_before: float = float(target.get(&"hp"))
 	var blocked: bool = bool(target.call(&"take_hit", strike_move, facing, point, 0.0, false, 1.0, self))
 	if not blocked:
+		# take_hit also returns false for invulnerability: that is a miss.
+		if is_equal_approx(float(target.get(&"hp")), hp_before):
+			return
+		hitstop_frames = maxi(hitstop_frames, strike_move.hitstop_frames)
 		strike_landed.emit(point)
 	elif state == State.STRIKE:
 		# 被格挡（不是弹刀）：手被震了一下，后摇更长
 		state = State.RECOVER
 		state_frames = -14
+		hitstop_frames = maxi(hitstop_frames, roundi(6 * hitstop_multiplier))
 		velocity.x = -float(facing) * 140.0
 
 
@@ -723,9 +730,10 @@ func _friendly_strike() -> void:
 		if absf(dx) > float(spec.range) + o.half_w or absf(o.feet_y() - feet_y()) > 50.0:
 			continue
 		var point: Vector2 = o.global_position + Vector2(-float(facing) * o.half_w * 0.6, -10.0)
-		o.take_hit(strike_move, facing, point, 0.0, false, FRIENDLY_DAMAGE, self)
-		hit_any = true
+		if not o.take_hit(strike_move, facing, point, 0.0, false, FRIENDLY_DAMAGE, self):
+			hit_any = true
 	if hit_any:
+		hitstop_frames = maxi(hitstop_frames, strike_move.hitstop_frames)
 		friendly_hit.emit(global_position + Vector2(float(facing) * float(spec.range) * 0.5, -20.0))
 
 
@@ -879,7 +887,7 @@ func _wall_check() -> void:
 		flash = 4
 		flash_color = Color(1.0, 0.55, 0.3)
 		squash = Vector2(0.7, 1.3)
-		hitstop_frames = 6
+		hitstop_frames = maxi(hitstop_frames, roundi(12 * hitstop_multiplier))
 		var point := global_position + Vector2(float(side) * half_w, 0.0)
 		wall_slam.emit(speed, dmg, point)
 		# 撞墙弹回并往上弹一点：留一个“墙边追打”的窗口
@@ -901,7 +909,7 @@ func _floor_impact() -> void:
 		flash = 4
 		flash_color = Color(1.0, 0.85, 0.55)
 		squash = Vector2(1.45, 0.6)
-		hitstop_frames = 5
+		hitstop_frames = maxi(hitstop_frames, roundi(12 * hitstop_multiplier))
 		var point := global_position + Vector2(0.0, half_h)
 		slam_impact.emit(point, strength)
 		_shockwave(point, 230.0)
@@ -953,7 +961,7 @@ func take_chain(source: Node2D, vel: Vector2, level: int, shock: bool) -> void:
 	_add_poise(30.0)
 	flash = 3
 	flash_color = Color(1.0, 0.8, 0.45)
-	hitstop_frames = maxi(hitstop_frames, 6)
+	hitstop_frames = maxi(hitstop_frames, roundi(10 * hitstop_multiplier))
 	var point := global_position
 	damaged.emit(dmg, hp, point)
 	chain_hit.emit(level, point)
@@ -1066,9 +1074,9 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	return false
 
 
-## 举刀挡住：不掉血，被震退一点；攻方手上一麻（3 帧顿帧）。挡多了一样会失衡。
+## 举刀挡住：不掉血，防守方停8帧、攻方停6帧。挡多了一样会失衡。
 func _guard_block(mv: MoveDefinition, from_facing: int, point: Vector2, attacker: Node) -> void:
-	hitstop_frames = maxi(hitstop_frames, 4)
+	hitstop_frames = maxi(hitstop_frames, roundi(8 * hitstop_multiplier))
 	velocity.x = float(from_facing) * minf(120.0 + mv.knockback * 0.25, 260.0)
 	flash = 3
 	flash_color = Color(0.75, 0.85, 1.0)
@@ -1076,7 +1084,7 @@ func _guard_block(mv: MoveDefinition, from_facing: int, point: Vector2, attacker
 	guard_frames = maxi(guard_frames, 8)
 	_add_poise(mv.damage * 0.6)
 	if attacker != null and is_instance_valid(attacker) and attacker.get(&"hitstop_frames") != null:
-		attacker.set(&"hitstop_frames", maxi(int(attacker.get(&"hitstop_frames")), 3))
+		attacker.set(&"hitstop_frames", maxi(int(attacker.get(&"hitstop_frames")), roundi(6 * hitstop_multiplier)))
 	guarded.emit(point)
 
 
@@ -1101,7 +1109,7 @@ func _break() -> void:
 	flash = 6
 	flash_color = Color(1.0, 0.86, 0.4)
 	squash = Vector2(1.18, 0.84)
-	hitstop_frames = maxi(hitstop_frames, 10)
+	hitstop_frames = maxi(hitstop_frames, roundi(16 * hitstop_multiplier))
 	if state == State.LAUNCHED:
 		# 空中被打满：落地后再晕
 		pending_stun = int(spec.stun)
@@ -1171,7 +1179,7 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 			slammed = true
 			driven_frames = 0
 			chain_armed = false
-			hitstop_frames += 3
+			hitstop_frames += roundi(5 * hitstop_multiplier)
 			return
 		&"drive":
 			velocity = Vector2(float(from_facing) * 1150.0 * maxf(1.0, knock_mul()), -150.0)
@@ -1179,7 +1187,7 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 			chain_armed = true
 			chain_level = 0
 			_chained.clear()
-			hitstop_frames += 3
+			hitstop_frames += roundi(5 * hitstop_multiplier)
 			return
 	if juggle_count > JUGGLE_SOFT_CAP:
 		# 衰减到头：不再托起，往下掉（“滑脱”）
@@ -1204,7 +1212,7 @@ func on_parried(cause: Node = null) -> void:
 		dir = 1 if global_position.x > (cause as Node2D).global_position.x else -1
 	flash = 5
 	flash_color = Color(0.6, 0.95, 1.0)
-	hitstop_frames = maxi(hitstop_frames, 8)
+	hitstop_frames = maxi(hitstop_frames, roundi(14 * hitstop_multiplier))
 	parried.emit(cause, global_position)
 	_add_poise(PARRY_POISE)
 	if state == State.STUNNED:

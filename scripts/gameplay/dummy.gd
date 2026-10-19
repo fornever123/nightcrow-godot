@@ -29,6 +29,7 @@ enum State { IDLE, HIT, LAUNCHED, DOWN, STUNNED, RESPAWNING }
 @export_group("受击")
 ## 受击顿帧系数：木桩自己比玩家多冻一点，打击感更实
 @export var hitstop_scale: float = 1.0
+@export var wall_hitstop_frames: int = 12
 @export var flash_frames: int = 2
 @export var flash_enabled: bool = true
 @export var squash_return_speed: float = 0.18
@@ -273,6 +274,7 @@ func _process_launched(delta: float) -> void:
 			last_wall_damage = wall_damage
 			total_damage_taken += wall_damage
 			wall_slam_count += 1
+			hitstop_frames = maxi(hitstop_frames, wall_hitstop_frames)
 			# 撞墙 = 烫：闪暖色，和普通命中的白闪区分开
 			_start_flash(3, 0.92, Pal.ACCENT_DANGER)
 			_set_visual_scale(Vector2(0.7, 1.34))

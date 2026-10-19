@@ -83,9 +83,9 @@ func run() -> void:
 	await step(stage.moves.light_1.startup_frames-2)
 	check(d.hp==before and p.hitstop_frames==0,"蓄势尚未挥到木桩时不提前命中或顿帧")
 	check(await wait_hit(before),"点按 J 真实命中木桩")
-	check(p.hitstop_frames==stage.moves.light_1.hitstop_frames and p.hitstop_frames<=4,"轻击只给攻方 3 帧左右的短顿帧（疯狂小人式）")
+	check(p.hitstop_frames==stage.moves.light_1.hitstop_frames and p.hitstop_frames==6,"轻击恢复 C 盘参考的 6 帧顿帧")
 	check(d.hitstop_frames>=p.hitstop_frames and stage.moves.light_1.victim_hitstop_frames>stage.moves.light_1.hitstop_frames,"木桩使用独立受击停顿（受方比攻方多停一帧）")
-	check(stage.camera._trauma==0,"普通轻击不震屏（大震只留给重击）")
+	check(stage.camera._trauma>5,"普通轻击也有清楚的命中震屏")
 	check(stage.audio.last_event=="hit_light" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
 	check(stage.fx.last_hit_plan.size()==6 and stage.fx.get_child_count()>=6,"实际生成六层错时命中反馈")
 	var first_source: Dictionary = {}
@@ -171,7 +171,7 @@ func run() -> void:
 	var hp: float = p.hp
 	var parried: bool = p.take_hit(stage.moves.light_1,-1,p.global_position,0,false,1,d)
 	check(parried and p.hp==hp and d.state==4,"弹刀零伤害并让来袭者后仰硬直")
-	check(p.hitstop_frames==3,"弹刀成功自身停顿生效")
+	check(p.hitstop_frames==9,"弹刀成功强化为 9 帧停顿")
 	check(stage.audio.last_event=="parry" and stage.fx.last_kind=="parry","弹刀声音和画面反馈单独路由")
 	check(stage.total_hits==0 and has_text("弹刀"),"弹刀不冒充一次伤害命中")
 	await reset()

@@ -29,7 +29,7 @@ var _hurtbox: Area2D
 
 
 func setup(p_shooter: Node2D, from: Vector2, land: Vector2, mv: MoveDefinition, p_terrain, p_floor_y: float,
-		left: float, right: float) -> void:
+		left: float, right: float, hitstop_multiplier: float = 1.0) -> void:
 	shooter = p_shooter
 	if p_shooter != null:
 		victim = p_shooter.get(&"target")
@@ -47,7 +47,7 @@ func setup(p_shooter: Node2D, from: Vector2, land: Vector2, mv: MoveDefinition, 
 	blast_move.knockback_angle = 60.0
 	blast_move.forces_launch = true
 	blast_move.launch_speed = 620.0
-	blast_move.victim_hitstop_frames = 6
+	blast_move.victim_hitstop_frames = roundi(12 * hitstop_multiplier)
 	blast_move.hitstop_frames = 0
 	blast_move.shake_amount = 0.0
 	blast_move.wall_damage_factor = 0.8

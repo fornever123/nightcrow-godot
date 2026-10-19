@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""第四轮手感（照《疯狂小人战斗》）：把招式改成"快出手、短顿帧、轻招不震屏"。
+"""第四轮动作时序 + C 盘参考的强震屏/顿帧档。
 
 用法：python3 tools/dev/apply_feel_v4.py   （会直接改 assets/data/battle.json）
 帧数都是 60fps 的游戏帧：S=前摇 A=判定 C=判定结束到接招点 T=接招点到收招结束。
@@ -12,18 +12,18 @@ PATH = ROOT / "assets/data/battle.json"
 
 #        id               S  A  C  T   攻顿 受顿 震屏  前冲  空中托举
 PLAN = {
-    "light_1":         (5, 3, 4, 8,   3, 4,  0.0, 120, None),
-    "light_2":         (4, 3, 6, 10,  3, 4,  0.0, 120, None),
-    "light_3":         (4, 5, 14, 14, 6, 8,  4.0, 200, None),
-    "charge_1":        (6, 5, 10, 14, 8, 10, 7.0, 260, None),
-    "up_strike":       (6, 4, 8, 14,  5, 6,  2.5, 60,  None),
-    "air_up":          (5, 4, 4, 4,   3, 4,  0.0, 40,  None),
-    "air_light_1":     (5, 4, 4, 4,   3, 4,  0.0, 40,  0),
-    "air_light_2":     (3, 5, 0, 5,   3, 4,  0.0, 40,  0),
-    "air_light_3":     (0, 6, 10, 10, 5, 6,  3.0, 60,  0),
-    "dash_slash":      (7, 8, 12, 12, 6, 8,  5.0, 300, None),
-    "dash_slash_left": (7, 8, 8, 4,   6, 8,  5.0, 300, None),
-    "ranged_1":        (6, 4, 8, 0,   1, 2,  0.0, 0,   None),
+    "light_1":         (5, 3, 4, 8,   6, 7,   5.5, 120, None),
+    "light_2":         (4, 3, 6, 10,  6, 8,   6.5, 120, None),
+    "light_3":         (4, 5, 14, 14, 11, 15, 12.0, 200, None),
+    "charge_1":        (6, 5, 10, 14, 13, 16, 15.0, 260, None),
+    "up_strike":       (6, 4, 8, 14,  9, 11, 10.0, 60,  None),
+    "air_up":          (5, 4, 4, 4,   6, 7,   6.0, 40,  None),
+    "air_light_1":     (5, 4, 4, 4,   6, 7,   5.5, 40,  0),
+    "air_light_2":     (3, 5, 0, 5,   6, 8,   6.5, 40,  0),
+    "air_light_3":     (0, 6, 10, 10, 10, 13, 11.0, 60,  0),
+    "dash_slash":      (7, 8, 12, 12, 11, 14, 12.0, 300, None),
+    "dash_slash_left": (7, 8, 8, 4,   11, 14, 12.0, 300, None),
+    "ranged_1":        (6, 4, 8, 0,   3, 5,   3.5, 0,   None),
 }
 
 
@@ -82,7 +82,7 @@ def main():
         if suspend is not None:
             mv["airSuspendFrames"] = suspend
             mv["airGravityScale"] = 1.0
-    cfg["feedback"]["shakeMultiplier"] = 1.0
+    cfg["feedback"]["shakeMultiplier"] = 1.55
     rt = cfg["runtime"]
     rt["attackBufferFrames"] = 16
     rt["comboKeepFrames"] = 40
