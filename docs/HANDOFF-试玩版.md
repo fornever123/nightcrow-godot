@@ -21,6 +21,7 @@
   - 评价用户发来的图之前，先读图并做合成检验。被纠正时直接认错。
   - 不用“夜鸦”当游戏名/题材/玩法依据（只是角色昵称）。配置里“夜鸦剑士”“夜鸦 · 木桩训练场”是历史遗留，不要在新内容里扩散。
   - 图片/文件要以文件形式发给用户。最终回复简短、适合手机看。
+  - **交付不用录屏**（用户 2026-10-19：“你以后交付也不需要录，我自己点验收就行”）。交付时附几张截图即可，用户自己打开游戏验收。
   - **不要没事就让机器人打一整轮**（用户 2026-10-19 原话：“你以后不要没事干打一轮了”）。整轮机器人试玩和整轮录屏很费时间，只在改动确实影响整轮流程、或用户要求时才做；平时用对应的测试、截图或几秒的小片段验证。
 - “眩晕连段”的理解：仓库设计文档的核心是**浮空连段**（挑起→空中连段→决定终结方向→撞墙/撞地/连锁击飞），代码里已有 STUNNED（眩晕）状态。本任务按“**打满失衡 → 眩晕 → 挑飞 → 浮空连段 → 方向终结 → 连锁击飞**”来做，两种理解都覆盖。交付时要向用户说明这个理解。
 - 用户已否决：穹环/钟塔题材（“不好看”）、紫色背景（会吃掉角色的紫发和紫刀光）、旧 HANDOFF 的“260px/像素化”方向。
@@ -56,6 +57,9 @@
 - 体检/检查脚本：`/data/seq-audit/{common,measure,sheet}.py`（`BJ=路径` 可指定 battle.json）。
 
 ## 3. 交付通道（重要限制）
+
+- **2026-10-19 起：沙盒 git 可以直接推送（二进制也行）**。方法：装 GitHub CLI（`/data/tools/gh_*/bin/gh`，从 github.com/cli/cli releases 下 linux_amd64 包），`gh auth login --hostname github.com --git-protocol https --web --skip-ssh-key`（后台跑，把输出里的一次性验证码和 https://github.com/login/device 发给用户，让用户在自己的浏览器里授权），成功后 `gh auth setup-git`，之后 `git push origin 分支` 即可。凭证存在 `~/.config/gh/hosts.yml`，**沙盒重置后要让用户重新授权**。用户可在 GitHub 设置 → Applications → Authorized OAuth Apps → GitHub CLI 撤销。
+- 下面是以前的限制（没有 git 凭据时的退路）：
 
 - GitHub MCP（服务器名 “GitHub”）登录的是用户本人 `fornever123`，可用 `push_files` / `create_or_update_file` / `list_commits`，但**只能传文本**；`mcp_run_tool` 的 `arguments_file_path` ≤1 MiB。
   - 二进制图（场景图层）以 **base64 文本**存进仓库，运行时 `Marshalls.base64_to_raw` + `Image.load_*_from_buffer` 解码。
