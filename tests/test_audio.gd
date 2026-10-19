@@ -71,7 +71,10 @@ func run() -> void:
 				short.append(key)
 	check(missing.is_empty(), "清单里每个事件的全部变体都加载成功 %s" % [missing])
 	check(short.is_empty(), "每个变体都是有效的声音 %s" % [short])
-	check(total >= 60, "一共 60 个以上变体（实际 %d）" % total)
+	var expected_total := 0
+	for key in clips:
+		expected_total += (clips[key]["files"] as Array).size()
+	check(total == expected_total, "原声单片段和保留的全部音效变体均已加载（实际 %d）" % total)
 	check(audio.bank_size() == clips.size(), "bank_size 与清单一致")
 
 	# ---- 映射表

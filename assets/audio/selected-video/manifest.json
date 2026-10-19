@@ -1,0 +1,408 @@
+{
+  "method": "Native 32kHz stereo PCM WAV; isolated source excerpts, gain and edge fades only",
+  "pitchChanges": false,
+  "synthesizedLayers": false,
+  "clips": [
+    {
+      "event": "swing_l1",
+      "source": "art/selected-video-audio/mmh3_action_00014.m4a",
+      "sourceSha256": "1719e40080a621599e9dded3216fef2b20d432029233dfe09f73a6701a9cc7b1",
+      "requestedRangeSeconds": [
+        0.82,
+        1.13
+      ],
+      "actualRangeSeconds": [
+        0.891,
+        1.13
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -0.1003,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_l1.wav",
+      "sha256": "31447a7f4fbd64c3b163fa1b5414f8336ab073721bb47d517ea2b0fe64d9c410",
+      "pcmSha256": "b6addc761512813733c3862cfdb6dfcfb7512985e65dfabf25d0f072d47489e2",
+      "durationSeconds": 0.239,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_l2",
+      "source": "art/selected-video-audio/mmh3_action_00014.m4a",
+      "sourceSha256": "1719e40080a621599e9dded3216fef2b20d432029233dfe09f73a6701a9cc7b1",
+      "requestedRangeSeconds": [
+        1.31,
+        1.66
+      ],
+      "actualRangeSeconds": [
+        1.387,
+        1.66
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -2.0518,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_l2.wav",
+      "sha256": "f068f8b4c5cd8b3defa1c41d093045a6afdf40a74cbde284b91b14bbafaf8b67",
+      "pcmSha256": "642dcf7b6ad59d54a55062ae19db1002e7bd9d94f04e5c6837384aed6743545f",
+      "durationSeconds": 0.273,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_l3",
+      "source": "art/selected-video-audio/mmh3_action_00014.m4a",
+      "sourceSha256": "1719e40080a621599e9dded3216fef2b20d432029233dfe09f73a6701a9cc7b1",
+      "requestedRangeSeconds": [
+        2.05,
+        2.4
+      ],
+      "actualRangeSeconds": [
+        2.119,
+        2.4
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -5.0221,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_l3.wav",
+      "sha256": "bc16154495b6fdce5a2b0e38b0abe5cf28519a214214a9f59aa6102518a7c443",
+      "pcmSha256": "1ab9c7ab81979e4b370e260154d0b6a5ed4287064628376324770f5f75b2a17b",
+      "durationSeconds": 0.281,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_up",
+      "source": "art/selected-video-audio/mmh3_action_00014.m4a",
+      "sourceSha256": "1719e40080a621599e9dded3216fef2b20d432029233dfe09f73a6701a9cc7b1",
+      "requestedRangeSeconds": [
+        5.61,
+        5.96
+      ],
+      "actualRangeSeconds": [
+        5.717,
+        5.96
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -3.2425,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_up.wav",
+      "sha256": "6c4ebafb799154421f04ebd8d1da723db9c3388b906f289885a1d1e2d105cadc",
+      "pcmSha256": "c281845422e68812afdbf7d71a9d70379dfb0b9b6366ffec78308dfae51558d4",
+      "durationSeconds": 0.243,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_charge",
+      "source": "art/selected-video-audio/mmh3_action_00014.m4a",
+      "sourceSha256": "1719e40080a621599e9dded3216fef2b20d432029233dfe09f73a6701a9cc7b1",
+      "requestedRangeSeconds": [
+        5.61,
+        5.96
+      ],
+      "actualRangeSeconds": [
+        5.717,
+        5.96
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -3.2425,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_charge.wav",
+      "sha256": "6c4ebafb799154421f04ebd8d1da723db9c3388b906f289885a1d1e2d105cadc",
+      "pcmSha256": "c281845422e68812afdbf7d71a9d70379dfb0b9b6366ffec78308dfae51558d4",
+      "durationSeconds": 0.243,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_air1",
+      "source": "art/selected-video-audio/空中a.m4a",
+      "sourceSha256": "e1cf8896acd4e0be06d3163b1da4fddd16bd5a91fb5fcc5a23473f85677ec6b0",
+      "requestedRangeSeconds": [
+        0.28,
+        0.64
+      ],
+      "actualRangeSeconds": [
+        0.34,
+        0.64
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -3.7516,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_air1.wav",
+      "sha256": "9d51d99acba93d884af8e9bb25b0550468046558975466b6f49b78c74bd1108f",
+      "pcmSha256": "7f4fbc77e639a50fa3bbfbc9fb0387943432252b9b4a856985d33d23a8d4e71e",
+      "durationSeconds": 0.3,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_air2",
+      "source": "art/selected-video-audio/空中a.m4a",
+      "sourceSha256": "e1cf8896acd4e0be06d3163b1da4fddd16bd5a91fb5fcc5a23473f85677ec6b0",
+      "requestedRangeSeconds": [
+        0.75,
+        1.04
+      ],
+      "actualRangeSeconds": [
+        0.767,
+        1.04
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -5.2696,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_air2.wav",
+      "sha256": "313c14d69a37cbf6e5989d4d6d2087373221e35aed49da492c6655a3b931ed77",
+      "pcmSha256": "4faa3b549fb167738cdccaccc8e6d4518564c62a283896ed5c3ded5bad5f0a0d",
+      "durationSeconds": 0.273,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_air3",
+      "source": "art/selected-video-audio/空中a.m4a",
+      "sourceSha256": "e1cf8896acd4e0be06d3163b1da4fddd16bd5a91fb5fcc5a23473f85677ec6b0",
+      "requestedRangeSeconds": [
+        1.08,
+        1.55
+      ],
+      "actualRangeSeconds": [
+        1.193,
+        1.55
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -5.1121,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_air3.wav",
+      "sha256": "b3248f847652c0aff59f699097617d1ca60837f20fce109676cf8880fb2475d4",
+      "pcmSha256": "23a00505f440c0e3f682a80e2ed5034214e4544cea3fdaae94a582d6a5640af2",
+      "durationSeconds": 0.357,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_air_up",
+      "source": "art/selected-video-audio/空中a.m4a",
+      "sourceSha256": "e1cf8896acd4e0be06d3163b1da4fddd16bd5a91fb5fcc5a23473f85677ec6b0",
+      "requestedRangeSeconds": [
+        0.28,
+        0.64
+      ],
+      "actualRangeSeconds": [
+        0.34,
+        0.64
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -3.7516,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_air_up.wav",
+      "sha256": "9d51d99acba93d884af8e9bb25b0550468046558975466b6f49b78c74bd1108f",
+      "pcmSha256": "7f4fbc77e639a50fa3bbfbc9fb0387943432252b9b4a856985d33d23a8d4e71e",
+      "durationSeconds": 0.3,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_dash",
+      "source": "art/selected-video-audio/mmh3_冲刺攻击_v2.m4a",
+      "sourceSha256": "2ad71650a79767037f1f4872a66dc0b773fe8242efff8181446495d0d783f0fb",
+      "requestedRangeSeconds": [
+        1.14,
+        1.58
+      ],
+      "actualRangeSeconds": [
+        1.175,
+        1.58
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -3.8197,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_dash.wav",
+      "sha256": "5ebc5943011e1c28b699947609f167a63af10d809d5288992aaf6531bb11875f",
+      "pcmSha256": "f31562d91732b30e10383f72ef2707f268fd3f795897f4601ffc13c5af22df38",
+      "durationSeconds": 0.405,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "swing_dash_left",
+      "source": "art/selected-video-audio/mmh3_冲刺攻击_v2.m4a",
+      "sourceSha256": "2ad71650a79767037f1f4872a66dc0b773fe8242efff8181446495d0d783f0fb",
+      "requestedRangeSeconds": [
+        0.1,
+        0.62
+      ],
+      "actualRangeSeconds": [
+        0.206,
+        0.62
+      ],
+      "peakOffsetSeconds": 0.05,
+      "gainDb": -4.0553,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/swing_dash_left.wav",
+      "sha256": "a620e50fb04a491c45b5d1c74e5dd1fea7eb2ce1775ab906152a4c0999bb7fd8",
+      "pcmSha256": "a7efa0a2d0f8dbb86415e5a645ea343e64ddd2e82bb5ada03fc2b8250f130a7f",
+      "durationSeconds": 0.414,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "block",
+      "source": "art/selected-video-audio/mmh3_左侧格挡_v5.m4a",
+      "sourceSha256": "9ec0e0800551a431e7be89141f24954d2cfd9765b1384cc1d318b6551beeea94",
+      "requestedRangeSeconds": [
+        1.75,
+        2.13
+      ],
+      "actualRangeSeconds": [
+        1.806,
+        2.13
+      ],
+      "peakOffsetSeconds": 0.012,
+      "gainDb": -2.1784,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/block.wav",
+      "sha256": "65d3d119dc995443dff75954c475ef6fcd09bfca7a601f95abed518734eb25fe",
+      "pcmSha256": "573abe942c15511d56cde0b531959f4362458eb52e25e29b366c45a27d314303",
+      "durationSeconds": 0.324,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "parry",
+      "source": "art/selected-video-audio/mmh3_左侧格挡_v5.m4a",
+      "sourceSha256": "9ec0e0800551a431e7be89141f24954d2cfd9765b1384cc1d318b6551beeea94",
+      "requestedRangeSeconds": [
+        5.99,
+        6.55
+      ],
+      "actualRangeSeconds": [
+        6.212,
+        6.55
+      ],
+      "peakOffsetSeconds": 0.012,
+      "gainDb": -1.1369,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/parry.wav",
+      "sha256": "2b59c07b33dfa853a43e6fb06407ad2c8b5f8d788cd6c6363118721db13b1d4c",
+      "pcmSha256": "3b6f2f00d4d916e89499af4df4c2e4f8f0e116c80784736170fafbc2ef428fce",
+      "durationSeconds": 0.338,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "die",
+      "source": "art/selected-video-audio/mmh3_死亡_v1.m4a",
+      "sourceSha256": "e83eac886b1fe2700fa28fa4d46898ee283d9892d5fdfe2d85c4d541356919eb",
+      "requestedRangeSeconds": [
+        2.99,
+        3.34
+      ],
+      "actualRangeSeconds": [
+        3.042,
+        3.34
+      ],
+      "peakOffsetSeconds": 0.012,
+      "gainDb": -2.8934,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/die.wav",
+      "sha256": "565c111a53ec7c54d919bbdc22d015bfb7e089101bc8f55b8b65f76169c2895b",
+      "pcmSha256": "3a9b4106a9833bbe8aab92ae5e39b6da9dc83ce32dacb7c8507b65c996accc2f",
+      "durationSeconds": 0.298,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "draw",
+      "source": "art/selected-video-audio/mmh3_拔刀40.m4a",
+      "sourceSha256": "6744818009e78545830f6a5ffb36170ec3e3704a15525dceb2665192cc75fc00",
+      "requestedRangeSeconds": [
+        0.0,
+        2.42
+      ],
+      "actualRangeSeconds": [
+        0.0,
+        2.42
+      ],
+      "peakOffsetSeconds": 0.368,
+      "gainDb": -10.5961,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/draw.wav",
+      "sha256": "d2019186fc0d2e904f3e007f180b0e7efaf967e229796d6fd2504a643ef07925",
+      "pcmSha256": "4cdb2cfbe4cff24469ff49d1d14241aa192cd6cb66a47df0f7417049a2bd900d",
+      "durationSeconds": 2.42,
+      "sampleRate": 32000,
+      "channels": 2
+    },
+    {
+      "event": "sheathe",
+      "source": "art/selected-video-audio/mmh3_拔刀40.m4a",
+      "sourceSha256": "6744818009e78545830f6a5ffb36170ec3e3704a15525dceb2665192cc75fc00",
+      "requestedRangeSeconds": [
+        5.166666666666667,
+        6.575
+      ],
+      "actualRangeSeconds": [
+        5.16665625,
+        6.575
+      ],
+      "peakOffsetSeconds": 0.614,
+      "gainDb": -9.3844,
+      "fadeInSeconds": 0.004,
+      "fadeOutSeconds": 0.025,
+      "asset": "audio/selected-video/sheathe.wav",
+      "sha256": "38c1b6b3578f4608ea1b58544ee754f58f3bbafa746782f4422bbbf791c142c1",
+      "pcmSha256": "0ed7810b9251695ecc2a145048a73a1fde53d9088929f8fc9ee5b190698e4296",
+      "durationSeconds": 1.40834375,
+      "sampleRate": 32000,
+      "channels": 2
+    }
+  ],
+  "aliases": {
+    "dash": "swing_dash (startup layer suppressed; one recording per dash)"
+  },
+  "replacedGeneratedFiles": [
+    "block_0.ogg.b64",
+    "block_1.ogg.b64",
+    "dash_0.ogg.b64",
+    "dash_1.ogg.b64",
+    "die_0.ogg.b64",
+    "parry_0.ogg.b64",
+    "parry_1.ogg.b64",
+    "swing_air1_0.ogg.b64",
+    "swing_air1_1.ogg.b64",
+    "swing_air2_0.ogg.b64",
+    "swing_air2_1.ogg.b64",
+    "swing_air3_0.ogg.b64",
+    "swing_air3_1.ogg.b64",
+    "swing_air_up_0.ogg.b64",
+    "swing_air_up_1.ogg.b64",
+    "swing_charge_0.ogg.b64",
+    "swing_charge_1.ogg.b64",
+    "swing_dash_0.ogg.b64",
+    "swing_dash_1.ogg.b64",
+    "swing_l1_0.ogg.b64",
+    "swing_l1_1.ogg.b64",
+    "swing_l2_0.ogg.b64",
+    "swing_l2_1.ogg.b64",
+    "swing_l3_0.ogg.b64",
+    "swing_l3_1.ogg.b64",
+    "swing_up_0.ogg.b64",
+    "swing_up_1.ogg.b64"
+  ],
+  "retained": "Unmatched footsteps, jumps, landings, impacts, enemy, UI, charge and ranged audio; original M4A archive"
+}

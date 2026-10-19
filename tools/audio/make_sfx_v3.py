@@ -354,6 +354,9 @@ def main():
     for r in report:
         print('%-20s %d  %.2fs  rms %.1f  peak %.1f  peak@%.3f  %5dB' % r)
     print('total ogg bytes', total, 'clips', len(report))
+    # The user's selected original sounds take priority over these old recipes.
+    from apply_selected_video_audio import main as apply_selected_video_audio
+    apply_selected_video_audio()
 
 
 if __name__ == '__main__':

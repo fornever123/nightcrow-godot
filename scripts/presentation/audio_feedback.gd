@@ -77,6 +77,8 @@ var _player: Node2D = null
 var _step_dist: float = 0.0
 var _was_running: bool = false
 var steps_played: int = 0
+var _stance_key: String = ""
+var _stance_voice: AudioStreamPlayer
 
 
 func configure(data: Dictionary) -> void:
@@ -134,10 +136,15 @@ func _load_bank() -> void:
 		var spec: Dictionary = clips[key]
 		var streams: Array = []
 		for f in spec.get("files", []):
-			var raw := Marshalls.base64_to_raw(FileAccess.get_file_as_string(BANK_DIR + String(f)).strip_edges())
-			if raw.is_empty():
-				continue
-			var stream := AudioStreamOggVorbis.load_from_buffer(raw)
+			var path := BANK_DIR + String(f)
+			var stream: AudioStream
+			if path.ends_with(".ogg.b64"):
+				var raw := Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+				if raw.is_empty():
+					continue
+				stream = AudioStreamOggVorbis.load_from_buffer(raw)
+			else:
+				stream = _load_clip(path)
 			if stream != null:
 				streams.append(stream)
 		if streams.is_empty():
@@ -147,7 +154,10 @@ func _load_bank() -> void:
 			"streams": streams,
 			"bus": BANK_BUS.get(String(spec.get("bus", "impact")), BUS_IMPACT),
 			"jitter": float(spec.get("pitchJitter", 0.03)),
+			"peak_offset": float(spec.get("peakOffsetSeconds", 0.05)),
 		}
+		if spec.has("sourceVideo"):
+			_bank[String(key)]["source_video"] = String(spec.sourceVideo)
 	_bank_cache = _bank
 
 
@@ -175,7 +185,14 @@ func play_swing_of(mv: Resource, stage: int = -1) -> void:
 	var key := String(swing_by_move.get(String(mv.id), ""))
 	if key.is_empty():
 		return  # 受击反馈 / 弹刀反应这类“招式”不出刀风
-	if not _play_bank(key, 0.0, 0.0):
+	# Short startups may emit at frame zero rather than three frames early.
+	# Seek the raw whoosh forward just enough to keep its peak at the active frame.
+	var offset := 0.0
+	if _bank.get(key, {}).has("source_video"):
+		var cue_lead := float(_player.get("swing_cue_lead_frames")) if is_instance_valid(_player) else 3.0
+		var lead := minf(float(mv.startup_frames), cue_lead) / 60.0
+		offset = maxf(0.0, float(_bank[key].peak_offset) - lead)
+	if not _play_bank(key, 0.0, 0.0, offset):
 		play_swing(Feel.from_move(mv), stage)
 
 
@@ -186,6 +203,9 @@ func play_swing(strength: float = 0.5, stage: int = -1) -> void:
 
 ## 冲刺斩起步的“呼”（刀风另算）
 func play_dash() -> void:
+	# The selected dash recording already includes the rush and the sword.
+	if _bank.get("swing_dash", {}).has("source_video"):
+		return
 	_play_bank("dash")
 
 
@@ -354,10 +374,14 @@ func attach_player(p: Node2D) -> void:
 	_player = p
 	_step_dist = 0.0
 	_was_running = false
+	_stance_key = ""
 
 
 func _physics_process(delta: float) -> void:
-	if _player == null or not is_instance_valid(_player) or footstep_stride <= 0.0:
+	if _player == null or not is_instance_valid(_player):
+		return
+	_sync_stance_audio()
+	if footstep_stride <= 0.0:
 		return
 	var body := _player as CharacterBody2D
 	var running := body != null and body.is_on_floor() and int(_player.get(&"state")) == 0 \
@@ -374,8 +398,25 @@ func _physics_process(delta: float) -> void:
 		play_step()
 
 
+## Cosmetic draw/sheathe follows the actual displayed clip, including cancellation.
+func _sync_stance_audio() -> void:
+	var view := _player.get_node_or_null("Visual/ActorSprite")
+	if view == null:
+		return
+	var key := String(view.get("clip_name"))
+	if key == _stance_key:
+		return
+	_stance_key = key
+	if is_instance_valid(_stance_voice) and key != "idle":
+		_stance_voice.stop()
+		_release_voice(_stance_voice)
+		_stance_voice = null
+	if key in ["draw", "sheathe"] and _play_bank(key):
+		_stance_voice = _voices.back()
+
+
 # ---------------------------------------------------------------- 播放
-func _play_bank(key: String, pitch: float = 0.0, volume_db: float = 0.0) -> bool:
+func _play_bank(key: String, pitch: float = 0.0, volume_db: float = 0.0, offset: float = 0.0) -> bool:
 	var entry: Dictionary = _bank.get(key, {})
 	if entry.is_empty():
 		return false
@@ -392,8 +433,10 @@ func _play_bank(key: String, pitch: float = 0.0, volume_db: float = 0.0) -> bool
 	last_event = key
 	var jitter: float = entry["jitter"]
 	var p := pitch + (_rng.randf_range(-jitter, jitter) if jitter > 0.0 else 0.0)
+	if entry.has("source_video"):
+		p = 0.0
 	var gain := volume_db + float(gain_db.get(key, 0.0)) + _repeat_trim(StringName(key))
-	return _play_stream(streams[i], p, gain)
+	return _play_stream(streams[i], p, gain, offset)
 
 
 func _play_clip(key: String, pitch: float = 0.0, volume_db: float = 0.0) -> bool:
@@ -406,7 +449,7 @@ func _play_clip(key: String, pitch: float = 0.0, volume_db: float = 0.0) -> bool
 	return _play_stream(_clips[key], pitch, gain)
 
 
-func _play_stream(stream: AudioStream, pitch: float, volume_db: float) -> bool:
+func _play_stream(stream: AudioStream, pitch: float, volume_db: float, offset: float = 0.0) -> bool:
 	if not enabled or stream == null:
 		return false
 	_trim_voices()
@@ -419,7 +462,7 @@ func _play_stream(stream: AudioStream, pitch: float, volume_db: float) -> bool:
 	voice.finished.connect(_release_voice.bind(voice))
 	add_child(voice)
 	_voices.append(voice)
-	voice.play()
+	voice.play(offset)
 	return true
 
 
@@ -479,6 +522,8 @@ func stop_all() -> void:
 	_repeat_frame.clear()
 	_repeat_steps.clear()
 	last_event = ""
+	_stance_key = ""
+	_stance_voice = null
 func _trim_voices() -> void:
 	while _voices.size() >= max_voices:
 		var voice: AudioStreamPlayer = _voices.pop_front()

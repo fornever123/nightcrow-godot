@@ -1,5 +1,5 @@
 {
- "note": "由 tools/audio/make_sfx_v3.py 生成，勿手改；混音微调写在 battle.json audio.gainDb",
+ "note": "Base events: make_sfx_v3.py; selected original video overrides: apply_selected_video_audio.py. gainDb remains configurable.",
  "clips": {
   "step": {
    "files": [
@@ -46,11 +46,12 @@
   },
   "dash": {
    "files": [
-    "dash_0.ogg.b64",
-    "dash_1.ogg.b64"
+    "../selected-video/swing_dash.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_冲刺攻击_v2.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "hit_light": {
    "files": [
@@ -96,19 +97,21 @@
   },
   "parry": {
    "files": [
-    "parry_0.ogg.b64",
-    "parry_1.ogg.b64"
+    "../selected-video/parry.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.02
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_左侧格挡_v5.m4a",
+   "peakOffsetSeconds": 0.012
   },
   "block": {
    "files": [
-    "block_0.ogg.b64",
-    "block_1.ogg.b64"
+    "../selected-video/block.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_左侧格挡_v5.m4a",
+   "peakOffsetSeconds": 0.012
   },
   "stun": {
    "files": [
@@ -203,90 +206,129 @@
   },
   "die": {
    "files": [
-    "die_0.ogg.b64"
+    "../selected-video/die.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.0
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_死亡_v1.m4a",
+   "peakOffsetSeconds": 0.012
   },
   "swing_l1": {
    "files": [
-    "swing_l1_0.ogg.b64",
-    "swing_l1_1.ogg.b64"
+    "../selected-video/swing_l1.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_action_00014.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_l2": {
    "files": [
-    "swing_l2_0.ogg.b64",
-    "swing_l2_1.ogg.b64"
+    "../selected-video/swing_l2.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_action_00014.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_l3": {
    "files": [
-    "swing_l3_0.ogg.b64",
-    "swing_l3_1.ogg.b64"
+    "../selected-video/swing_l3.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_action_00014.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_charge": {
    "files": [
-    "swing_charge_0.ogg.b64",
-    "swing_charge_1.ogg.b64"
+    "../selected-video/swing_charge.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_action_00014.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_up": {
    "files": [
-    "swing_up_0.ogg.b64",
-    "swing_up_1.ogg.b64"
+    "../selected-video/swing_up.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_action_00014.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_air1": {
    "files": [
-    "swing_air1_0.ogg.b64",
-    "swing_air1_1.ogg.b64"
+    "../selected-video/swing_air1.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "空中a.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_air2": {
    "files": [
-    "swing_air2_0.ogg.b64",
-    "swing_air2_1.ogg.b64"
+    "../selected-video/swing_air2.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "空中a.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_air3": {
    "files": [
-    "swing_air3_0.ogg.b64",
-    "swing_air3_1.ogg.b64"
+    "../selected-video/swing_air3.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "空中a.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_air_up": {
    "files": [
-    "swing_air_up_0.ogg.b64",
-    "swing_air_up_1.ogg.b64"
+    "../selected-video/swing_air_up.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "空中a.m4a",
+   "peakOffsetSeconds": 0.05
   },
   "swing_dash": {
    "files": [
-    "swing_dash_0.ogg.b64",
-    "swing_dash_1.ogg.b64"
+    "../selected-video/swing_dash.wav"
    ],
    "bus": "motion",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_冲刺攻击_v2.m4a",
+   "peakOffsetSeconds": 0.05
+  },
+  "swing_dash_left": {
+   "files": [
+    "../selected-video/swing_dash_left.wav"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_冲刺攻击_v2.m4a",
+   "peakOffsetSeconds": 0.05
+  },
+  "draw": {
+   "files": [
+    "../selected-video/draw.wav"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_拔刀40.m4a",
+   "peakOffsetSeconds": 0.368
+  },
+  "sheathe": {
+   "files": [
+    "../selected-video/sheathe.wav"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.0,
+   "sourceVideo": "mmh3_拔刀40.m4a",
+   "peakOffsetSeconds": 0.614
   }
  }
 }
