@@ -33,6 +33,8 @@ func run() -> void:
 	await process_frame
 	stage.set_physics_process(false)
 	stage.hud.help_visible = false
+	stage.hud._banner = ""        # 截图不要开场横幅
+	stage.hud._banner_life = 0.0
 	var p = stage.player
 	var x := 1400.0
 	p.reset_state(Vector2(x, stage.floor_y - p.foot_offset))
