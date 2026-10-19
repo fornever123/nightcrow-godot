@@ -579,10 +579,12 @@ func _process_ranged_ai(delta: float) -> void:
 		state = State.APPROACH
 		_chase_level(lvl, dx, delta)
 		return
+	var cornered := false
 	if dist < keep_min:
 		state = State.APPROACH
 		var back := -facing
 		var room := (arena_right - global_position.x) if back > 0 else (global_position.x - arena_left)
+		cornered = room < 120.0
 		if room < 120.0 and dist < 200.0 and react_cool <= 0 and on_ground():
 			_begin_roll()
 			return
@@ -595,7 +597,9 @@ func _process_ranged_ai(delta: float) -> void:
 		state = State.IDLE
 		velocity.x = move_toward(velocity.x, 0.0, 1400.0 * delta)
 	var dy := absf(target.global_position.y - global_position.y)
-	if cooldown <= 0 and dist <= float(spec.range) and dist >= 160.0 and dy < 300.0 and on_ground() and _attack_slot_free():
+	# 被贴身时先拉开距离再出手（除非背后没路了）
+	var spaced := dist >= keep_min * 0.6 or cornered
+	if cooldown <= 0 and spaced and dist <= float(spec.range) and dist >= 160.0 and dy < 300.0 and on_ground() and _attack_slot_free():
 		_begin_windup()
 
 

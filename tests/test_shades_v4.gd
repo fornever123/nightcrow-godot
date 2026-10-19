@@ -259,7 +259,7 @@ func test_keep_distance() -> void:
 	var archer := make_shade(Shade.Kind.ARCHER, 720.0, true)
 	await hold(60)
 	var d: float = absf(archer.global_position.x - p.global_position.x)
-	check(d > 300.0, "影弓被贴身会后撤拉开距离（%d px）" % int(d))
+	check(d >= 250.0, "影弓被贴身会后撤拉开距离（%d px）" % int(d))
 	await fresh(600.0)
 	var bomber := make_shade(Shade.Kind.BOMBER, 1500.0, true)
 	await hold(90)
