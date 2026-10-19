@@ -83,9 +83,9 @@ func run() -> void:
 	await step(stage.moves.light_1.startup_frames-2)
 	check(d.hp==before and p.hitstop_frames==0,"蓄势尚未挥到木桩时不提前命中或顿帧")
 	check(await wait_hit(before),"点按 J 真实命中木桩")
-	check(p.hitstop_frames==6,"轻击真实触发角色 6 帧顿帧")
-	check(d.hitstop_frames>=6,"木桩使用独立受击停顿")
-	check(stage.camera._trauma>0,"命中产生镜头冲击")
+	check(p.hitstop_frames==stage.moves.light_1.hitstop_frames and p.hitstop_frames<=4,"轻击只给攻方 3 帧左右的短顿帧（疯狂小人式）")
+	check(d.hitstop_frames>=p.hitstop_frames and stage.moves.light_1.victim_hitstop_frames>stage.moves.light_1.hitstop_frames,"木桩使用独立受击停顿（受方比攻方多停一帧）")
+	check(stage.camera._trauma==0,"普通轻击不震屏（大震只留给重击）")
 	check(stage.audio.last_event=="hit_light" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
 	check(stage.fx.last_hit_plan.size()==6 and stage.fx.get_child_count()>=6,"实际生成六层错时命中反馈")
 	var first_source: Dictionary = {}
@@ -98,14 +98,12 @@ func run() -> void:
 	var image_frame: int = view.frame_index
 	var pos: Vector2 = p.position
 	var victim_pos: Vector2 = d.position
-	await step(2)
+	await step(1)
 	check(p.move_frame==cursor and view.frame_index==image_frame,"真实命中时动画和战斗游标都冻结")
 	check(p.position==pos and d.position==victim_pos,"角色和木桩的位移都冻结")
-	check(stage.camera.offset!=Vector2.ZERO,"镜头在顿帧期间实际移动")
 	var visual: Node2D = p.get_node("Visual")
 	check(is_equal_approx(visual.position.y+p.foot_offset*visual.scale.y,p.foot_offset),"变形以脚底为固定点")
 	await step(1,[&"attack_light"],[&"attack_light"])
-	await step(2)
 	check(p.move_frame==cursor,"顿帧中接受输入而不提前推进招式")
 	var linked := false
 	for tick in 50:
@@ -138,7 +136,8 @@ func run() -> void:
 		await step(1,[&"attack_light"])
 	check(p.last_charge_frames==72,"满蓄力自动释放沿用 C 盘时长")
 	check(await wait_hit(d.max_hp),"满蓄力真实命中")
-	check(p.hitstop_frames==19,"满蓄力为角色停顿添加 6 帧重量")
+	check(p.hitstop_frames==stage.moves.charge_1.hitstop_frames+stage.moves.charge_1.charge_hitstop_bonus,"满蓄力为角色停顿添加 6 帧重量")
+	check(stage.camera._trauma>0,"蓄力重击才震屏")
 	var charge_source: Dictionary = {}
 	for source in stage.config.moves:
 		if source.id == "charge_1":

@@ -93,10 +93,9 @@ func run() -> void:
 	check(p.hitstop_frames>0,"真实命中启动角色自身顿帧")
 	var hp_after: float = d.hp
 	var cursor: int=p.move_frame
-	await step(2)
 	var drawn: int=view.frame_index
 	await step(1,frame([&"attack_light"],[&"attack_light"]))
-	await step(2)
+	await step(1)
 	check(p.move_frame==cursor and view.frame_index==drawn,"真实命中停顿同时冻结动作与战斗")
 	await step(6)
 	check(stage.total_hits==1 and d.last_hit_damage==start_hp-hp_after,"一刀只结算一次近战命中，撞击伤害另计")
