@@ -92,6 +92,7 @@ func run() -> void:
 	await test_bomb()
 	await test_keep_distance()
 	await test_soft_knock()
+	await test_ult()
 	print("SHADES_V4_TESTS: ", checks, " checks / ", failures.size(), " failures")
 	quit(0 if failures.is_empty() else 1)
 
@@ -290,3 +291,77 @@ func test_soft_knock() -> void:
 	var b := await knock_trial(Shade.Kind.BRUTE)
 	check(b.down, "甲影重击：会被打倒")
 	check(b.free_at >= 0, "倒地后能站起来（%d 帧）" % b.free_at)
+
+
+func ult_press(first: StringName, second: StringName, gap: int) -> void:
+	await hold(1, fr([first], [first]))
+	if gap > 0:
+		await hold(gap, fr([first]))
+	await hold(1, fr([first, second], [second]))
+	await hold(1, fr())
+
+
+func test_ult() -> void:
+	await fresh(600.0)
+	check(p.ult_enabled, "试玩关卡开启大招")
+	p.ult_energy = 40.0
+	await ult_press(&"attack_light", &"attack_ranged", 0)
+	check(not p.is_ult(), "能量不满：J+K 不出大招")
+	await hold(40)
+	# 能量满 + 先 J 后 K（隔 3 帧）
+	await fresh(600.0)
+	var g := make_shade(Shade.Kind.GRUNT, 820.0)
+	var b := make_shade(Shade.Kind.BRUTE, 420.0)
+	var r := make_shade(Shade.Kind.GRUNT, 1000.0)
+	var far := make_shade(Shade.Kind.GRUNT, 600.0 + 3000.0)
+	far.arena_right = 5000.0
+	var archer := make_shade(Shade.Kind.ARCHER, 1250.0)
+	await hold(2)
+	archer.facing = -1
+	archer._update_aim()
+	archer._fire_bolt()
+	var hits := {"start": 0, "hit": 0}
+	p.ult_started.connect(func(): hits.start += 1)
+	p.ult_hit.connect(func(): hits.hit += 1)
+	p.ult_energy = p.ult_max
+	check(p.ult_ready(), "能量满了")
+	r._begin_roll()
+	var hp := {"g": g.hp, "b": b.hp, "r": r.hp, "far": far.hp}
+	await ult_press(&"attack_light", &"attack_ranged", 3)
+	check(p.is_ult() and hits.start == 1, "先 J 后 K（隔 3 帧）→ 出大招")
+	check(p.ult_energy == 0.0, "放大招清空能量")
+	var bolt_left := get_nodes_in_group(&"shade_projectile").size()
+	p.invuln_frames = maxi(p.invuln_frames, 1)
+	var php: float = p.hp
+	var ok_inv: bool = p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g) == false and is_equal_approx(p.hp, php)
+	check(ok_inv, "大招中无敌")
+	for i in p.ult_total_frames + 10:
+		await hold(1)
+	await hold(2)
+	check(hits.hit == 1, "出刀一次")
+	check(g.hp < hp.g and b.hp < hp.b, "屏幕里的影卒和甲影都被砍中（霸体扛不住）")
+	check(r.hp < hp.r, "翻滚中的影也躲不开大招")
+	check(is_equal_approx(far.hp, hp.far), "屏幕外的影不受影响（镜头 x=%d，far hp %.0f→%.0f）" % [int(stage.camera.get_screen_center_position().x), hp.far, far.hp])
+	check(bolt_left >= 1 and get_nodes_in_group(&"shade_projectile").is_empty(), "飞行中的影矢被斩碎")
+	check(b.state == Shade.State.LAUNCHED or b.state == Shade.State.DOWN or b.state == Shade.State.DEAD, "甲影也被打飞")
+	check(not p.is_ult() and p.state == Player.State.NEUTRAL, "大招结束恢复")
+	check(stage.style.stats.get("ult", 0) >= 1, "评价系统记到大招")
+	# 先 K 后 J 也行；不会多冒出一发远射 / 一刀
+	await fresh(600.0)
+	p.ult_energy = p.ult_max
+	var shots := {"n": 0}
+	p.ranged_fired.connect(func(_x): shots.n += 1)
+	await ult_press(&"attack_ranged", &"attack_light", 2)
+	check(p.is_ult(), "先 K 后 J（隔 2 帧）→ 出大招")
+	for i in p.ult_total_frames + 6:
+		await hold(1)
+	check(p.state == Player.State.NEUTRAL and p.current_move == null, "大招后没有多出一刀普攻")
+	# 能量来源
+	await fresh(600.0)
+	var e0: float = p.ult_energy
+	var s2 := make_shade(Shade.Kind.GRUNT, 700.0)
+	await hold(2)
+	for k in 3:
+		await hold(1, fr([&"attack_light"], [&"attack_light"]))
+		await hold(16)
+	check(p.ult_energy > e0, "打中敌人攒能量（%.0f）" % p.ult_energy)
