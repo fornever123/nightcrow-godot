@@ -88,7 +88,8 @@ func pound_until_stun(ev: Dictionary) -> int:
 	return taps
 
 
-## 挑飞 → 起跳 → 二段跳 → 空中两刀，返回挑飞瞬间记录到的最高上升速度
+## 挑飞 → 起跳 → 空中两刀，返回挑飞瞬间记录到的最高上升速度。
+## 跳高加倍后不再追加旧的固定二段跳，否则会直接跳过目标。
 func launch_and_juggle(s: Node2D, ev: Dictionary) -> float:
 	var vmin := [0.0]
 	var probe := func():
@@ -105,8 +106,7 @@ func launch_and_juggle(s: Node2D, ev: Dictionary) -> float:
 	while p.is_on_floor() and t1 < 12:
 		await tap([&"jump", &"aim_up"], Vector2(0, -1), 3, 2, probe)
 		t1 += 1
-	await hold(10, fr(), probe)
-	await tap([&"jump", &"aim_up"], Vector2(0, -1), 3, 3, probe)
+	await hold(7, fr(), probe)
 	await tap([&"attack_light"], Vector2.ZERO, 3, 14, probe)
 	await tap([&"attack_light"], Vector2.ZERO, 3, 14, probe)
 	return vmin[0]

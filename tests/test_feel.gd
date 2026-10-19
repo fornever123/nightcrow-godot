@@ -82,9 +82,9 @@ func run() -> void:
 	# ---- 跳：快跳快落，跳高保持
 	await fresh()
 	var j: Dictionary = await measure_jump()
-	check(j.height > 155.0 and j.height < 195.0, "满跳高度约 170px（实际 %.0f）" % j.height)
+	check(j.height > p.jump_height * 0.93 and j.height < p.jump_height * 1.05, "满跳达到配置高度（目标 %.0f / 实际 %.0f）" % [p.jump_height, j.height])
 	check(j.peak <= 24, "0.4 秒内到顶（实际 %d 帧）" % j.peak)
-	check(j.air <= 44, "整跳滞空不超过 0.73 秒（实际 %d 帧）" % j.air)
+	check(j.air <= 60, "加高并减慢下落后整跳不超过 1 秒（实际 %d 帧）" % j.air)
 	check(j.max_vy <= p.max_fall_speed + 0.5 and p.max_fall_speed <= 1400.0, "下落速度有上限")
 	check(not p.last_landing_heavy and view.landing_speed > 1.0, "普通落地是轻落地：落地动作快放")
 

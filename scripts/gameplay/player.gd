@@ -813,6 +813,11 @@ func _depenetrate() -> void:
 
 ## 水平移动。scale 是出招时的减速倍率（不是 0，出招要走得动）。
 func _move_horizontal(delta: float, frame: InputBuffer.Frame, move_scale: float) -> void:
+	# A normal airborne swing uses the same steering as an empty jump.
+	# Directional finishers and dash attacks retain their deliberate movement.
+	if not is_on_floor() and state == State.ATTACK and finisher_intent == &"" \
+			and current_move != dash_move and current_move != dash_left_move:
+		move_scale = 1.0
 	var axis := frame.axis
 	var target := axis.x * speed * move_scale
 	if state == State.NEUTRAL and is_on_floor() and locomotion_animation.is_empty() \
@@ -1164,7 +1169,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			if hitstop_this_tick:
 				return
 		# 命中前冲：只在判定帧的头几帧推一次，做出"撞上去"的顿挫
-		if move_frame == mv.startup_frames and mv.lunge > 0.0 and absf(frame.axis.x) < 0.15:
+		if is_on_floor() and move_frame == mv.startup_frames and mv.lunge > 0.0 and absf(frame.axis.x) < 0.15:
 			velocity.x = float(facing) * mv.lunge
 		_move_horizontal(delta, frame, mv.movement_scale)
 
@@ -1206,6 +1211,12 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 					return
 			# J：按住 → 蓄力斩；点按 → 推进连段
 			if _resolve_light_press():
+				# A chain transition still consumes a physics tick. Keep moving on
+				# that tick rather than leaving a one-frame gap in the jump arc.
+				if not is_on_floor() and current_move != null:
+					_move_horizontal(delta, frame, 1.0)
+					_apply_air_attack_gravity(delta, current_move)
+					_move_with_root_motion(delta, current_move)
 				return
 			link_open = false
 		# 收招尾巴：接招点之后再过 move_cancel_delay 帧，按方向键直接收招跑开
@@ -1923,22 +1934,12 @@ func _start_air_combo_move() -> void:
 	air_combo_index += 1
 	_start_move(mv, false)
 
-func _apply_air_attack_gravity(delta: float, mv: Resource) -> void:
+func _apply_air_attack_gravity(delta: float, _mv: Resource) -> void:
 	if finisher_intent == &"slam" and not is_on_floor():
 		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
 		return
-	if air_combo.is_empty() or not air_combo.has(mv) or is_on_floor():
-		_apply_gravity(delta, _air_gravity())
-		return
-	var budget := maxi(int(_sprite_config().get("airCombo", {}).get("maxSuspendFrames", 180)), 0)
-	if air_suspend_used < budget:
-		air_suspend_used += 1
-		if move_frame < maxi(mv.air_suspend_frames, 0):
-			velocity.y = 0.0
-			return
-		_apply_gravity(delta, air_attack_gravity * clampf(mv.air_gravity_scale, 0.0, 1.0))
-	else:
-		_apply_gravity(delta, _fall_gravity)
+	# Ordinary attacks never reset vertical velocity or replace jump gravity.
+	_apply_gravity(delta, _air_gravity())
 
 func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: InputBuffer.Frame = null) -> void:
 	if phase == &"active":
@@ -2055,7 +2056,10 @@ func _clamp_root_motion(step_px: float) -> float:
 ## 普通招式：输入/惯性速度 + 本帧根位移，一起交给物理（撞墙会停住）。
 ## 根位移只作用这一帧，不留在 velocity 里，免得变成惯性滑步。
 func _move_with_root_motion(delta: float, mv: Resource) -> void:
-	var rv := _clamp_root_motion(_root_motion_step(mv) * float(facing)) / maxf(delta, 0.000001)
+	var root_step := 0.0
+	if is_on_floor() or finisher_intent != &"":
+		root_step = _root_motion_step(mv)
+	var rv := _clamp_root_motion(root_step * float(facing)) / maxf(delta, 0.000001)
 	velocity.x += rv
 	move_and_slide()
 	if rv != 0.0 and is_on_wall() and signf(velocity.x) != signf(rv):

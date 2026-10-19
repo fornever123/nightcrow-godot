@@ -65,6 +65,8 @@ func run() -> void:
 	await step(1)
 	check(view.clip_name == "fall", "descent switches to fall")
 	await shot("fall")
+	# The faster run / taller double jump needs room before the arena wall.
+	p.position.x = 200.0
 	await step(1, true)
 	await step(2)
 	check(p.velocity.y < 0 and view.clip_name == "jump", "double jump restarts rise")

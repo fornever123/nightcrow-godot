@@ -188,8 +188,12 @@ func test_player_block() -> void:
 	await hold(60, fr([], [], Vector2(1, 0)))
 	check(p.global_position.x < bx0 - 10.0, "石台侧面挡路（x %.0f）" % p.global_position.x)
 	await tap([&"jump"], Vector2(1, 0), 3)
-	await hold(50, fr([], [], Vector2(1, 0)))
-	await hold(20, fr())
+	# Navigate onto the platform, rather than running off it at the new speed.
+	for i in 90:
+		if p.global_position.x >= bx0 + 200.0:
+			break
+		await hold(1, fr([], [], Vector2(1, 0)))
+	await hold(90, fr())
 	check(p.is_on_floor() and absf(feet() - 472.0) < 3.0, "跳上石台（脚底 %.0f）" % feet())
 	await tap([&"jump"], Vector2(0, 1), 3)
 	check(not p.is_dropping_through(), "石台上 S+跳 = 普通起跳")

@@ -18,9 +18,9 @@ PLAN = {
     "charge_1":        (6, 5, 10, 14, 8, 10, 7.0, 260, None),
     "up_strike":       (6, 4, 8, 14,  5, 6,  2.5, 60,  None),
     "air_up":          (5, 4, 4, 4,   3, 4,  0.0, 40,  None),
-    "air_light_1":     (5, 4, 4, 4,   3, 4,  0.0, 40,  14),
-    "air_light_2":     (3, 5, 0, 5,   3, 4,  0.0, 40,  12),
-    "air_light_3":     (0, 6, 10, 10, 5, 6,  3.0, 60,  12),
+    "air_light_1":     (5, 4, 4, 4,   3, 4,  0.0, 40,  0),
+    "air_light_2":     (3, 5, 0, 5,   3, 4,  0.0, 40,  0),
+    "air_light_3":     (0, 6, 10, 10, 5, 6,  3.0, 60,  0),
     "dash_slash":      (7, 8, 12, 12, 6, 8,  5.0, 300, None),
     "dash_slash_left": (7, 8, 8, 4,   6, 8,  5.0, 300, None),
     "ranged_1":        (6, 4, 8, 0,   1, 2,  0.0, 0,   None),
@@ -81,6 +81,7 @@ def main():
             mv["moveCancelDelay"] = 0
         if suspend is not None:
             mv["airSuspendFrames"] = suspend
+            mv["airGravityScale"] = 1.0
     cfg["feedback"]["shakeMultiplier"] = 1.0
     rt = cfg["runtime"]
     rt["attackBufferFrames"] = 16
