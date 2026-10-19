@@ -547,3 +547,14 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 统一跳跃缓冲每tick只更新一次，避免新优先分支和旧状态分支重复扣缓冲；起跳脱离地形后恢复原水平速度，取消冲刺时不会平白丢掉横向动量。
 - 修改器新增奖励跳、慢坠秒数与两种百分比；旧无效悬停入口移除，游戏H操作说明更新。类型检查及构建通过。
 - 验证：新jump_combat_mobility29，既有guard_charge_movement29、action_flow45、air_movement14、night_combat50、strong_feedback101、training36、feel27、combat_feedback52、shades_v4 52、framebaker_runtime52、desktop_integration28、animation_timing21，共536项0失败，主场景启动通过。新专项曾捕获群攻速度连乘成.2025倍的问题，已按tick去重后复验。无完整机器人/录屏。
+
+### 16.11 跳跃式上挑、Space与空中朝向（节点25，2026-10-19）
+
+最新要求覆盖16.10的上挑奖励和受击跳取消：上挑本身就是一次跳（类似上勾拳），W→J和J→W都容易使出；可跳掉自己的普攻/上挑，不能跳掉受击。用户补充空中朝向反了。
+
+- 新 `airCombat.uppercutInputFrames=12`，修改器按0.2秒显示。前置 `_try_uppercut_input`按实际输入历史匹配两种顺序；W先已经跳时复用vy和跳跃预算，转换为同一次up_strike，不再重新起跳；J先在普攻起手时接W，保留前摇进度再上挑。地面上挑于前摇末起跳，下一帧判定，保证地面目标仍可命中。同按只一招，持键不重播。无跳跃次数不送免费跳。
+- 移除 `_bonus_air_jumps`、launcherJumpBonus和命中奖励，UI改为W/J宽容时间。上挑无论命中与否自身都有起跳；空中近战命中短慢坠继续保留。
+- 跳取消失灵的真实原因：jump action同时绑定W、Space，W已held时新按Space不会给Godot action的新边沿。`_sample_keyboard`独立检测Space物理上升沿；普攻、上挑的前摇/动作/自身hitstop都能Space取消，待起跳标志同时清除，取消后不额外跳。
+- LAUNCHED/DOWN/DEAD和大招在跳取消前拒绝jump，消费边沿和清缓冲，受击/倒地恢复后不自动补跳；大招例外不变。
+- 原始PNG目视对比：jump朝左，独立fall素材朝右。fall误配-1会反向；现fall.sourceFacing=1，jump/land仍-1，重建脚本同步；源图不改。方向测试按实图方向作为独立基准，不再用配置自己证明自己。
+- 验证：uppercut_jump26（真实物理按键），air_facing8（修复前2失败），旧jump_combat_mobility调整为24（移除5个已废弃奖励跳检查，受击改拒绝）；combat_feedback52、night_combat50、action_flow45、guard_charge_movement29、air_movement14、training36、feel27、shades_v4 52、strong_feedback101、framebaker_runtime52、desktop_integration28、animation_timing21、locomotion12，共577项0失败。修改器构建通过，无整轮bot/录屏。

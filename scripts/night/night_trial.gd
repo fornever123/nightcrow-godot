@@ -289,7 +289,7 @@ func _build_hud() -> void:
 	hud = Hud.new()
 	hud.style = style
 	hud.help_visible = bool(config.ui.get("showMoveHints", true))
-	hud.help_text = "A/D 移动   W/空格 跳   S+空格 跳下木台   J 攻击·按住蓄力   W+J 挑飞   K 远射   L 格挡/弹刀   Shift+J 冲刺斩   J+K 大招\n跳跃取消动作（大招除外）·上挑命中+1跳·空中命中慢坠   S+J 下砸·前+J 横扫   H 隐藏   F3 木桩   R 重开"
+	hud.help_text = "A/D 移动   W/空格 跳   S+空格 跳下木台   J 攻击·按住蓄力   W+J/J+W 跳起上挑   K 远射   L 格挡/弹刀   Shift+J 冲刺斩   J+K 大招\n空格取消出招（受击/倒地/大招除外）·空中命中慢坠   S+J 下砸·前+J 横扫   H 隐藏   F3 木桩   R 重开"
 	layer.add_child(hud)
 
 
@@ -550,7 +550,7 @@ func _on_shade_launched(point: Vector2) -> void:
 	hud.callout("挑飞！", Color("9fd8ff"), 36)
 	audio.play_launch()
 	fx.spawn_dust(Vector2(point.x, terrain.support_y(point.x, point.y)), 0.7)
-	_queue_hint(&"air", "上挑命中多一次跳跃！跳起 J 连斩，命中短暂慢坠 · S+J 下砸 · 前+J 横扫撞墙", 6.0, true)
+	_queue_hint(&"air", "W后按J或J后按W：跳起上挑！空中 J 连斩，命中短暂慢坠 · S+J 下砸 · 前+J 横扫撞墙", 6.0, true)
 
 
 func _on_slam_impact(point: Vector2, strength: float) -> void:

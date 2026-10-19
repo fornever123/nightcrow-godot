@@ -60,9 +60,10 @@ def main():
         clips[key]['loop']=True
     clips['jump']['fullSequence']=False
     clips['fall']['loop']=True
-    # The jump starts/lands facing left; its middle body turn is intentional.
-    for key in ['jump','fall','land']:
+    # Rise/landing source PNGs face left, but the separate descent clip faces right.
+    for key in ['jump','land']:
         clips[key]['sourceFacing']=-1
+    clips['fall']['sourceFacing']=1
     for key in ['turn_left_right','turn_right_left']:
         clips[key]['authoredTurn']=True
 

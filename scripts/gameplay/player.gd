@@ -74,7 +74,7 @@ const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up",
 @export var deceleration: float = 4800.0
 @export_range(0.0, 1.0) var charge_movement_scale: float = 0.85
 @export_group("空中追击")
-@export var launcher_jump_bonus: int = 1
+@export var uppercut_input_frames: int = 12
 @export var hit_fall_slow_frames: int = 12
 @export_range(0.0, 1.0) var hit_fall_speed_scale: float = 0.45
 @export_range(0.0, 1.0) var hit_fall_gravity_scale: float = 0.35
@@ -310,8 +310,12 @@ var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
 var _air_jumps_left: int = 0
-var _bonus_air_jumps: int = 0
-var _launcher_bonus_given: bool = false
+var _uppercut_jump_pending: bool = false
+var _uppercut_used_light_seq: int = -1
+var _last_jump_frame: int = -1000
+var _last_jump_from_up: bool = false
+var _last_jump_is_uppercut: bool = false
+var _space_was_held: bool = false
 var _air_hit_slow_frames: int = 0
 var _air_slow_hit_tick: int = -1
 var _jump_buffer_tick: int = -1
@@ -443,7 +447,7 @@ func apply_movement_config(c: Dictionary, settings: Dictionary) -> void:
 	deceleration = float(c.get("deceleration", acceleration))
 	charge_movement_scale = clampf(float(c.get("chargeMovementScale", 0.85)), 0.0, 1.0)
 	var air_combat: Dictionary = c.get("airCombat", {})
-	launcher_jump_bonus = maxi(0, int(air_combat.get("launcherJumpBonus", 1)))
+	uppercut_input_frames = maxi(1, int(air_combat.get("uppercutInputFrames", 12)))
 	hit_fall_slow_frames = maxi(0, int(air_combat.get("hitFallSlowFrames", 12)))
 	hit_fall_speed_scale = clampf(float(air_combat.get("hitFallSpeedScale", 0.45)), 0.0, 1.0)
 	hit_fall_gravity_scale = clampf(float(air_combat.get("hitFallGravityScale", 0.35)), 0.0, 1.0)
@@ -475,7 +479,13 @@ func _recalculate_jump() -> void:
 ## _resolve_attack_command 里写死的 &"attack_light" 一致，否则 P2 永远出不了招。
 func _sample_keyboard() -> InputBuffer.Frame:
 	if action_suffix == "":
-		return InputBuffer.sample(TRACKED_ACTIONS, AXIS_ACTIONS)
+		var sampled := InputBuffer.sample(TRACKED_ACTIONS, AXIS_ACTIONS)
+		# Space needs an independent edge when W already holds the jump action.
+		var space_held := Input.is_physical_key_pressed(KEY_SPACE)
+		if space_held and not _space_was_held and not sampled.pressed_this_frame.has(&"jump"):
+			sampled.pressed_this_frame.append(&"jump")
+		_space_was_held = space_held
+		return sampled
 	var tracked: Array[StringName] = []
 	for a in TRACKED_ACTIONS:
 		tracked.append(StringName(String(a) + action_suffix))
@@ -537,10 +547,13 @@ func _physics_process(delta: float) -> void:
 	# 大招可以取消任何出招 / 自己的顿帧，所以放在顿帧前面判
 	if ult_frame < 0 and ult_enabled and not guard_held:
 		_try_ult()
-	if ult_frame >= 0 or state == State.DEAD:
-		# Reject jumps during the ultimate, including delayed input on its last tick.
+	if ult_frame >= 0 or state in [State.DEAD, State.LAUNCHED, State.DOWN]:
+		# Damage reactions and the ultimate reject jumps rather than queueing them.
 		_jump_buffer_counter = 0
 		_consumed_edge[&"jump"] = frame.seq
+	elif not guard_held and _try_uppercut_input(frame):
+		_process_attack(delta, frame)
+		return
 	elif _try_action_jump_cancel(delta, frame):
 		return
 
@@ -607,7 +620,6 @@ func _update_ground_air() -> void:
 		# 站在地上时最高点 = 脚下，离地之后再往上记
 		_peak_y = global_position.y
 		if ground_frames == 1:
-			_bonus_air_jumps = 0
 			last_fall_height = maxf(global_position.y - landing_peak, 0.0)
 			last_landing_heavy = finisher_intent == &"slam" or last_fall_height >= heavy_landing_height
 			_landing_lag = heavy_landing_lag_frames if last_landing_heavy else 0
@@ -726,12 +738,60 @@ func _can_jump() -> bool:
 		return true
 	if air_frames > 0 and air_frames <= coyote_frames:
 		return true
-	return _air_jumps_left > 0 or _bonus_air_jumps > 0
+	return _air_jumps_left > 0
 
 
-## Jump can cancel every live action, including hitstop. Neutral jumps retain
-## their normal command priority and platform drop-through behavior.
+## Either order forms one rising uppercut; W-first reuses its existing jump.
+func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
+	if up_strike_move == null or (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)):
+		return false
+	if frame.actions.has(&"dash_modifier"):
+		return false
+	var light_frame: InputBuffer.Frame = null
+	for i in mini(uppercut_input_frames, input_buffer.frame_count()):
+		var recent := input_buffer.frame_at(i)
+		if recent.pressed_this_frame.has(&"attack_light"):
+			light_frame = recent
+			break
+	if light_frame == null or light_frame.seq == _uppercut_used_light_seq:
+		return false
+	var fresh_light := frame.pressed_this_frame.has(&"attack_light")
+	var fresh_up := frame.pressed_this_frame.has(&"aim_up") \
+			or (frame.pressed_this_frame.has(&"jump") and frame.actions.has(&"aim_up"))
+	var up_recent := frame.actions.has(&"aim_up") or input_buffer.held_within(&"aim_up", uppercut_input_frames)
+	if not ((fresh_light and up_recent) or (fresh_up and light_combo.has(current_move))):
+		return false
+	var reuse_jump := _last_jump_from_up and not _last_jump_is_uppercut \
+			and _frame_counter - _last_jump_frame < uppercut_input_frames and not is_on_floor()
+	if is_on_floor():
+		ground_frames = maxi(ground_frames, 1)
+		air_frames = 0
+	if not reuse_jump and not _can_jump():
+		return false
+	var windup := move_frame if current_move != null and light_combo.has(current_move) else 0
+	_uppercut_used_light_seq = light_frame.seq
+	_consumed_edge[&"attack_light"] = light_frame.seq
+	_consumed_edge[&"jump"] = frame.seq
+	_jump_buffer_counter = 0
+	charge_frames = -1
+	_charge_accum = 0.0
+	hitstop_frames = 0
+	hitstop_this_tick = false
+	_start_move(up_strike_move, true)
+	if reuse_jump:
+		_uppercut_jump_pending = false
+		_last_jump_is_uppercut = true
+		move_frame = up_strike_move.startup_frames
+	else:
+		move_frame = mini(windup, maxi(up_strike_move.startup_frames - 1, 0))
+	return true
+
+
+## Jump cancels the actor's own actions/hitstop, but never damage reactions or
+## the ultimate. Neutral jumps retain ordinary platform drop-through behavior.
 func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
+	if state in [State.LAUNCHED, State.DOWN, State.DEAD] or ult_frame >= 0:
+		return false
 	var busy := state != State.NEUTRAL or charge_frames >= 0 or hitstop_frames > 0 \
 			or _guard_active or not locomotion_animation.is_empty()
 	if not busy:
@@ -745,7 +805,6 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	if is_on_floor():
 		if ground_frames == 0:
 			# An immediate landing cancel still starts a fresh jump budget.
-			_bonus_air_jumps = 0
 			_air_jumps_left = extra_air_jumps
 		ground_frames = maxi(ground_frames, 1)
 		air_frames = 0
@@ -763,6 +822,7 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	current_move = null
 	current_is_up = false
 	finisher_intent = &""
+	_uppercut_jump_pending = false
 	state = State.NEUTRAL
 	link_open = false
 	down_frames = 0
@@ -851,6 +911,11 @@ func is_dropping_through() -> bool:
 
 func _do_jump() -> void:
 	_air_hit_slow_frames = 0
+	_last_jump_frame = _frame_counter
+	var jump_input := input_buffer.frame_at(0)
+	_last_jump_from_up = jump_input != null and jump_input.actions.has(&"aim_up") \
+			and not (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE))
+	_last_jump_is_uppercut = false
 	if not locomotion_animation.is_empty():
 		_set_facing(input_direction if input_direction != 0 else _turn_target)
 	_cancel_locomotion()
@@ -866,10 +931,7 @@ func _do_jump() -> void:
 	_depenetrate()
 	velocity.x = horizontal_velocity
 	if is_double:
-		if _air_jumps_left > 0:
-			_air_jumps_left -= 1
-		else:
-			_bonus_air_jumps = maxi(_bonus_air_jumps - 1, 0)
+		_air_jumps_left = maxi(_air_jumps_left - 1, 0)
 		velocity.y = _jump_velocity * double_jump_scale
 		_jump_rising = true
 		_jump_cut = false
@@ -1099,7 +1161,7 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	_dash_facing = facing
 	current_move = mv
 	finisher_intent = &""
-	_launcher_bonus_given = false
+	_uppercut_jump_pending = is_up and (mv == up_strike_move or mv == air_up_move) and _can_jump()
 	if not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
 		var intent_frame := input_buffer.frame_at(0)
 		if intent_frame != null and intent_frame.axis.x * float(facing) > 0.4:
@@ -1278,6 +1340,13 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		_process_guard_reaction(delta, frame, mv)
 		return
 
+	if _uppercut_jump_pending and move_frame >= maxi(mv.startup_frames - 1, 0):
+		_uppercut_jump_pending = false
+		if _can_jump():
+			_do_jump()
+			_last_jump_is_uppercut = true
+			move_frame += 1
+			return
 	_check_swing_cue(mv)
 	var phase: StringName = mv.phase_at(move_frame)
 	if mv == dash_move or mv == dash_left_move:
@@ -1561,9 +1630,6 @@ func _do_hit_check(mv: Resource) -> void:
 
 
 func _on_melee_mobility_hit(mv: Resource) -> void:
-	if (mv == up_strike_move or mv == air_up_move) and not _launcher_bonus_given:
-		_bonus_air_jumps += launcher_jump_bonus
-		_launcher_bonus_given = true
 	if not is_on_floor() and not mv.is_ranged() and finisher_intent == &"" \
 			and hit_fall_slow_frames > 0 and _air_slow_hit_tick != tick_count:
 		_air_slow_hit_tick = tick_count
@@ -1882,8 +1948,12 @@ func reset_state(pos: Vector2) -> void:
 	_air_jumps_left = extra_air_jumps
 	_air_light_left = air_light_uses
 	_jump_buffer_counter = 0
-	_bonus_air_jumps = 0
-	_launcher_bonus_given = false
+	_uppercut_jump_pending = false
+	_uppercut_used_light_seq = -1
+	_last_jump_frame = -1000
+	_last_jump_from_up = false
+	_last_jump_is_uppercut = false
+	_space_was_held = Input.is_physical_key_pressed(KEY_SPACE)
 	_air_hit_slow_frames = 0
 	_air_slow_hit_tick = -1
 	_jump_buffer_tick = -1
@@ -2341,6 +2411,7 @@ func _play_guard_reaction(reactions: Array, parried: bool) -> void:
 	_reaction_guard_held = keep_guard
 
 func _interrupt_action_flow() -> void:
+	_uppercut_jump_pending = false
 	_air_hit_slow_frames = 0
 	_reaction_guard_held = false
 	_cancel_locomotion()

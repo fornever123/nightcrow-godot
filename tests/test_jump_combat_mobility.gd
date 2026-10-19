@@ -99,7 +99,7 @@ func run() -> void:
 
 	var cfg: Dictionary = Config.character(Config.read(), "player")
 	var air: Dictionary = cfg.get("airCombat", {})
-	check(int(air.get("launcherJumpBonus", -1)) == 1, "air-combat config grants one launcher jump")
+	check(int(air.get("uppercutInputFrames", -1)) == 12, "air-combat config defines the uppercut input-order window")
 	check(int(air.get("hitFallSlowFrames", -1)) == 12 and absf(float(air.get("hitFallSpeedScale", -1.0)) - 0.45) < 0.001 \
 			and absf(float(air.get("hitFallGravityScale", -1.0)) - 0.35) < 0.001,
 			"air-hit slow config keeps the 12-frame, 0.45-speed, 0.35-gravity contract")
@@ -127,13 +127,16 @@ func run() -> void:
 	await reset()
 	p.state = Player.State.LAUNCHED
 	p.velocity = Vector2(100.0, 120.0)
+	p.hitstop_frames = 3
 	await jump_edge()
-	check(p.velocity.y < 0.0 and p.state != Player.State.LAUNCHED, "jump cancels hit-launch reaction")
+	check(p.state == Player.State.LAUNCHED and p.hitstop_frames == 2 and p.velocity.y == 120.0,
+		"jump cannot cancel hit-launch reaction or incoming hitstop")
 	await reset()
 	p.state = Player.State.DOWN
 	p.down_frames = 20
 	await jump_edge()
-	check(p.velocity.y < 0.0 and p.state != Player.State.DOWN, "jump cancels a knockdown recovery")
+	check(p.state == Player.State.DOWN and p.down_frames == 19 and p.velocity.y >= 0.0,
+		"jump cannot cancel a knockdown recovery")
 	await reset()
 	p._do_block(d, p.global_position)
 	var block_stop: int = p.hitstop_frames
@@ -209,48 +212,6 @@ func run() -> void:
 	await jump_edge()
 	check(p.state == Player.State.DEAD and p.hp == 0.0 and p.velocity.y >= 0.0,
 			"jump never revives a dead player")
-
-	# One real ground launcher hit grants exactly one reusable extra air jump;
-	# misses and projectiles must not create phantom bonuses.
-	await reset()
-	d.position = Vector2(stage.config.stage.spawn.enemies[0].x, stage.config.stage.spawn.enemies[0].y - 68.0)
-	d.velocity = Vector2.ZERO
-	var second_dummy: CharacterBody2D = DummyScene.instantiate()
-	stage.add_child(second_dummy)
-	second_dummy.position = d.position + Vector2(40.0, 0.0)
-	second_dummy.velocity = Vector2.ZERO
-	p.position.x = d.position.x - 60.0
-	await step()
-	await step(frame([&"aim_up", &"attack_light"], [&"attack_light"]))
-	var hp_before: float = d.hp
-	var second_hp_before: float = second_dummy.hp
-	for i in 40:
-		await step()
-		if d.hp < hp_before and second_dummy.hp < second_hp_before:
-			break
-	var granted := int(p.get("_bonus_air_jumps")) if p.get("_bonus_air_jumps") != null else -1
-	check(d.hp < hp_before and second_dummy.hp < second_hp_before and granted == 1,
-			"one real up-strike hitting two enemies grants only one bonus jump")
-	second_dummy.queue_free()
-	await process_frame
-	if d.hp < hp_before:
-		await jump_edge()
-		check(p.velocity.y < 0.0 and int_prop(p, &"_bonus_air_jumps") == 1,
-				"ground launcher bonus remains available after the following takeoff")
-		for i in p.coyote_frames + 2:
-			await step()
-		await jump_edge()
-		check(int_prop(p, &"_air_jumps_left") == 0 and int_prop(p, &"_bonus_air_jumps") == 1,
-				"the ordinary extra jump is consumed before launcher bonus")
-		for i in p.coyote_frames + 2:
-			await step()
-		await jump_edge()
-		check(int_prop(p, &"_bonus_air_jumps") == 0, "the launcher bonus jump is consumed once")
-		for i in 180:
-			if p.is_on_floor():
-				break
-			await step()
-		check(int_prop(p, &"_bonus_air_jumps") == 0, "landing clears the consumed launcher bonus")
 
 	# Force the real melee overlap path against the wooden dummy while falling.
 	# Verify immediate velocity scaling, active-frame countdown, and that a

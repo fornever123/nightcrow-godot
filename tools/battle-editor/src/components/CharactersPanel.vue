@@ -68,9 +68,9 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
     <p class="notice">输入可用逗号分隔多个绑定。SHIFT+J 为冲刺攻击，L_HOLD 为持续防守。</p>
   </PanelShell>
   <PanelShell title="空中连段与追击" eyebrow="跳跃取消 · 命中慢坠">
-    <p class="notice">有剩余次数时，跳跃可打断大招以外的动作。上挑命中同一刀只奖励一次，落地清空额外次数；空中挥空正常下落，近战命中后短暂慢坠，顿帧不占慢坠时间。</p>
+    <p class="notice">上挑自身就是一次起跳，W后按J、J后按W都可以，不额外赠送跳跃。空格可取消出招；受击、倒地和大招期间不能跳跃脱身。空中近战命中后短暂慢坠，挥空正常下落。</p>
     <div class="field-grid">
-      <EditorField label="每次上挑命中奖励跳跃次数" type="number" :model-value="airCombat.launcherJumpBonus??1" min="0" max="6" step="1" @update="setAirCombat('launcherJumpBonus',$event)"/>
+      <EditorField label="W与J连续按的宽容时间（秒）" type="number" :model-value="(airCombat.uppercutInputFrames??12)/60" min="0.05" max="0.5" step="0.05" @update="setAirCombat('uppercutInputFrames',Math.max(1,Math.round($event*60)))"/>
       <EditorField label="命中后慢坠时长（秒）" type="number" :model-value="(airCombat.hitFallSlowFrames??12)/60" min="0" max="2" step="0.05" @update="setAirCombat('hitFallSlowFrames',Math.round($event*60))"/>
       <EditorField label="命中后保留的下落速度（%）" type="number" :model-value="(airCombat.hitFallSpeedScale??0.45)*100" min="0" max="100" step="1" @update="setAirCombat('hitFallSpeedScale',$event/100)"/>
       <EditorField label="慢坠时的下落重力（%）" type="number" :model-value="(airCombat.hitFallGravityScale??0.35)*100" min="0" max="100" step="1" @update="setAirCombat('hitFallGravityScale',$event/100)"/>
