@@ -32,6 +32,10 @@ const CameraScript := preload("res://scripts/presentation/camera_shake.gd")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
+const UltFx := preload("res://scripts/night/ult_fx.gd")
+## 大招能量：打中敌人按伤害 ×ULT_GAIN_HIT，自己挨打按掉血 ×ULT_GAIN_HURT（满 100）
+const ULT_GAIN_HIT := 0.8
+const ULT_GAIN_HURT := 1.2
 
 const G := Shade.Kind.GRUNT
 const B := Shade.Kind.BRUTE
@@ -97,6 +101,8 @@ var _round_time: float = 0.0
 var _round_rank: int = 0
 var _round_max_combo: int = 0
 var _time: float = 0.0
+var ult_fx: Node2D
+var _ult_hint_shown := false
 
 
 func _ready() -> void:
@@ -120,6 +126,7 @@ func _ready() -> void:
 	player.soft_knock_threshold = 350.0
 	player.hard_down_frames = 20
 	player.root_motion_block_group = &"shade"
+	player.ult_enabled = true
 	player.launcher_cancel = true
 	# 玩家被打飞后落地/撞墙不再额外扣血（训练场里落地也算"撞墙"，影卒一刀 8 实际会掉 26）。
 	# 试玩版里玩家掉多少血 = 敌人这一刀的伤害，读得懂。撞击特效照放。
@@ -145,6 +152,8 @@ func _ready() -> void:
 	fx.text_scale = 1.0 / ZOOM
 	fx.fx_scale = 1.25
 	add_child(fx)
+	ult_fx = UltFx.new()
+	add_child(ult_fx)
 	style = Style.new()
 	_build_hud()
 	encounter = Encounter.new()
@@ -281,7 +290,7 @@ func _build_hud() -> void:
 	hud = Hud.new()
 	hud.style = style
 	hud.help_visible = bool(config.ui.get("showMoveHints", true))
-	hud.help_text = "A/D 移动   W/空格 跳（可二段）   S+空格 跳下木台   J 攻击·按住蓄力   W+J 挑飞   K 远射   L 弹刀·按住格挡   Shift+J 冲刺斩\n空中：J 连斩   S+J 下砸   按住前方+J 横扫        H 隐藏说明   F3 木桩训练场   R 从头开始"
+	hud.help_text = "A/D 移动   W/空格 跳（可二段）   S+空格 跳下木台   J 攻击·按住蓄力   W+J 挑飞   K 远射   L 弹刀·按住格挡   Shift+J 冲刺斩   J+K 大招（能量满）\n空中：J 连斩   S+J 下砸   按住前方+J 横扫        H 隐藏说明   F3 木桩训练场   R 从头开始"
 	layer.add_child(hud)
 
 
@@ -302,6 +311,8 @@ func _connect_player() -> void:
 	player.plunge_landed.connect(_on_plunge_landed)
 	player.wall_slam.connect(_on_player_wall)
 	player.died.connect(_on_player_died)
+	player.ult_started.connect(_on_ult_started)
+	player.ult_hit.connect(_on_ult_hit)
 	audio.attach_player(player)
 
 
@@ -504,6 +515,7 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	if target == player or not target.is_in_group(&"shade"):
 		return
 	style.add_hit(mv.id)
+	player.add_ult_energy(clampf(mv.damage, 3.0, 30.0) * ULT_GAIN_HIT)
 	if target.state == Shade.State.LAUNCHED:
 		style.add_event(&"juggle")
 	var dir := target.global_position - player.global_position
@@ -640,6 +652,7 @@ func _on_strike_landed(point: Vector2, s: Node2D) -> void:
 ## 玩家掉血（近战刀 / 影矢 / 炸弹都走这里）
 func _on_player_hurt(dmg: float, point: Vector2, shake: float = 3.0, dir: Vector2 = Vector2.ZERO, heavy: bool = false) -> void:
 	_hp_seen = player.hp
+	player.add_ult_energy(dmg * ULT_GAIN_HURT)
 	var combo_before := style.combo
 	style.take_damage(dmg)
 	if combo_before >= 5:
@@ -725,6 +738,10 @@ func _process(_delta: float) -> void:
 		return
 	hud.player_hp = player.hp
 	hud.player_max_hp = player.max_hp
+	hud.ult_frac = player.ult_energy / maxf(player.ult_max, 1.0)
+	if player.ult_ready() and not _ult_hint_shown:
+		_ult_hint_shown = true
+		_queue_hint(&"ult", "能量满了！J + K 一起按：大招（全屏斩）", 6.0, true)
 	var enc_no := encounter_index % ROUND.size() + 1
 	if phase == Phase.EXPLORE:
 		var left := ROUND.size() - encounter_index % ROUND.size()
@@ -808,3 +825,50 @@ func _draw_seals() -> void:
 			var p := Vector2(x + inward * 20.0, y)
 			var col := Color(1.0, 0.86, 0.55, seal_alpha * 0.7 * sin(PI * phase_y / 1040.0))
 			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.6, 0), p + Vector2(0, s), p + Vector2(-s * 0.6, 0)]), col)
+
+
+# ---------------------------------------------------------------- 大招（第四轮）
+
+## 摆架势：背景压暗、全场的影和飞行物定住
+func _on_ult_started() -> void:
+	audio.play_ult_start()
+	ult_fx.begin()
+	hud.callout("大招！", Color("ffd27a"), 46)
+	camera.add_shake(3.0 * shake_mul, Vector2.UP)
+	var freeze: int = player.ult_hit_frame + 2
+	for s in get_tree().get_nodes_in_group(&"shade"):
+		if s.is_alive():
+			s.hitstop_frames = maxi(s.hitstop_frames, freeze)
+	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
+		b.set_physics_process(false)
+
+
+## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎
+func _on_ult_hit() -> void:
+	audio.play_ult_slash()
+	var mv: Resource = player.ult_move()
+	var cx: float = camera.get_screen_center_position().x
+	var half := 640.0 / ZOOM + 60.0
+	var ys := []
+	var n := 0
+	for s in get_tree().get_nodes_in_group(&"shade"):
+		if not s.is_alive() or s.spawn_frames > 0 or absf(s.global_position.x - cx) > half:
+			continue
+		var dir := 1 if s.global_position.x >= player.global_position.x else -1
+		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
+		s.hitstop_frames = 0
+		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
+		s.hitstop_frames = maxi(s.hitstop_frames, 14)
+		fx.spawn_hit(pt, 1.6, true)
+		ys.append(pt.y)
+		n += 1
+	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
+		if is_instance_valid(b):
+			fx.spawn_parry(b.global_position, Vector2(player.facing, 0))
+			b.queue_free()
+	ult_fx.slash(player.global_position.y - 20.0, player.facing, ys)
+	camera.add_shake(16.0 * shake_mul, Vector2(player.facing, 0))
+	player.hitstop_frames = maxi(player.hitstop_frames, 8)
+	style.add_event(&"ult")
+	if n > 0:
+		hud.callout("月下斩 ×%d" % n, Color("ffe08a"), 44)

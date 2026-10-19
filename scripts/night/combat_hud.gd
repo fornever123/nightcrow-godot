@@ -12,6 +12,7 @@ const INK := Color(0.02, 0.03, 0.07)
 var style: Style
 var player_hp: float = 100.0
 var player_max_hp: float = 100.0
+var ult_frac: float = 0.0          ## 大招能量 0..1（满 = 可以放）
 var wave_text: String = ""
 var help_visible: bool = true
 var help_text: String = ""
@@ -142,8 +143,21 @@ func _draw_hp() -> void:
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y)), col)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * frac, 4)), Color(1, 1, 1, 0.25))
 	_text(origin + Vector2(52 + w, 16), "%d" % ceili(player_hp), 16, MOON)
+	# 大招能量条（满了发光 + 提示 J+K）
+	var ub := Rect2(origin + Vector2(44, 25), Vector2(w * 0.72, 7))
+	var full := ult_frac >= 0.999
+	_text(origin + Vector2(0, 33), "大招", 13, Color(GOLD, 0.9) if full else Color(MOON, 0.7), HORIZONTAL_ALIGNMENT_LEFT, -1, 4)
+	draw_rect(ub.grow(2), Color(INK, 0.8))
+	var ucol := Color("ffb85c")
+	if full:
+		var pulse := 0.5 + 0.5 * sin(_time * 7.0)
+		draw_rect(ub.grow(3 + 2 * pulse), Color(GOLD, 0.18 + 0.2 * pulse))
+		ucol = Color("ffd27a").lerp(Color(1, 0.97, 0.88), pulse * 0.6)
+	draw_rect(Rect2(ub.position, Vector2(ub.size.x * clampf(ult_frac, 0.0, 1.0), ub.size.y)), ucol)
+	if full:
+		_text(ub.position + Vector2(ub.size.x + 10, 8), "J+K", 14, GOLD, HORIZONTAL_ALIGNMENT_LEFT, -1, 4)
 	if wave_text != "":
-		_text(origin + Vector2(0, 48), wave_text, 17, Color(MOON, 0.92))
+		_text(origin + Vector2(0, 58), wave_text, 17, Color(MOON, 0.92))
 
 
 func _draw_combo(vp: Vector2) -> void:

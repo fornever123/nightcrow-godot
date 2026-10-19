@@ -985,7 +985,8 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	if state == State.DEAD:
 		return false
 	# 翻滚的无敌帧：这一刀整个落空（返回 true = 攻方不算命中、不顿帧、不出命中声）
-	if is_dodging():
+	var is_ult := mv.id == &"ult"   # 大招：躲不开、挡不住、霸体也扛不住
+	if is_dodging() and not is_ult:
 		return true
 	var intent: StringName = &""
 	if attacker != null and attacker.has_method(&"combat_intent"):
@@ -1033,11 +1034,11 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	var launches := mv.forces_launch or from_up
 	var km := knock_mul()
 	# ---- 浮空中：托住 / 方向终结 ----
-	if airborne:
+	if airborne and not is_ult:
 		_juggle(mv, from_facing, from_up, intent)
 		return false
 	# ---- 甲影霸体：没破防时普通攻击打不断它 ----
-	if bool(spec.armor) and not stunned and state != State.DOWN:
+	if bool(spec.armor) and not stunned and state != State.DOWN and not is_ult:
 		if is_armored():
 			armor_flash = 8
 			velocity.x += float(from_facing) * 30.0

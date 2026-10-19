@@ -36,6 +36,10 @@ signal parry_success(attacker: Node, point: Vector2)
 signal block_success(attacker: Node, point: Vector2)
 ## 试玩版：S+J 下砸落地（表现层拿去放冲击尘土/震屏）
 signal plunge_landed(point: Vector2)
+## 大招（第四轮）：开始（暗屏、全场定住）→ 出刀那一帧（全屏斩）→ 收招
+signal ult_started()
+signal ult_hit()
+signal ult_finished()
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
@@ -209,6 +213,16 @@ var input_source: Object = null
 ## 每次离地默认只能空中 J 一次；K 或第三段命中后返还一次。
 @export var air_light_uses: int = 1
 
+@export_group("大招（第四轮）")
+## 能量满后 J、K 在 ult_chord_frames 帧内先后按下（或同时按）→ 大招。默认关（训练场 / PVP 不受影响）。
+@export var ult_enabled: bool = false
+@export var ult_max: float = 100.0
+@export var ult_chord_frames: int = 6
+## 整招多少帧 / 第几帧出刀（之前是摆架势 + 全场定住）
+@export var ult_total_frames: int = 58
+@export var ult_hit_frame: int = 24
+@export var ult_damage: float = 50.0
+
 @export_group("手感表现")
 @export var squash_strength: float = 1.0
 
@@ -227,6 +241,10 @@ var air_suspend_used: int = 0
 var guard_animation: String = ""
 var guard_clock: float = 0.0
 var action_serial: int = 0
+var ult_energy: float = 0.0
+var ult_frame: int = -1          ## ≥0 = 正在放大招（第几帧）
+var _ult_move: Resource = null
+var _ult_used_seq: int = -1      ## 已经用掉的那对 J/K 按键（防止同一次按键放两次）
 var _soft_knock := false   ## 这次被击退是轻击（落地直接站稳）
 var action_idle_frames: int = 0
 var _turn_target: int = 1
@@ -485,6 +503,9 @@ func _physics_process(delta: float) -> void:
 	if frame == null:
 		frame = InputBuffer.Frame.new()
 	input_buffer.push(frame)
+	# 大招可以取消任何出招 / 自己的顿帧，所以放在顿帧前面判
+	if ult_frame < 0 and ult_enabled:
+		_try_ult()
 
 	# ---- 2. Hitstop：冻结自己，不影响别人 ----
 	if hitstop_frames > 0:
@@ -515,6 +536,10 @@ func _physics_process(delta: float) -> void:
 		action_idle_frames += 1
 	# J 的"按住了几帧"计时器也必须每帧更新（含顿帧期间的输入）
 	_update_attack_hold(frame)
+
+	if ult_frame >= 0:
+		_process_ult(delta)
+		return
 
 	# 蓄力是"招式之外的一个前置阶段"，所以优先于状态机分流
 	if charge_frames >= 0:
@@ -1656,6 +1681,8 @@ func on_parried(cause: Node = null) -> void:
 
 func reset_state(pos: Vector2) -> void:
 	_interrupt_action_flow()
+	ult_frame = -1
+	ult_energy = 0.0
 	action_idle_frames = 0
 	global_position = pos
 	velocity = Vector2.ZERO
@@ -2133,3 +2160,126 @@ func _interrupt_action_flow() -> void:
 
 func is_combat_action_active() -> bool:
 	return state == State.ATTACK or charge_frames >= 0 or _guard_active
+
+
+# ---------------------------------------------------------------- 大招（第四轮）
+
+func add_ult_energy(amount: float) -> void:
+	if not ult_enabled or ult_frame >= 0 or state == State.DEAD:
+		return
+	ult_energy = clampf(ult_energy + amount, 0.0, ult_max)
+
+
+func ult_ready() -> bool:
+	return ult_enabled and ult_energy >= ult_max
+
+
+func is_ult() -> bool:
+	return ult_frame >= 0
+
+
+## 大招用的招式数据：借蓄力斩的动画，伤害 / 击飞单独定（id = &"ult"，敌人那边据此破格挡、破霸体）
+func ult_move() -> Resource:
+	if _ult_move == null:
+		var base: Resource = charge_move
+		if base == null and not light_combo.is_empty():
+			base = light_combo[light_combo.size() - 1]
+		if base == null:
+			return null
+		_ult_move = base.duplicate()
+		_ult_move.id = &"ult"
+		_ult_move.command = &"ult"
+		_ult_move.display_name = "大招"
+		_ult_move.is_charge = false
+		_ult_move.damage = ult_damage
+		_ult_move.knockback = 1150.0
+		_ult_move.knockback_angle = 38.0
+		_ult_move.forces_launch = true
+		_ult_move.launch_speed = 900.0
+		_ult_move.hitstop_frames = 10
+		_ult_move.victim_hitstop_frames = 16
+		_ult_move.shake_amount = 0.0
+		_ult_move.wall_damage_factor = 1.0
+		_ult_move.lunge = 0.0
+		_ult_move.next_move = null
+	return _ult_move
+
+
+## J + K：两个按键都在最近 ult_chord_frames 帧里按下过，而且这一对还没用过
+func _try_ult() -> bool:
+	if not ult_ready():
+		return false
+	if state != State.NEUTRAL and state != State.ATTACK:
+		return false
+	var sj := -1
+	var sk := -1
+	for i in mini(ult_chord_frames, input_buffer.frame_count()):
+		var f := input_buffer.frame_at(i)
+		if f == null:
+			continue
+		if sj < 0 and f.pressed_this_frame.has(&"attack_light"):
+			sj = f.seq
+		if sk < 0 and f.pressed_this_frame.has(&"attack_ranged"):
+			sk = f.seq
+	if sj < 0 or sk < 0 or mini(sj, sk) <= _ult_used_seq:
+		return false
+	_ult_used_seq = maxi(sj, sk)
+	# 这两个按键算用掉了，别在大招之后又冒出一刀普攻 / 一发远射
+	_consumed_edge[&"attack_light"] = sj
+	_consumed_edge[&"attack_ranged"] = sk
+	_start_ult()
+	return true
+
+
+func _start_ult() -> void:
+	var mv := ult_move()
+	if mv == null:
+		return
+	_interrupt_action_flow()
+	current_move = mv
+	current_is_up = false
+	state = State.ATTACK
+	move_frame = 0
+	ult_frame = 0
+	ult_energy = 0.0
+	link_open = false
+	last_swing_hit = true
+	_hit_this_swing.clear()
+	velocity = Vector2.ZERO
+	hitstop_frames = 0
+	invuln_frames = maxi(invuln_frames, ult_total_frames + 12)
+	_set_visual_scale(Vector2(0.86, 1.16))
+	_squash_timer = 6
+	ult_started.emit()
+
+
+func _process_ult(delta: float) -> void:
+	var mv := current_move
+	if mv == null:
+		ult_frame = -1
+		state = State.NEUTRAL
+		return
+	ult_frame += 1
+	# 动画对时：出刀前把蓄力斩的前摇拉长成“摆架势”，出刀后正常播完
+	var total: int = maxi(int(mv.total_frames()), 1)
+	var s: int = int(mv.startup_frames)
+	if ult_frame < ult_hit_frame:
+		move_frame = int(float(ult_frame) / float(ult_hit_frame) * float(s))
+	else:
+		var rest := float(ult_frame - ult_hit_frame) / float(maxi(ult_total_frames - ult_hit_frame, 1))
+		move_frame = mini(total - 1, s + int(rest * float(total - s)))
+	if ult_frame == ult_hit_frame:
+		_set_visual_scale(Vector2(1.3, 0.8))
+		_squash_timer = 5
+		ult_hit.emit()
+	# 摆架势和出刀那几帧悬在空中不动；之后正常下落
+	if ult_frame < ult_hit_frame + 8:
+		velocity = Vector2.ZERO
+	else:
+		velocity.x = 0.0
+		_apply_gravity(delta, _gravity)
+	move_and_slide()
+	if ult_frame >= ult_total_frames:
+		ult_frame = -1
+		_end_attack()
+		ult_finished.emit()
