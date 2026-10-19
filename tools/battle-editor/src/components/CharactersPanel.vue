@@ -45,12 +45,18 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
       <EditorField label="落地后允许取消的帧" type="number" :model-value="movement.landingCancelFrame??0" min="0" @update="setSpriteSetting('locomotion','landingCancelFrame',$event)"/>
     </div>
   </PanelShell>
-  <PanelShell title="格挡与弹刀" eyebrow="防守动作">
-    <p class="notice">L 触发弹刀判定，按住 L 持续防守。弹刀窗口结束后仍可挡住来袭，但不会反复触发弹刀。</p>
+  <PanelShell title="蓄力时移动" eyebrow="走动与跳跃">
+    <EditorField label="蓄力移动速度（正常=100%）" type="number" :model-value="(actor.chargeMovementScale??0.85)*100" min="0" max="100" step="1" @update="actor.chargeMovementScale=$event/100" @changed="emit('changed')"/>
+    <p class="notice">蓄力时可以走动、转向和跳跃。松开攻击键释放蓄力，按格挡键转为防守。</p>
+  </PanelShell>
+  <PanelShell title="格挡与弹刀" eyebrow="按下立即防守">
+    <p class="notice">按下 L 立即防守，举剑动作不影响判定；挡住或弹刀成功会立即换成对应动作。按住 L 可以移动、跳跃，但不能攻击。</p>
     <EditorField label="启用格挡防守" type="checkbox" :model-value="guard.enabled??false" @update="setSpriteSetting('guard','enabled',$event)"/>
     <div class="field-grid">
       <EditorField label="弹刀判定窗口（帧）" type="number" :model-value="guard.parryWindowFrames??8" min="1" max="60" @update="setSpriteSetting('guard','parryWindowFrames',$event)"/>
       <EditorField label="格挡时承受伤害倍率" type="number" :model-value="guard.damageMultiplier??0.2" min="0" max="1" step="0.05" @update="setSpriteSetting('guard','damageMultiplier',$event)"/>
+      <EditorField label="格挡移动速度（正常=100%）" type="number" :model-value="(guard.movementScale??0.85)*100" min="0" max="100" step="1" @update="setSpriteSetting('guard','movementScale',$event/100)"/>
+      <EditorField label="举剑动作播放速度" type="number" :model-value="guard.startupAnimationSpeed??1" min="0.05" max="20" step="0.5" @update="setSpriteSetting('guard','startupAnimationSpeed',$event)"/>
       <label v-for="(label,key) in {startupAnimation:'举起防守动作',holdAnimation:'持续防守动作',blockAnimation:'普通格挡受击动作'}" :key="key" class="editor-field"><span>{{label}}</span><select :value="guard[key]??''" @change="setSpriteSetting('guard',key,($event.target as HTMLSelectElement).value)"><option value="">未设置</option><option v-for="(clip,name) in animations" :key="name" :value="name">{{clip.label||name}}</option></select></label>
     </div>
     <div class="field-grid input-bindings"><label class="editor-field"><span>冲刺攻击按键</span><input :value="inputText('dashAttack')" placeholder="SHIFT+J" @change="setInput('dashAttack',$event)"></label><label class="editor-field"><span>按住防守按键</span><input :value="inputText('guard')" placeholder="L_HOLD" @change="setInput('guard',$event)"></label></div>

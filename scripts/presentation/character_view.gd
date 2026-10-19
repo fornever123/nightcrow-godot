@@ -169,6 +169,10 @@ func _start(move: Resource, _index: int) -> void:
 	stance_clip = ""
 	idle_clock = 0.0
 	stance_drawn = true
+	if actor.guard_reactions.has(move) or actor.parry_reactions.has(move):
+		# Incoming hits replace the raise pose immediately, even during hitstop.
+		clip_name = move.animation
+		_draw_frame.call_deferred()
 	var clip: Dictionary = setup.get("animations", {}).get(move.animation, {})
 	if bool(clip.get("effectsBaked", false)) or not String(clip.get("overlayEffect", "")).is_empty():
 		_clear_trail()

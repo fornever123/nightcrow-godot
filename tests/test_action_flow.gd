@@ -182,7 +182,7 @@ func run() -> void:
 	p.take_hit(p.light_combo[0], -p.facing, p.global_position, 0, false, 1, attacker)
 	p.hitstop_frames = 0
 	await step(1, input([&"parry", &"attack_light"], [&"attack_light"]))
-	check(p.current_move == p.light_combo[0] and not p.is_guarding(), "attack input interrupts reaction defense instead of retaining protection")
+	check(p.guard_reactions.has(p.current_move) and p.is_guarding(), "held guard rejects attack input during its success reaction")
 	await reset_at()
 	var dash := move("dash")
 	dash.dash_distance = 200

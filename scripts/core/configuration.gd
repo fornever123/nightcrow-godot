@@ -98,6 +98,9 @@ static func moves(config: Dictionary) -> Dictionary:
 		m.direction = 1 if String(source.get("input", "")) == "W+J" or String(m.id) == "air_up" or bool(source.get("upward", false)) else 0
 		if m.is_charge:
 			m.command = &"charge"
+			m.movement_scale = clampf(float(actor.get("chargeMovementScale", m.movement_scale)), 0.0, 1.0)
+			m.startup_movement_scale = m.movement_scale
+			m.recovery_movement_scale = m.movement_scale
 		elif m.is_parry:
 			m.command = &"parry"
 		if String(source.get("input", "")) == "K":
