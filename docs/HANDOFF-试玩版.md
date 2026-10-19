@@ -558,3 +558,22 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - LAUNCHED/DOWN/DEAD和大招在跳取消前拒绝jump，消费边沿和清缓冲，受击/倒地恢复后不自动补跳；大招例外不变。
 - 原始PNG目视对比：jump朝左，独立fall素材朝右。fall误配-1会反向；现fall.sourceFacing=1，jump/land仍-1，重建脚本同步；源图不改。方向测试按实图方向作为独立基准，不再用配置自己证明自己。
 - 验证：uppercut_jump26（真实物理按键），air_facing8（修复前2失败），旧jump_combat_mobility调整为24（移除5个已废弃奖励跳检查，受击改拒绝）；combat_feedback52、night_combat50、action_flow45、guard_charge_movement29、air_movement14、training36、feel27、shades_v4 52、strong_feedback101、framebaker_runtime52、desktop_integration28、animation_timing21、locomotion12，共577项0失败。修改器构建通过，无整轮bot/录屏。
+
+## 17. 光影第一版（2026-10-19，分支 `light-v1`）
+
+用户：“先做光影试试……希望效果很好，最后游戏画面像那些以画面闻名的游戏比如奥日。”只用代码 / 着色器（程序特效），没有新美术。
+
+- **整屏后期**（`scripts/night/night_light.gd` + `assets/shaders/night_post.gdshader`，CanvasLayer 5：盖在夜景、地形、角色上面，界面 layer 10 下面）：
+  - 辉光：Compatibility 渲染器里 2D 的 WorldEnvironment 辉光实测无效，改成读屏幕纹理的 mipmap（`filter_linear_mipmap`，实测可用），1–6 级各取 4 点、阈值逐级降低，屏幕混合叠回；
+  - 月光光柱：从月亮（`backdrop.moon_screen()`）往下方散开的宽窄两层条纹，慢慢摆；
+  - 调色：exposure 0.9、contrast 1.18（pivot 0.3）、sat 1.08，暗部偏蓝、亮部偏暖；
+  - 角色光：主角胸口周围微微提亮（跟随有一点延迟）；
+  - 暗角：四角 + 屏幕底部水面 + 天顶压暗。
+- **背景调色**（`night_pixel.gdshader`）：新增 `water_top 428` / `water_dim 0.42`，石桥脚以下的水面压暗（亮的反光保留）。
+- **夜景新层**（`night_backdrop.gd`）：
+  - 水面薄雾（`night_mist.gdshader`，z −74，像素化层之后）：底边贴步道顶面，高 120，0.8 倍视差 + 风飘；
+  - 石灯笼的光从 `_glow_back`（z −80，会被退后调色 + 量化吃掉暖色）挪到 `_glow_water`（z −73，加色）：火光、暖光圈、地上暖光圈、步道前水里的暖色倒影；
+  - 飘浮光点 28 个 + 前景虚化光斑 6 个（`_motes`，z 14，加色，屏幕坐标 + 视差）。
+- 截图工具 `scene_shot.gd`：`NOPOST=1` 关后期对比；`POSTP="rays_amt=0.3,contrast=1.2"` / `PIXP="water_dim=0.2"` 临时调参。
+- 测试：全套 646 项 0 失败（18 个套件，含 main 上新加的上挑跳 / 空中朝向测试）。
+- 下一步候选：敌人（影卒）加月光边缘光；命中/刀光更亮的辉光；前景剪影层（要 GPT 图）。像素化还是奥日那样的手绘风，等用户定。

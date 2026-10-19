@@ -19,6 +19,7 @@ const Style := preload("res://scripts/night/style_meter.gd")
 const Hud := preload("res://scripts/night/combat_hud.gd")
 const Backdrop := preload("res://scripts/night/night_backdrop.gd")
 const Terrain := preload("res://scripts/night/terrain.gd")
+const NightLight := preload("res://scripts/night/night_light.gd")
 const CharLight := preload("res://assets/shaders/char_light.gdshader")
 const RIM_PX := 2.5                 ## 角色月光边缘光宽度（屏幕像素）
 const OUTLINE_PX := 2.0             ## 角色深色描边宽度（屏幕像素，第三轮方案1）
@@ -80,6 +81,7 @@ var style: Style
 var encounter: Node
 var backdrop: Node2D                ## 夜景（节点 4 接入；为空时画占位地面）
 var terrain: Node2D                 ## 多层地形（第三轮节点 17）
+var post: CanvasLayer               ## 光影后期（辉光、月光光柱、调色、暗角；night_light.gd）
 var light_mat: ShaderMaterial       ## 角色环境光（节点 5；夜景缺失时为空）
 var floor_y: float = 580.0
 var phase: Phase = Phase.EXPLORE
@@ -223,6 +225,10 @@ func _build_backdrop() -> void:
 func _build_lighting() -> void:
 	if backdrop == null:
 		return
+	post = NightLight.new()
+	post.name = "PostLight"
+	post.stage = self
+	add_child(post)
 	light_mat = ShaderMaterial.new()
 	light_mat.shader = CharLight
 	light_mat.set_shader_parameter("ol_width", OUTLINE_PX)
