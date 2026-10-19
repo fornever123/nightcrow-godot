@@ -13,7 +13,17 @@ extends Camera2D
 @export var max_shake: float = 42.0
 @export var frequency: float = 0.85
 @export var follow_smoothing: float = 0.0
+## 震屏偏移对齐的步长（屏幕像素；镜头缩放后自动换算成世界单位）
 @export var pixel_snap: float = 1.0
+## 震屏幅度（add_shake 的数值按屏幕像素算）换成世界单位时再乘的系数：
+## 镜头缩小（zoom < 1）时世界 1 单位在屏幕上不到 1 像素，乘 1/zoom 才能保持屏幕上的幅度
+@export var shake_world_scale: float = 1.0
+## 竖直方向固定在这个世界 y（NAN = 按 arena_min/max 钳制）。试玩关卡里镜头只横向跟随。
+@export var lock_y: float = NAN
+## 跟随位置对齐的步长（屏幕像素，0 = 不对齐）。像素风地形一格 = 2 屏幕像素，
+## 镜头停在半像素上时格子边缘会忽宽忽窄；对齐 1 屏幕像素就稳了。内部仍然用没对齐的位置平滑。
+@export var position_snap: float = 0.0
+var _follow_pos: Vector2 = Vector2(NAN, NAN)
 
 ## 跟随目标（由 main.gd 注入）
 @export var follow_target: Node2D
@@ -84,15 +94,27 @@ func _update_follow(delta: float) -> void:
 		target.x = (arena_min.x + arena_max.x) * 0.5
 	else:
 		target.x = clampf(target.x, lo.x, hi.x)
-	if lo.y > hi.y:
+	if is_finite(lock_y):
+		target.y = lock_y
+	elif lo.y > hi.y:
 		target.y = (arena_min.y + arena_max.y) * 0.5
 	else:
 		target.y = clampf(target.y, lo.y, hi.y)
 
+	var cur := global_position
+	if position_snap > 0.0 and is_finite(_follow_pos.x):
+		# 外面直接设过 global_position（开场 / 复活）→ 以外面设的为准
+		var step := position_snap / maxf(z.x, 0.01)
+		if _follow_pos.snapped(Vector2.ONE * step).distance_to(cur) <= step * 0.75:
+			cur = _follow_pos
+	var next := target
 	if follow_smoothing > 0.0:
-		global_position = global_position.lerp(target, clampf(follow_smoothing * delta, 0.0, 1.0))
+		next = cur.lerp(target, clampf(follow_smoothing * delta, 0.0, 1.0))
+	if position_snap > 0.0:
+		_follow_pos = next
+		global_position = next.snapped(Vector2.ONE * position_snap / maxf(z.x, 0.01))
 	else:
-		global_position = target
+		global_position = next
 
 
 func _update_shake(delta: float) -> void:
@@ -111,9 +133,9 @@ func _update_shake(delta: float) -> void:
 	# 方向性：沿击退方向再多推一点
 	if _shake_dir != Vector2.ZERO:
 		result += _shake_dir * amp * 0.8
-	offset = result
+	offset = result * shake_world_scale
 	if pixel_snap > 0.0:
-		offset = offset.snapped(Vector2.ONE * pixel_snap)
+		offset = offset.snapped(Vector2.ONE * pixel_snap / maxf(zoom.x, 0.01))
 	# 极轻的滚转让重击更像镜头被撞了一下，不会影响可读性。
 	rotation = result.x * 0.00075
 

@@ -152,6 +152,9 @@ var input_source: Object = null
 @export var double_jump_scale: float = 0.92
 ## 出招期间的水平移速倍率。不是 0 —— 出招能走位是这个手感的关键
 @export var attack_move_scale: float = 0.62
+## 单向平台所在的物理层（试玩关卡的多层地形，见 scripts/night/terrain.gd）。
+## 站在这种平台上【按住 S 再按跳】= 往下穿过平台（不消耗跳跃次数）。0 = 场景里没有单向平台
+@export var one_way_mask: int = 0
 
 @export_group("容错（设计文档 §2.4）")
 @export var coyote_frames: int = 6
@@ -489,6 +492,7 @@ func _physics_process(delta: float) -> void:
 	_squash_timer = maxi(_squash_timer - 1, 0)
 	if _squash_timer == 0:
 		_lerp_visual_scale(0.18)
+	_update_drop_through()
 
 	# ---- 3. 地面/空中计数放在最前面 ----
 	# 出招期间也要更新，否则"出招中能不能跳"的判断会用到过期数据。
@@ -642,12 +646,71 @@ func _can_jump() -> bool:
 
 
 ## 消费跳跃缓冲；真的跳了返回 true。
+## 站在单向平台上按住 S 再按跳 = 往下穿（也返回 true：这一帧已经处理过移动）。
 func _try_buffered_jump(frame: InputBuffer.Frame) -> bool:
 	_buffer_jump(frame)
 	if _jump_buffer_counter <= 0 or not _can_jump():
 		return false
+	if ground_frames > 0 and frame != null and frame.axis.y > 0.5 and _try_drop_through():
+		return true
 	_do_jump()
 	return true
+
+
+# ---------------------------------------------------------------- 单向平台下穿
+
+var _drop_from_y: float = NAN       ## 正在往下穿的平台顶面（脚底 y）；NAN = 没在穿
+var _drop_frames: int = 0
+const DROP_CLEAR := 30.0            ## 脚底低于平台顶面这么多 = 已经穿过去，恢复平台碰撞
+
+## 脚底正踩着单向平台吗（用一个贴着脚底的小矩形查重叠，只查单向平台那一层）
+func standing_on_one_way() -> bool:
+	if one_way_mask == 0 or not is_on_floor():
+		return false
+	var q := PhysicsShapeQueryParameters2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(28.0, 6.0)
+	q.shape = rect
+	q.transform = Transform2D(0.0, global_position + Vector2(0.0, foot_offset + 3.0))
+	q.collision_mask = one_way_mask
+	q.collide_with_areas = false
+	q.collide_with_bodies = true
+	return not get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty()
+
+
+func _try_drop_through() -> bool:
+	if not is_nan(_drop_from_y) or not standing_on_one_way():
+		return false
+	_cancel_locomotion()
+	_stop_guard()
+	_jump_buffer_counter = 0
+	_drop_from_y = global_position.y + foot_offset
+	_drop_frames = 0
+	collision_mask &= ~one_way_mask
+	ground_frames = 0
+	# 穿下去算“已经离地”：之后再按跳就是二段跳（不白送一次首跳）
+	air_frames = coyote_frames + 1
+	velocity.y = 60.0
+	_set_visual_scale(Vector2(1.1, 0.9))
+	_squash_timer = 4
+	move_and_slide()
+	return true
+
+
+## 每帧检查：穿过去了 / 又跳回平台上方了 / 落地了 / 超时 → 恢复单向平台碰撞
+func _update_drop_through() -> void:
+	if is_nan(_drop_from_y):
+		return
+	_drop_frames += 1
+	var feet := global_position.y + foot_offset
+	if feet > _drop_from_y + DROP_CLEAR or feet < _drop_from_y - 4.0 \
+			or (is_on_floor() and _drop_frames > 2) or _drop_frames > 40:
+		_drop_from_y = NAN
+		collision_mask |= one_way_mask
+
+
+func is_dropping_through() -> bool:
+	return not is_nan(_drop_from_y)
 
 
 func _do_jump() -> void:
@@ -1604,6 +1667,9 @@ func reset_state(pos: Vector2) -> void:
 	_air_jumps_left = extra_air_jumps
 	_air_light_left = air_light_uses
 	_jump_buffer_counter = 0
+	if not is_nan(_drop_from_y):
+		_drop_from_y = NAN
+		collision_mask |= one_way_mask
 	input_buffer.clear()
 	_sync_melee_offset()      # 复活/换边后判定盒要重新贴回当前朝向
 	if _visual != null:

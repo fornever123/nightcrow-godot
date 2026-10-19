@@ -10,7 +10,12 @@ extends Node2D
 ## 另外全是程序特效：桥和步道在水里的倒影、萤火虫、花瓣、流星、灯笼暖光、桥灯呼吸。
 ## 所有东西 z_index 为负，画在角色和敌人后面（花瓣和少量萤火在前面，很淡）。
 ##
-## 坐标：屏幕 1280×720、镜头只横向移动（竖直固定在 360）。步道顶面 = floor_y。
+## 坐标（第三轮节点 15 起）：镜头缩放 zoom = 0.5（世界 2 单位 = 屏幕 1 像素，角色在屏幕上缩小一半）。
+## 远景各层都放在一个“屏幕容器” _scr 里：容器缩放 = 1/zoom，所以容器里 1 单位 = 屏幕 1 像素，
+## 原来按“屏幕 1280×720”写的摆放公式基本不用改；横向用“虚拟镜头” screen_left() = 镜头中心 x × zoom − 640。
+## 近景步道、灯笼光也在容器里，但按世界比例显示（缩放 zoom），位置由世界坐标换算（to_v）。
+## 各层的滚动都对齐到 SNAP（2 屏幕像素 = 背景像素块大小），配合 night_pixel.gdshader 像素化后移动不闪。
+## 步道顶面 = floor_y（世界坐标）。
 
 const DIR := "res://assets/scenery/moon_embankment/"
 const FOG_SCROLL := 0.36
@@ -18,6 +23,8 @@ const NEAR_STAND_ROW := 139.0     ## 近景图块里“脚踩的那一行”（�
 const LANTERN_IN_TILE := Vector2(639.0, 61.0)   ## 近景图块里灯笼火光的位置
 const MARGIN := 48.0
 const LANTERN_REACH := 330.0      ## 灯笼暖光照到角色身上的半径
+const SNAP := 2.0                 ## 滚动对齐的步长（屏幕像素）= 背景像素块大小
+const PIXEL_Z := -75              ## 像素化 + 退后调色这一层：它下面的全部夜景层被处理，上面的（地形、角色）不受影响
 const LAYERS := ["sky", "halo", "moon", "clouds", "sea", "mountains", "castle", "bridge", "near"]
 
 static var _cache: Dictionary = {}
@@ -38,6 +45,11 @@ var _front: Node2D               ## 普通混合：花瓣、少量萤火（在�
 var _meteors: Node2D             ## 流星（在月亮和云后面）
 var _mid_glow: Node2D            ## 桥灯（桥上面）
 var _sea_mat: ShaderMaterial
+var _scr: Node2D                 ## 屏幕容器（见文件头）
+var _pix: Node2D                 ## 像素化 + 退后调色（全屏，读屏幕纹理）
+var pixel_mat: ShaderMaterial
+var z: float = 1.0               ## 镜头缩放
+var _near_shift: float = 0.0     ## 近景对齐像素格后的偏移（世界单位）：灯笼光跟着一起挪
 var _time: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _meteor := {"t": -1.0, "next": 4.0, "from": Vector2.ZERO, "dir": Vector2.ZERO, "len": 0.0}
@@ -115,6 +127,9 @@ func _ready() -> void:
 	near_tex = tex.near
 	# 镜头在本帧移动后再摆夜景（否则冲刺时远景会晚一帧，屏幕边露出底色）
 	process_priority = 100
+	_scr = Node2D.new()
+	_scr.name = "Screen"
+	add_child(_scr)
 	var sky := _sprite(tex.sky, -100, true)
 	sky.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR   # 0.01 倍，走十几万像素才会看到镜像处
 	sky.material = _shader_mat(preload("res://assets/shaders/night_sky.gdshader"), {})
@@ -123,7 +138,7 @@ func _ready() -> void:
 	_meteors.z_index = -99
 	_meteors.material = _add_mat()
 	_meteors.draw.connect(_draw_meteors)
-	add_child(_meteors)
+	_scr.add_child(_meteors)
 	var halo := _sprite(tex.halo, -98, false)
 	halo.centered = true
 	halo.material = _add_mat()
@@ -151,7 +166,7 @@ func _ready() -> void:
 	_mid_glow.z_index = -89
 	_mid_glow.material = _add_mat()
 	_mid_glow.draw.connect(_draw_mid_glow)
-	add_child(_mid_glow)
+	_scr.add_child(_mid_glow)
 	_near_reflect = _sprite(near_tex, -88, true)
 	_near_reflect.flip_v = true
 	_near_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
@@ -161,13 +176,21 @@ func _ready() -> void:
 	_glow_back.z_index = -80
 	_glow_back.material = _add_mat()
 	_glow_back.draw.connect(_draw_glow_back)
-	add_child(_glow_back)
+	_scr.add_child(_glow_back)
 	_front = Node2D.new()
 	_front.z_index = 15
 	_front.draw.connect(_draw_front)
-	add_child(_front)
+	_scr.add_child(_front)
 	for i in 9:
 		_petals.append(_new_petal(true))
+	_pix = Node2D.new()
+	_pix.name = "Pixelate"
+	_pix.z_index = PIXEL_Z
+	pixel_mat = _shader_mat(preload("res://assets/shaders/night_pixel.gdshader"), {})
+	_pix.material = pixel_mat
+	_pix.draw.connect(func(): _pix.draw_rect(Rect2(screen_left() - 8.0, -8.0, 1296.0, 736.0), Color.WHITE))
+	_scr.add_child(_pix)
+	_sync_screen()
 
 
 func _sprite(t: Texture2D, z: int, repeat: bool) -> Sprite2D:
@@ -179,7 +202,7 @@ func _sprite(t: Texture2D, z: int, repeat: bool) -> Sprite2D:
 	if repeat:
 		s.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 		s.region_enabled = true
-	add_child(s)
+	_scr.add_child(s)
 	return s
 
 
@@ -206,35 +229,56 @@ func _make_fog_texture() -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
+## 虚拟镜头左边缘（容器坐标，= 屏幕像素）：镜头中心 x × zoom − 640
 func screen_left() -> float:
 	if camera == null:
 		return 0.0
-	return camera.get_screen_center_position().x - 640.0
+	return camera.get_screen_center_position().x * _zoom() - 640.0
 
 
+## 容器坐标里屏幕顶边永远是 0（容器自己跟着镜头竖直移动）
 func _top_y() -> float:
-	return camera.get_screen_center_position().y - 360.0 if camera else 0.0
+	return 0.0
 
 
-## 横向重复的一层：屏幕第 0 列显示图块的 cl×倍率 + 偏移 列；精灵本身从 cl−MARGIN 开始画
+func _zoom() -> float:
+	return camera.zoom.x if camera and camera.zoom.x > 0.0 else 1.0
+
+
+## 让容器盖住当前屏幕：容器 1 单位 = 屏幕 1 像素，竖直方向屏幕顶边 = 容器 y 0
+func _sync_screen() -> void:
+	z = _zoom()
+	var cy := camera.get_screen_center_position().y if camera else 360.0
+	_scr.scale = Vector2.ONE / z
+	_scr.position = Vector2(0.0, cy - 360.0 / z)
+
+
+## 世界坐标 → 容器坐标
+func to_v(p: Vector2) -> Vector2:
+	return Vector2(p.x * z, (p.y - _scr.position.y) * z)
+
+
+## 横向重复的一层：屏幕第 0 列显示图块的 cl×倍率 + 偏移 列（对齐到 SNAP）；精灵本身从 cl−MARGIN 开始画
 func _place_strip(s: Sprite2D, layer: String, factor: float, extra: float, y: float) -> void:
 	var m: Dictionary = meta[layer]
 	var cl := screen_left()
 	s.position = Vector2(cl - MARGIN, y)
-	s.region_rect = Rect2(fposmod(cl * factor + extra - MARGIN, float(m.period)), 0, 1280.0 + MARGIN * 2.0, float(m.size[1]))
+	var off := snappedf(cl * factor + extra, SNAP)
+	s.region_rect = Rect2(fposmod(off - MARGIN, float(m.period) * 2.0), 0, 1280.0 + MARGIN * 2.0, float(m.size[1]))
 
 
 func _process(delta: float) -> void:
 	if not ok:
 		return
 	_time += delta
+	_sync_screen()
 	var cl := screen_left()
 	var top_y := _top_y()
 	var w := 1280.0 + MARGIN * 2.0
 	# 星空：0.01 倍，镜像重复
 	var sky: Sprite2D = _spr.sky
 	sky.position = Vector2(cl - MARGIN, top_y)
-	sky.region_rect = Rect2(cl * _scroll("sky", 0.01) - MARGIN, 0, w, float(meta.sky.size[1]))
+	sky.region_rect = Rect2(snappedf(cl * _scroll("sky", 0.01), SNAP) - MARGIN, 0, w, float(meta.sky.size[1]))
 	# 月亮 + 月晕：贴在屏幕上
 	var mc := Vector2(float(meta.moon.center[0]), float(meta.moon.center[1]))
 	(_spr.moon as Sprite2D).position = Vector2(cl, top_y) + mc
@@ -248,8 +292,8 @@ func _process(delta: float) -> void:
 	var nh := float(meta.near.size[1])
 	_sea_mat.set_shader_parameter("cam_x", cl)
 	_sea_mat.set_shader_parameter("bridge_y", float(meta.bridge.top) + float(meta.bridge.size[1]))
-	_sea_mat.set_shader_parameter("back_y", floor_y - 8.0)
-	_sea_mat.set_shader_parameter("front_y", near_top() + nh)
+	_sea_mat.set_shader_parameter("back_y", to_v(Vector2(0, floor_y - 8.0)).y)
+	_sea_mat.set_shader_parameter("front_y", roundf(to_v(Vector2(0, near_top())).y) + nh * z)
 	# 雪山 / 城堡小镇 / 石桥
 	_place_strip(_spr.mountains, "mountains", _scroll("mountains", 0.12), 0.0, top_y + float(meta.mountains.top))
 	_place_strip(_spr.castle, "castle", _scroll("castle", 0.3), 0.0, top_y + float(meta.castle.top))
@@ -261,19 +305,27 @@ func _process(delta: float) -> void:
 	_bridge_reflect.region_rect = bridge.region_rect
 	# 雾：在地平线上慢慢飘
 	_fog.position = Vector2(cl - MARGIN, top_y + horizon_y() - 70.0)
-	_fog.region_rect = Rect2(fposmod(cl * FOG_SCROLL + _time * 9.0, 768.0), 0, w, 96)
-	# 近景：和地面一起走
+	_fog.region_rect = Rect2(fposmod(snappedf(cl * FOG_SCROLL + _time * 9.0, SNAP), 768.0), 0, w, 96)
+	# 近景：和地面一起走，按世界比例显示（缩放 zoom）；左边缘的世界 x 对齐到 SNAP 屏幕像素
 	var near: Sprite2D = _spr.near
-	near.position = Vector2(cl - MARGIN, near_top())
-	near.region_rect = Rect2(fposmod(cl - MARGIN, float(meta.near.period)), 0, w, nh)
+	var period := float(meta.near.period)
+	var wl := (cl - MARGIN) / z
+	var wl_s := snappedf(wl, SNAP / z)
+	_near_shift = wl_s - wl
+	var ny := roundf(to_v(Vector2(0, near_top())).y)
+	near.scale = Vector2(z, z)
+	near.position = Vector2(cl - MARGIN, ny)
+	near.region_rect = Rect2(fposmod(wl_s, period * 4.0), 0, w / z, nh)
 	# 近景倒影：石墙在水里的影子（只取墙面那一段，翻下来）
 	var wall_rows := nh - 131.0
-	_near_reflect.position = Vector2(cl - MARGIN, near_top() + nh - 1.0)
-	_near_reflect.region_rect = Rect2(near.region_rect.position.x, 131.0, w, wall_rows)
+	_near_reflect.scale = Vector2(z, z)
+	_near_reflect.position = Vector2(cl - MARGIN, ny + (nh - 1.0) * z)
+	_near_reflect.region_rect = Rect2(near.region_rect.position.x, 131.0, w / z, wall_rows)
 	_update_meteor(delta)
 	_update_petals(delta)
 	_meteors.queue_redraw()
 	_mid_glow.queue_redraw()
+	_pix.queue_redraw()
 	_glow_back.queue_redraw()
 	_front.queue_redraw()
 
@@ -319,7 +371,7 @@ func _draw_mid_glow() -> void:
 	var bm: Dictionary = meta.bridge
 	var bp := float(bm.period)
 	var y := origin.y + float(bm.lampY)
-	var base := screen_left() * _scroll("bridge", 0.42)
+	var base := snappedf(screen_left() * _scroll("bridge", 0.42), SNAP)
 	var k0 := floorf((base - 40.0) / bp)
 	for t in 5:
 		for lx in bm.lamps:
@@ -332,37 +384,40 @@ func _draw_mid_glow() -> void:
 			_mid_glow.draw_circle(origin + Vector2(sx, y), 4.0, Color(1.0, 0.8, 0.5, 0.22 * fl))
 
 
+## 灯笼光、萤火：位置按世界坐标算，画在容器坐标里（to_v）；灯笼光跟近景一起按 zoom 缩小
 func _draw_glow_back() -> void:
-	var cl := screen_left()
+	var cl := screen_left() / z          # 屏幕左边缘的世界 x
+	var span := 1280.0 / z
 	var np := float(meta.near.period)
 	# 灯笼：火光 + 地上的一圈暖光（随火苗轻微跳动）
 	var k0 := floorf((cl - 300.0 - LANTERN_IN_TILE.x) / np)
-	for t in 4:
+	var nt := roundf(to_v(Vector2(0, near_top())).y) / z
+	for t in int(ceilf(span / np)) + 3:
 		var lx := (k0 + float(t)) * np + LANTERN_IN_TILE.x
-		if lx < cl - 400.0 or lx > cl + 1680.0:
+		if lx < cl - 400.0 or lx > cl + span + 400.0:
 			continue
-		var c := Vector2(lx, near_top() + LANTERN_IN_TILE.y)
+		var c := Vector2((lx - _near_shift) * z, (nt + LANTERN_IN_TILE.y) * z)
 		var fl := lantern_flicker(lx)
 		for i in 6:
 			var r := 18.0 + float(i) * 22.0
-			_glow_back.draw_circle(c, r * fl, Color(1.0, 0.62, 0.3, 0.045 * fl))
-		_glow_back.draw_circle(c, 9.0, Color(1.0, 0.85, 0.55, 0.35 * fl))
-		_draw_ground_pool(Vector2(lx, floor_y - 2.0), 190.0 * fl, 16.0, Color(1.0, 0.6, 0.28, 0.07 * fl))
-	# 萤火虫：按 220px 一格程序生成，同一格每次都一样（往回走不会变）
+			_glow_back.draw_circle(c, r * fl * z, Color(1.0, 0.62, 0.3, 0.045 * fl))
+		_glow_back.draw_circle(c, 9.0 * z, Color(1.0, 0.85, 0.55, 0.35 * fl))
+		_draw_ground_pool(to_v(Vector2(lx - _near_shift, floor_y - 2.0)), 190.0 * fl * z, 16.0 * z, Color(1.0, 0.6, 0.28, 0.07 * fl))
+	# 萤火虫：按 220 世界单位一格程序生成，同一格每次都一样（往回走不会变）
 	var cell := 220.0
 	var c0 := floorf((cl - 100.0) / cell)
-	for i in 9:
+	for i in int(ceilf(span / cell)) + 2:
 		var ci := c0 + float(i)
 		var h := _hash(ci)
 		if h > 0.72:
 			continue
 		var bx := ci * cell + h * cell
-		var by := floor_y - 60.0 - _hash(ci + 17.3) * 170.0
-		var p := Vector2(bx + sin(_time * 0.7 + h * 20.0) * 26.0, by + sin(_time * 1.1 + h * 31.0) * 14.0)
+		var by := floor_y - 60.0 - _hash(ci + 17.3) * 300.0
+		var p := to_v(Vector2(bx + sin(_time * 0.7 + h * 20.0) * 26.0, by + sin(_time * 1.1 + h * 31.0) * 14.0))
 		var blink := clampf(0.5 + 0.5 * sin(_time * (1.6 + h) + h * 40.0), 0.0, 1.0)
 		blink = blink * blink
-		_glow_back.draw_circle(p, 9.0, Color(0.75, 1.0, 0.55, 0.08 * blink))
-		_glow_back.draw_circle(p, 2.2, Color(0.85, 1.0, 0.7, 0.75 * blink))
+		_glow_back.draw_circle(p, 7.0, Color(0.75, 1.0, 0.55, 0.08 * blink))
+		_glow_back.draw_circle(p, 1.6, Color(0.85, 1.0, 0.7, 0.75 * blink))
 
 
 func _draw_ground_pool(c: Vector2, rx: float, ry: float, col: Color) -> void:
@@ -400,7 +455,7 @@ func _update_petals(delta: float) -> void:
 
 func _draw_front() -> void:
 	var cl := screen_left()
-	var top := camera.get_screen_center_position().y - 360.0 if camera else 0.0
+	var top := _top_y()
 	for p in _petals:
 		# 花瓣画在屏幕坐标里，再加一点视差，镜头移动时有前后感
 		var sx: float = fposmod(float(p.x) - cl * float(p.par), 1320.0) - 20.0

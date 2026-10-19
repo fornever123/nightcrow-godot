@@ -20,6 +20,10 @@ var floor_y: float = 580.0
 var hp_mul: float = 1.0
 var target: Node2D
 var host: Node
+## 多层地形（第三轮节点 17）：有的话影子会从 spawn_points 里挑出生点（可能站在平台上）
+var terrain = null
+var spawn_points: Array = []        ## [Vector2(x, 脚底 y)]，按“右、左、右、左…”交替排
+var _spawn_i: int = 0
 
 var wave_index: int = -1
 var alive: Array = []
@@ -42,6 +46,7 @@ func setup(p_waves: Array, left: float, right: float, p_floor_y: float, p_target
 	target = p_target
 	host = p_host
 	hp_mul = p_hp_mul
+	_spawn_i = 0
 
 
 func start(from_wave: int = 0) -> void:
@@ -136,6 +141,13 @@ func _spawn(kind: int) -> void:
 	s.arena_left = arena_left
 	s.arena_right = arena_right
 	s.max_attackers = _max_attackers
+	s.terrain = terrain
+	if not spawn_points.is_empty():
+		var p := _pick_spawn_point()
+		s.position = Vector2(p.x, p.y - float(Shade.KINDS[kind].half_h))
+		s.facing = -1 if p.x > (arena_left + arena_right) * 0.5 else 1
+		_add(s)
+		return
 	# 交替从两侧出来；离玩家太近就换另一侧
 	var margin := 110.0 + float(_rng_offset())
 	var x := arena_right - margin if _spawn_side > 0 else arena_left + margin
@@ -145,10 +157,27 @@ func _spawn(kind: int) -> void:
 	_spawn_side = -_spawn_side
 	s.position = Vector2(x, floor_y - 60.0)
 	s.facing = -1 if x > (arena_left + arena_right) * 0.5 else 1
+	_add(s)
+
+
+func _add(s: Node2D) -> void:
 	host.add_child(s)
 	alive.append(s)
 	s.died.connect(_on_died.bind(s))
 	shade_spawned.emit(s)
+
+
+## 依次取出生点，跳过离玩家太近（< 300）的
+func _pick_spawn_point() -> Vector2:
+	var n := spawn_points.size()
+	for k in n:
+		var p: Vector2 = spawn_points[(_spawn_i + k) % n]
+		if target == null or not is_instance_valid(target) or absf(p.x - target.global_position.x) >= 300.0:
+			_spawn_i = (_spawn_i + k + 1) % n
+			return p
+	var q: Vector2 = spawn_points[_spawn_i % n]
+	_spawn_i = (_spawn_i + 1) % n
+	return q
 
 
 var _offset_i: int = 0

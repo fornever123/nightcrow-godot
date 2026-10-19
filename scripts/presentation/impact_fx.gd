@@ -16,6 +16,9 @@ var last_hit_plan: Array[Dictionary] = []
 var last_kind: String = ""
 var text_sequence: int = 0
 var font: SystemFont
+## 伤害数字 / 特效的放大倍数（试玩关卡镜头缩到 0.5 时，数字放大 2 倍保持看得清）
+var text_scale: float = 1.0
+var fx_scale: float = 1.0
 
 func _ready() -> void:
 	z_index = 20
@@ -35,6 +38,8 @@ func _layer(point: Vector2, kind: String, strength: float, delay: float, life: f
 	effect.tint = tint
 	add_child(effect)
 	effect.global_position = point
+	if fx_scale != 1.0:
+		effect.scale = Vector2(fx_scale, fx_scale)
 
 func spawn_hit(point: Vector2, strength: float, up: bool = false) -> void:
 	last_kind = "hit"
@@ -74,9 +79,10 @@ func spawn_text(point: Vector2, text: String, amount: float = 0, wall: bool = fa
 	label.add_theme_constant_override("outline_size",3)
 	label.z_index = 30
 	add_child(label)
-	label.global_position = point + Vector2(-10,-30-float(text_sequence%3)*15)
+	label.scale = Vector2(text_scale,text_scale)
+	label.global_position = point + Vector2(-10,-30-float(text_sequence%3)*15)*text_scale
 	var tween := label.create_tween().set_parallel(true)
-	tween.tween_property(label,"position:y",label.position.y-36,0.65).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label,"position:y",label.position.y-36*text_scale,0.65).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label,"modulate:a",0.0,0.42).set_delay(0.23)
 	tween.chain().tween_callback(label.queue_free)
 

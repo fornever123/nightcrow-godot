@@ -3,6 +3,9 @@ extends SceneTree
 ## 环境变量 SHOT_DIR（默认 res://.runtime/shots）；XS="300,900,1500" 依次把角色放到这些 x 截图；NOLIGHT=1 关掉角色环境光（对比用）；
 ## SHADES="-150,160" 在角色左右放静止影卒；FACE=-1 角色朝左；
 ## POSE="attack_up:10" 定格某招式某帧。
+## 第三轮：NOPIX=1 关掉背景像素化（只留退后调色）；NOQ=1 只关调色板量化；RAW=1 背景原样（不退后不像素化）；
+## BG=1 只拍背景（藏起角色，算调色板用）。
+## 多层地形：三段地形全部预先生成；ONTOP=1 把角色和影卒放到脚下最高的面上（平台 / 石台）。
 const Buffer := preload("res://scripts/core/input_buffer.gd")
 const Shade := preload("res://scripts/night/shade.gd")
 const Art := preload("res://scripts/presentation/art_cache.gd")
@@ -20,22 +23,43 @@ func run() -> void:
 		stage.light_mat = null
 		stage.player.get_node("Visual/ActorSprite").material = null
 	var p = stage.player
+	var pm: ShaderMaterial = stage.backdrop.pixel_mat if stage.backdrop else null
+	if pm:
+		if OS.get_environment("NOPIX") == "1":
+			pm.set_shader_parameter("pixelate", false)
+			pm.set_shader_parameter("quantize", false)
+		if OS.get_environment("NOQ") == "1":
+			pm.set_shader_parameter("quantize", false)
+		if OS.get_environment("RAW") == "1":
+			stage.backdrop._pix.visible = false
+	if OS.get_environment("BG") == "1":
+		p.visible = false
+		p.state = p.State.DEAD
+		stage.hud.get_parent().visible = false
+	if stage.terrain:
+		for i in 3:
+			stage.terrain.ensure_section(i, stage._center_of(i))
+	var ontop := OS.get_environment("ONTOP") == "1" and stage.terrain != null
 	var xs := (OS.get_environment("XS") if OS.get_environment("XS") != "" else "300,1000").split(",")
 	var idle := Buffer.Frame.new()
 	for sx in xs:
 		var x := float(sx)
 		stage.set_physics_process(false)
-		p.reset_state(Vector2(x, stage.floor_y - p.foot_offset))
+		var py: float = stage.terrain.top_at(x, 20.0) if ontop else stage.floor_y
+		p.reset_state(Vector2(x, py - p.foot_offset))
 		if OS.get_environment("FACE") == "-1":   # FACE=-1：角色朝左
 			p._set_facing(-1)
 		p.set_injected_frame(idle)
-		stage.camera.global_position = Vector2(x, 360)
+		stage.camera.global_position = Vector2(x, stage.CAM_Y)
 		for d in (OS.get_environment("SHADES").split(",") if OS.get_environment("SHADES") != "" else []):
 			var sh: Node2D = Node2D.new()   # SHADES="-150,160"：在角色左右这些距离放静止影卒（看光照用）
 			sh.set_script(Shade)
 			sh.setup(0, p, stage.floor_y, 1.0)
-			sh.position = Vector2(x + float(d), stage.floor_y - 60.0)
+			var sy: float = stage.terrain.top_at(x + float(d), 12.0) if ontop else stage.floor_y
+			sh.position = Vector2(x + float(d), sy - 60.0)
+			sh.terrain = stage.terrain
 			stage.add_child(sh)
+			sh.ui_scale = 1.0 / stage.ZOOM
 			sh.spawn_frames = 0
 			sh.active = false
 		for i in 40:

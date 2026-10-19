@@ -13,6 +13,7 @@ uniform float far_f = 0.12;         // 地平线那一行
 uniform float bridge_f = 0.42;
 uniform float band_x = 1010.0;      // 月光带中心（屏幕 x）
 uniform float band_gain = 1.25;
+uniform float snap = 2.0;           // 每行的滚动对齐到 2 屏幕像素（= 背景像素块），像素化后不闪
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float luma(vec3 c) { return dot(c, vec3(0.3, 0.45, 0.25)); }
@@ -31,7 +32,7 @@ void fragment() {
 	float sx = lx - margin;                 // 屏幕 x
 	float sy = top_y + ly;                  // 屏幕 y
 	float k = clamp(ly / (720.0 - top_y), 0.0, 1.0);
-	float tx = sx + cam_x * factor(sy);
+	float tx = sx + round(cam_x * factor(sy) / snap) * snap;
 	tx += sin(ly * 1.6 / (0.25 + k) - TIME * 1.6) * 0.9 * k;
 	float ty = ly + sin(tx * 0.06 + TIME * 1.1) * 0.35 * k;
 	vec2 uv = vec2(tx * px.x, clamp(ty, 0.0, 1.0 / px.y - 1.0) * px.y);
