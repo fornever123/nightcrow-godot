@@ -863,6 +863,9 @@ const EYE := Color(1.0, 0.8, 0.45)
 const WARN := Color(1.0, 0.54, 0.24)
 const GOLD := Color(1.0, 0.86, 0.4)
 const LAMP := Color(1.0, 0.66, 0.34)
+## 头顶血条 / 失衡条 / 文字 / 预警符号的放大倍数（镜头缩到 0.5 时设 2，保持屏幕上看得清）；
+## 轮廓光线宽也跟着加粗一点（细于 1 屏幕像素会断断续续）
+var ui_scale: float = 1.0
 
 
 func _draw() -> void:
@@ -976,12 +979,13 @@ func _draw() -> void:
 	var rim := RIM
 	rim.a = 0.7 * fade
 	var rim_edge := front if f > 0 else back
-	draw_polyline(rim_edge, rim, 2.0)
+	var lw := maxf(1.0, ui_scale * 0.8)
+	draw_polyline(rim_edge, rim, 2.0 * lw)
 	var hood_rim := PackedVector2Array()
 	for i in 13:
 		var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
 		hood_rim.append(head + Vector2(cos(a) * (r + 0.5), sin(a) * (r + 0.5)))
-	draw_polyline(hood_rim, rim, 1.5)
+	draw_polyline(hood_rim, rim, 1.5 * lw)
 	# 灯笼暖光：朝灯笼那一侧再描一道暖边
 	if lamp.x > 0.02:
 		var wc := LAMP
@@ -990,13 +994,13 @@ func _draw() -> void:
 		var warm_edge := front if side * f > 0.0 else back
 		var glow := LAMP
 		glow.a = 0.28 * lamp.x * fade
-		draw_polyline(warm_edge, glow, 7.0)
-		draw_polyline(warm_edge, wc, 3.0)
+		draw_polyline(warm_edge, glow, 7.0 * lw)
+		draw_polyline(warm_edge, wc, 3.0 * lw)
 		var warm_rim := PackedVector2Array()
 		for i in 13:
 			var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
 			warm_rim.append(head + Vector2(cos(a) * side * (r + 0.5), sin(a) * (r + 0.5)))
-		draw_polyline(warm_rim, wc, 1.5)
+		draw_polyline(warm_rim, wc, 1.5 * lw)
 	# 下摆的影雾：几团慢慢上飘的半透明黑烟
 	for i in 4:
 		var ph := fmod(t * 0.6 + float(i) * 0.27, 1.0)
@@ -1043,7 +1047,7 @@ func _draw() -> void:
 	draw_line(hand, hand + dir * blade_len, blade, 4.0 if not brute else 6.0)
 	var edge := RIM.lerp(WARN, tele)
 	edge.a = 0.8 * fade
-	draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5)
+	draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5 * lw)
 	var guard := Vector2(-dir.y, dir.x) * (7.0 if not brute else 9.0)
 	draw_line(hand + dir * 6.0 - guard, hand + dir * 6.0 + guard, blade, 3.0)
 	# 弹刀时机提示：出刀前 PARRY_CUE 帧，刀尖亮起一颗白星（这时按 L 正好弹开）
@@ -1070,14 +1074,18 @@ func _draw() -> void:
 		ring.a = (0.35 + 0.5 * tele) * fade
 		draw_arc(Vector2(f * float(spec.range) * 0.5, h), float(spec.range) * 0.55, PI + 0.25, TAU - 0.25, 20, ring, 2.0 + tele * 2.0)
 		if tele > 0.55:
-			draw_string(_font, Vector2(-5, -h - 34), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
+			draw_set_transform(Vector2(0, -h - 34.0), 0.0, Vector2(ui_scale, ui_scale))
+			draw_string(_font, Vector2(-5, 0), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# 眩晕：头顶转圈的星
 	if state == State.STUNNED:
 		for i in 3:
 			var a := t * 4.0 + float(i) * TAU / 3.0
-			var p := Vector2(cos(a) * 20.0, -h - 22.0 + sin(a) * 6.0)
-			_draw_star(p, 5.0, GOLD)
+			var p := Vector2(cos(a) * 20.0 * ui_scale, -h - 22.0 * ui_scale + sin(a) * 6.0 * ui_scale)
+			_draw_star(p, 5.0 * ui_scale, GOLD)
+	draw_set_transform(Vector2(0, -half_h), 0.0, Vector2(ui_scale, ui_scale))
 	_draw_bars(fade)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _fp(x: float, y: float, f: float, lean: float, body_h: float) -> Vector2:
@@ -1112,7 +1120,7 @@ func _draw_bars(fade: float) -> void:
 	if state == State.DEAD:
 		return
 	var w := 64.0 if kind == Kind.GRUNT else 88.0
-	var y := -half_h - 16.0 - (16.0 if kind == Kind.BRUTE else 0.0)
+	var y := -16.0 - (16.0 if kind == Kind.BRUTE else 0.0)   # 相对头顶（调用前已平移到 -half_h 并按 ui_scale 缩放）
 	var x := -w / 2.0
 	draw_rect(Rect2(x - 1, y - 1, w + 2, 5), Color(0, 0, 0, 0.6 * fade))
 	draw_rect(Rect2(x, y, w * clampf(hp / max_hp, 0.0, 1.0), 3), Color(0.92, 0.93, 0.96, fade))

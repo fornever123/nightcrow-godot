@@ -19,6 +19,12 @@ const Hud := preload("res://scripts/night/combat_hud.gd")
 const Backdrop := preload("res://scripts/night/night_backdrop.gd")
 const CharLight := preload("res://assets/shaders/char_light.gdshader")
 const RIM_PX := 2.5                 ## 角色月光边缘光宽度（屏幕像素）
+const OUTLINE_PX := 2.0             ## 角色深色描边宽度（屏幕像素，第三轮方案1）
+## 镜头缩放（第三轮节点 15）：0.5 = 世界 2 单位 = 屏幕 1 像素，角色在屏幕上约 85px 高。
+## 只缩镜头、不缩世界：判定、速度、跳高、击退和身高的比例全都不变。
+const ZOOM := 0.5
+## 镜头中心固定的世界 y：地面 floor_y=580 在屏幕上还是第 580 行（(580−140)×0.5+360）
+const CAM_Y := 140.0
 const SHADOW_COL := Color(0.01, 0.015, 0.045)
 const CameraScript := preload("res://scripts/presentation/camera_shake.gd")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
@@ -122,6 +128,8 @@ func _ready() -> void:
 	fx.enabled = bool(config.feedback.get("effectsEnabled", true))
 	fx.damage_numbers_enabled = bool(config.ui.get("showDamageNumbers", true))
 	fx.z_index = 5
+	fx.text_scale = 1.0 / ZOOM
+	fx.fx_scale = 1.25
 	add_child(fx)
 	style = Style.new()
 	_build_hud()
@@ -188,6 +196,10 @@ func _build_lighting() -> void:
 		return
 	light_mat = ShaderMaterial.new()
 	light_mat.shader = CharLight
+	light_mat.set_shader_parameter("ol_width", OUTLINE_PX)
+	light_mat.set_shader_parameter("punch_con", 1.08)
+	light_mat.set_shader_parameter("punch_sat", 1.12)
+	light_mat.set_shader_parameter("hq_max_taps", 8)
 	(player.get_node("Visual/ActorSprite") as Sprite2D).material = light_mat
 
 
@@ -197,7 +209,11 @@ func _update_lighting() -> void:
 	var spr: Sprite2D = player.get_node("Visual/ActorSprite")
 	var gt := spr.get_global_transform()
 	light_mat.set_shader_parameter("flip", -1.0 if gt.x.x < 0.0 else 1.0)
-	light_mat.set_shader_parameter("px", Vector2(RIM_PX / maxf(gt.x.length(), 0.0001), RIM_PX / maxf(gt.y.length(), 0.0001)))
+	# 贴图像素 ↔ 屏幕像素：精灵全局缩放 × 镜头缩放
+	var sx := maxf(gt.x.length() * camera.zoom.x, 0.0001)
+	var sy := maxf(gt.y.length() * camera.zoom.y, 0.0001)
+	light_mat.set_shader_parameter("px", Vector2(RIM_PX / sx, RIM_PX / sy))
+	light_mat.set_shader_parameter("spx", Vector2(1.0 / sx, 1.0 / sy))
 	var l: Vector3 = backdrop.lantern_light(player.global_position + Vector2(0, player.foot_offset - 60.0))
 	light_mat.set_shader_parameter("warm", l.x * 0.85)
 	light_mat.set_shader_parameter("warm_dir", Vector2(l.y, l.z))
@@ -208,18 +224,23 @@ func _update_lighting() -> void:
 func _build_camera() -> void:
 	camera = Camera2D.new()
 	camera.set_script(CameraScript)
-	camera.position = Vector2(640, 360)
+	camera.position = Vector2(640, CAM_Y)
+	camera.zoom = Vector2(ZOOM, ZOOM)
+	camera.lock_y = CAM_Y
 	camera.shake_decay = float(config.camera.get("shakeDecay", 7))
-	camera.pixel_snap = float(config.camera.get("shakePixelSnap", 1))
+	# 震屏：像素对齐 2 屏幕像素（= 背景像素块，震的时候背景不闪）；幅度在屏幕上约为原来的 0.75
+	# （角色缩小了一半，原样的屏幕幅度会显得太猛）
+	camera.pixel_snap = 2.0 * float(config.camera.get("shakePixelSnap", 1))
+	camera.shake_world_scale = 0.75 / ZOOM
 	camera.max_shake = float(config.camera.get("maxShake", 42))
 	add_child(camera)
 	camera.make_current()
 	camera.follow_target = player
 	camera.follow_smoothing = float(config.camera.get("followLerp", 0.12)) * 60.0
-	camera.look_ahead = float(config.camera.get("lookAhead", 0.0))
+	camera.look_ahead = float(config.camera.get("lookAhead", 0.0)) / ZOOM
 	camera.arena_min = Vector2(back_limit - 30.0, 0)
 	camera.arena_max = Vector2(1.0e9, 720)
-	camera.global_position = Vector2(maxf(START_X, back_limit + 610.0), 360)
+	camera.global_position = Vector2(maxf(START_X, back_limit - 30.0 + 640.0 / ZOOM), CAM_Y)
 
 
 func _build_hud() -> void:
@@ -295,8 +316,8 @@ func _lock_arena() -> void:
 	var right := arena_center + ARENA_HALF
 	seal_x = Vector2(left, right)
 	seal_walls = [_make_wall(left - 20.0), _make_wall(right + 20.0)]
-	camera.arena_min = Vector2(arena_center - 640.0, 0)
-	camera.arena_max = Vector2(arena_center + 640.0, 720)
+	camera.arena_min = Vector2(arena_center - ARENA_HALF - 40.0, 0)
+	camera.arena_max = Vector2(arena_center + ARENA_HALF + 40.0, 720)
 	var waves: Array = ROUND[encounter_index % ROUND.size()]
 	encounter.setup(waves, left, right, floor_y, player, self, pow(ROUND_HP_MUL, float(round_index)))
 	encounter.start()
@@ -404,6 +425,7 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.died.connect(_on_shade_died.bind(s))
 	s.strike_landed.connect(_on_strike_landed.bind(s))
 	s.windup_started.connect(audio.play_shade_windup)
+	s.ui_scale = 1.0 / ZOOM
 	s.strike_started.connect(audio.play_shade_swing)
 	fx.spawn_dust(Vector2(s.global_position.x, floor_y), 0.6)
 	if s.kind == B and not _hints_done.has(&"brute"):
@@ -653,17 +675,17 @@ func _draw_seals() -> void:
 	for i in 2:
 		var x: float = seal_x.x if i == 0 else seal_x.y
 		var inward := 1.0 if i == 0 else -1.0
-		var top := floor_y - 520.0
+		var top := floor_y - 1400.0
 		for k in 10:
-			var w := 4.0 + float(k) * 6.0
+			var w := 8.0 + float(k) * 12.0
 			var a := seal_alpha * 0.07 * (1.0 - float(k) / 10.0)
 			var rx := x if inward > 0.0 else x - w
 			draw_rect(Rect2(rx, top, w, floor_y - top), Color(0.75, 0.85, 1.0, a))
-		draw_line(Vector2(x, top), Vector2(x, floor_y), Color(0.85, 0.92, 1.0, 0.55 * seal_alpha), 2.0)
-		for r in 7:
-			var phase_y := fposmod(_time * 60.0 + float(r) * 74.0, 520.0)
+		draw_line(Vector2(x, top), Vector2(x, floor_y), Color(0.85, 0.92, 1.0, 0.55 * seal_alpha), 4.0)
+		for r in 9:
+			var phase_y := fposmod(_time * 120.0 + float(r) * 148.0, 1040.0)
 			var y := floor_y - phase_y
-			var s := 5.0 + 2.0 * sin(_time * 3.0 + float(r))
-			var p := Vector2(x + inward * 10.0, y)
-			var col := Color(1.0, 0.86, 0.55, seal_alpha * 0.7 * sin(PI * phase_y / 520.0))
+			var s := 10.0 + 4.0 * sin(_time * 3.0 + float(r))
+			var p := Vector2(x + inward * 20.0, y)
+			var col := Color(1.0, 0.86, 0.55, seal_alpha * 0.7 * sin(PI * phase_y / 1040.0))
 			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.6, 0), p + Vector2(0, s), p + Vector2(-s * 0.6, 0)]), col)
