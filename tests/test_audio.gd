@@ -175,6 +175,30 @@ func run() -> void:
 			failures.append("缺少事件 " + key)
 	check(failures.is_empty() or not failures[-1].begins_with("缺少"), "夜战用到的事件全部有声音")
 
+	# ---- 第四轮：新事件 + 打击声短而干脆 + 同帧叠音上限
+	var miss4: Array[String] = []
+	for key in ["bomb", "shade_shot", "guard_break", "deflect", "ult_start", "ult_slash"]:
+		if not audio.has_bank(key):
+			miss4.append(key)
+	check(miss4.is_empty(), "第四轮新事件（炸弹/放箭/破防/弹回/大招）都有专门的声音 %s" % [miss4])
+	var long4: Array[String] = []
+	var limits := {"hit_light": 0.26, "hit_heavy": 0.42, "hit_finisher": 0.6, "hurt": 0.3, "hurt_heavy": 0.42,
+			"wall": 0.45, "slam": 0.62, "stun": 0.62, "shade_die": 0.62, "launch": 0.45, "chain": 0.4}
+	for key in limits:
+		for st in audio._bank[key]["streams"]:
+			if (st as AudioStream).get_length() > float(limits[key]):
+				long4.append("%s %.2fs" % [key, (st as AudioStream).get_length()])
+	check(long4.is_empty(), "打击类声音都很短（不拖尾）%s" % [long4])
+	audio.stop_all()
+	for i in 6:
+		audio._play_bank("hit_heavy")
+	var n_same := 0
+	for v in audio._voices:
+		if String(v.get_meta(&"bank_key", "")) == "hit_heavy":
+			n_same += 1
+	check(n_same == 2, "横扫同一帧打中 6 个，命中声只叠 2 层（实际 %d）" % n_same)
+	audio.stop_all()
+
 	var master := AudioServer.get_bus_index(&"Master")
 	var has_lim := false
 	for i in AudioServer.get_bus_effect_count(master):

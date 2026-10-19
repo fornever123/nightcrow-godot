@@ -1,0 +1,8 @@
+本目录中由 tools/audio/make_hits_v4.py 生成的音效（命中、受击、撞墙、砸地、脚步、跳跃、落地、
+影卒出手/死亡、炸弹、大招等）使用了以下素材的混音与再加工：
+
+  Kenney "Impact Sounds"  https://kenney.nl/assets/impact-sounds
+  Kenney "RPG Audio"      https://kenney.nl/assets/rpg-audio
+
+授权：Creative Commons Zero (CC0 1.0) —— 可自由用于商业项目，无需署名。
+https://creativecommons.org/publicdomain/zero/1.0/

@@ -53,11 +53,16 @@ const CLIPS := {
 const REPEAT_WINDOW_FRAMES := 10   ## 距上次发声多少物理帧内算"连续"
 const REPEAT_STEP_DB := -2.5       ## 每连续一次压多少
 const REPEAT_MAX_STEPS := 3        ## 最多压几档（防止密集连击把音量压没）
+const SAME_FRAME_MAX := 2          ## 同一物理帧同一事件最多响几次（横扫打中一群不叠成爆音）
+const SAME_FRAME_STEP_DB := -5.0   ## 同帧第二下压低多少
+const KEY_VOICE_MAX := 3           ## 同一事件同时最多几个声音（再多掐掉最老的）
 const BANK_DIR := "res://assets/audio/sfx_v3/"
 const BANK_BUS := {"impact": BUS_IMPACT, "motion": BUS_MOTION, "ui": BUS_UI}
 ## 音效库只解码一次（重开关卡 / 切训练场不再重复解码）
 static var _bank_cache: Dictionary = {}
 var _voices: Array[AudioStreamPlayer] = []
+var _same_frame: Dictionary = {}     ## 事件 → 上次发声的物理帧
+var _same_frame_n: Dictionary = {}   ## 事件 → 这一帧已响几次
 var _clips: Dictionary = {}
 var _trim: Dictionary = {}
 var _bus: StringName = BUS_IMPACT
@@ -470,7 +475,31 @@ func _play_bank(key: String, pitch: float = 0.0, volume_db: float = 0.0, offset:
 	if entry.has("source_video"):
 		p = 0.0
 	var gain := volume_db + float(gain_db.get(key, 0.0)) + _repeat_trim(StringName(key))
-	return _play_stream(streams[i], p, gain, offset)
+	var now := Engine.get_physics_frames()
+	if int(_same_frame.get(key, -1)) == now:
+		_same_frame_n[key] = int(_same_frame_n.get(key, 1)) + 1
+		if int(_same_frame_n[key]) > SAME_FRAME_MAX:
+			return true   # 已经响过了，再叠只会更糊更炸
+		gain += SAME_FRAME_STEP_DB
+	else:
+		_same_frame[key] = now
+		_same_frame_n[key] = 1
+	_cap_key_voices(key)
+	if not _play_stream(streams[i], p, gain, offset):
+		return false
+	_voices.back().set_meta(&"bank_key", key)
+	return true
+
+
+func _cap_key_voices(key: String) -> void:
+	var same: Array[AudioStreamPlayer] = []
+	for v in _voices:
+		if is_instance_valid(v) and String(v.get_meta(&"bank_key", "")) == key:
+			same.append(v)
+	while same.size() >= KEY_VOICE_MAX:
+		var old: AudioStreamPlayer = same.pop_front()
+		old.stop()
+		_release_voice(old)
 
 
 func _play_clip(key: String, pitch: float = 0.0, volume_db: float = 0.0) -> bool:

@@ -1,5 +1,5 @@
 {
- "note": "Base events: make_sfx_v3.py; selected original video overrides: apply_selected_video_audio.py. gainDb remains configurable.",
+ "note": "由 tools/audio/make_sfx_v3.py 生成，命中/受击/撞墙等由 make_hits_v4.py（Kenney CC0 实录）覆盖；勿手改；混音微调写在 battle.json audio.gainDb",
  "clips": {
   "step": {
    "files": [
@@ -60,7 +60,7 @@
     "hit_light_2.ogg.b64"
    ],
    "bus": "impact",
-   "pitchJitter": 0.04
+   "pitchJitter": 0.05
   },
   "hit_heavy": {
    "files": [
@@ -69,7 +69,7 @@
     "hit_heavy_2.ogg.b64"
    ],
    "bus": "impact",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.04
   },
   "hit_finisher": {
    "files": [
@@ -77,7 +77,7 @@
     "hit_finisher_1.ogg.b64"
    ],
    "bus": "impact",
-   "pitchJitter": 0.02
+   "pitchJitter": 0.03
   },
   "hurt": {
    "files": [
@@ -85,7 +85,7 @@
     "hurt_1.ogg.b64"
    ],
    "bus": "impact",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.04
   },
   "hurt_heavy": {
    "files": [
@@ -329,6 +329,51 @@
    "pitchJitter": 0.0,
    "sourceVideo": "mmh3_拔刀40.m4a",
    "peakOffsetSeconds": 0.614
+  },
+  "deflect": {
+   "files": [
+    "deflect_0.ogg.b64",
+    "deflect_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.04
+  },
+  "guard_break": {
+   "files": [
+    "guard_break_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.02
+  },
+  "bomb": {
+   "files": [
+    "bomb_0.ogg.b64",
+    "bomb_1.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.04
+  },
+  "shade_shot": {
+   "files": [
+    "shade_shot_0.ogg.b64",
+    "shade_shot_1.ogg.b64"
+   ],
+   "bus": "motion",
+   "pitchJitter": 0.05
+  },
+  "ult_start": {
+   "files": [
+    "ult_start_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.0
+  },
+  "ult_slash": {
+   "files": [
+    "ult_slash_0.ogg.b64"
+   ],
+   "bus": "impact",
+   "pitchJitter": 0.0
   }
  }
 }

@@ -357,6 +357,9 @@ def main():
     # The user's selected original sounds take priority over these old recipes.
     from apply_selected_video_audio import main as apply_selected_video_audio
     apply_selected_video_audio()
+    # 第四轮：命中 / 受击 / 脚步等换成 Kenney CC0 实录（覆盖上面同名的合成声）
+    from make_hits_v4 import main as make_hits_v4
+    make_hits_v4()
 
 
 if __name__ == '__main__':
