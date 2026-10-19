@@ -34,12 +34,12 @@ func slash(center_y: float, dir: int, extra_ys: Array = []) -> void:
 	flash = 1.0
 	dark_target = 0.0
 	var ys := [center_y, center_y - 70.0, center_y + 60.0]
-	for y in extra_ys:
+	for y in extra_ys.slice(0, 2):     # 最多再补两道，多了一屏全是线
 		ys.append(float(y))
 	var i := 0
 	for y in ys:
 		slashes.append({"y": y, "ang": (0.035 if i % 2 == 0 else -0.05) * float(dir), "t": 0.0,
-			"life": 0.55 + 0.05 * float(i % 3), "delay": 0.025 * float(i), "w": 22.0 if i == 0 else 13.0, "dir": dir})
+			"life": 0.34 + 0.04 * float(i % 3), "delay": 0.02 * float(i), "w": 16.0 if i == 0 else 9.0, "dir": dir})
 		i += 1
 
 
@@ -83,8 +83,8 @@ func _draw() -> void:
 		a = rot * a
 		b = rot * b
 		var w: float = float(s.w) * (0.35 + 0.65 * fade) * (1.0 + 0.6 * (1.0 - sweep))
-		draw_line(a, b, Color(GLOW, 0.22 * fade), w * 4.0)
-		draw_line(a, b, Color(GLOW, 0.5 * fade), w * 2.0)
+		draw_line(a, b, Color(GLOW, 0.14 * fade), w * 3.6)
+		draw_line(a, b, Color(GLOW, 0.4 * fade), w * 1.8)
 		draw_line(a, b, Color(CORE, 0.95 * fade), w)
 		# 刀尖一点亮光
 		if sweep < 1.0:

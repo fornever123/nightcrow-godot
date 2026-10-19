@@ -833,7 +833,6 @@ func _draw_seals() -> void:
 func _on_ult_started() -> void:
 	audio.play_ult_start()
 	ult_fx.begin()
-	hud.callout("大招！", Color("ffd27a"), 46)
 	camera.add_shake(3.0 * shake_mul, Vector2.UP)
 	var freeze: int = player.ult_hit_frame + 2
 	for s in get_tree().get_nodes_in_group(&"shade"):
