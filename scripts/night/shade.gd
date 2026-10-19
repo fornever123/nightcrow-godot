@@ -1130,8 +1130,13 @@ func _flinch(from_facing: int, frames: int, push: float) -> void:
 
 
 func _launch(mv: MoveDefinition, from_facing: int, from_up: bool, stunned: bool, charge_t: float) -> void:
-	var kb_mul := (1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t) * knock_mul()
+	var kb_mul := 1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t
 	var v := mv.knockback_velocity(from_facing) * kb_mul
+	# 伤害% 主要让人横着飞得更远；竖直只加一点（挑飞高度要稳定，空中连段才接得上）
+	var km := knock_mul()
+	v.x *= km
+	if not from_up:
+		v.y *= lerpf(1.0, km, 0.35)
 	if from_up:
 		v.y = minf(v.y, -absf(mv.launch_speed))
 		v.x *= 0.45

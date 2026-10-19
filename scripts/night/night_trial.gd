@@ -553,10 +553,11 @@ func _on_shade_wall(speed: float, damage: float, point: Vector2, s: Node2D) -> v
 	fx.spawn_wall_slam(point, dir, strength)
 	audio.play_wall(strength)
 	camera.add_shake(10.0 * shake_mul * clampf(strength, 0.4, 1.2), dir)
-	if damage > 0.0:
+	if damage > 0.0 or s.state == Shade.State.DEAD:
 		style.add_event(&"wall")
 		hud.callout("撞墙！", Color("ff8a5c"), 38)
-		fx.spawn_text(point, "撞墙 %.0f" % damage, damage, true)
+		if damage > 0.0:
+			fx.spawn_text(point, "撞墙 %.0f" % damage, damage, true)
 		_queue_hint(&"chain", "把敌人打向墙 / 别的影子：撞墙、连锁都会再吃一次伤害", 5.0, true)
 
 

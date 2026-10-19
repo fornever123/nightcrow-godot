@@ -184,6 +184,7 @@ func test_drive_route() -> void:
 	await fresh_player()
 	var s := make_shade(Shade.Kind.GRUNT, 700.0)
 	s.arena_right = 1250.0
+	s.hp = 400.0   # 连段伤害递增后影卒会在半路被打死；这里要测的是活着撞墙
 	var ev := record(s)
 	await hold(4, fr())
 	await pound_until_stun(ev)
