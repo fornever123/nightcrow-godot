@@ -15,6 +15,8 @@ var deaths := [0]
 var enc_clear: Array = []
 var snap: Dictionary = {}   ## 上一帧的评价统计（关卡在整轮结束时会先重置统计，再轮到这里的回调）
 var dmg_by := {}
+var stuck := 0
+var nav_stats := {"jump_up": 0, "drop": 0, "hop": 0}
 func _initialize() -> void:
 	call_deferred("run")
 func fr(actions: Array[StringName] = [], edges: Array[StringName] = [], axis := Vector2.ZERO) -> Buffer.Frame:
@@ -32,11 +34,23 @@ func decide() -> Buffer.Frame:
 		return plan.pop_front()
 	var shades := alive()
 	if shades.is_empty():
+		# 路上：被石台挡住就跳过去
+		if p.is_on_floor() and p.state == 0 and absf(p.velocity.x) < 8.0:
+			stuck += 1
+		else:
+			stuck = 0
+		if stuck > 6:
+			stuck = 0
+			nav_stats.hop += 1
+			_jump_toward(1.0, 2)
+			return plan.pop_front()
 		return fr([&"move_right"], [], Vector2(1, 0))
 	var px: float = p.global_position.x
+	var py: float = p.global_position.y + p.foot_offset
+	# 选目标：同一层的优先（高差按 2 倍算距离）
 	var nearest = shades[0]
 	for s in shades:
-		if absf(s.global_position.x - px) < absf(nearest.global_position.x - px):
+		if _cost(s, px, py) < _cost(nearest, px, py):
 			nearest = s
 	var dx: float = nearest.global_position.x - px
 	var dir := 1.0 if dx > 0 else -1.0
@@ -86,6 +100,30 @@ func decide() -> Buffer.Frame:
 				tap([&"attack_light"], Vector2(tdir * 0.3, 0), 3)
 			return plan.pop_front()
 		return fr([], [], Vector2(tdir * 0.4, 0))
+	# 2.5) 目标不在同一层：跳上去 / S+空格 跳下木台 / 被石台挡住就翻过去
+	var dy: float = nearest.level_y() - py
+	if on_floor and absf(p.velocity.x) < 8.0 and p.state == 0 and absf(dx) > 60:
+		stuck += 1
+	else:
+		stuck = 0
+	if on_floor and p.state == 0:
+		if stuck > 6:
+			stuck = 0
+			nav_stats.hop += 1
+			_jump_toward(dir, 2)
+			return plan.pop_front()
+		if dy < -40.0 and absf(dx) < 260.0:
+			nav_stats.jump_up += 1
+			_jump_toward(dir, 2 if dy < -120.0 else 1)
+			return plan.pop_front()
+		if dy > 40.0 and p.standing_on_one_way() and absf(dx) < 420.0:
+			nav_stats.drop += 1
+			tap([&"jump", &"move_down"], Vector2(0, 1), 3)
+			for i in 10:
+				plan.append(fr([mv], [], Vector2(dir, 0)))
+			return plan.pop_front()
+	if absf(dy) > 40.0:
+		return fr([mv], [], Vector2(dir, 0))
 	# 3) 眩晕 → W+J 挑飞
 	if nearest.state == Shade.State.STUNNED and absf(dx) < 170:
 		if p.facing != int(dir):
@@ -108,6 +146,18 @@ func decide() -> Buffer.Frame:
 			tap([&"attack_light"], Vector2.ZERO, 3)
 		return plan.pop_front()
 	return fr()
+func _cost(s, px: float, py: float) -> float:
+	return absf(s.global_position.x - px) + 2.0 * absf(s.level_y() - py)
+## 朝 d 方向起跳；jumps=2 时在升到顶附近再按一次（二段跳）
+func _jump_toward(d: float, jumps: int) -> void:
+	var mv: StringName = &"move_right" if d > 0 else &"move_left"
+	tap([&"jump", mv], Vector2(d, 0), 14)
+	if jumps >= 2:
+		for i in 4:
+			plan.append(fr([mv], [], Vector2(d, 0)))
+		tap([&"jump", mv], Vector2(d, 0), 14)
+	for i in 6:
+		plan.append(fr([mv], [], Vector2(d, 0)))
 func run() -> void:
 	rng.seed = int(OS.get_environment("SEED") if OS.get_environment("SEED") != "" else "7")
 	skill = float(OS.get_environment("SKILL") if OS.get_environment("SKILL") != "" else "0.8")
@@ -137,4 +187,5 @@ func run() -> void:
 		print("ENC ", c)
 	print("RESULT frames ", tick, " (", "%.1f" % (tick / 60.0), "s) deaths ", deaths[0], " clears ", enc_clear, " hp ", int(p.hp))
 	print("STATS ", stage.style.stats, " max_combo ", stage.style.max_combo, " best_rank ", best)
+	print("NAV ", nav_stats)
 	quit()
