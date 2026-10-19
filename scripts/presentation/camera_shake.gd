@@ -20,6 +20,10 @@ extends Camera2D
 @export var shake_world_scale: float = 1.0
 ## 竖直方向固定在这个世界 y（NAN = 按 arena_min/max 钳制）。试玩关卡里镜头只横向跟随。
 @export var lock_y: float = NAN
+## 跟随位置对齐的步长（屏幕像素，0 = 不对齐）。像素风地形一格 = 2 屏幕像素，
+## 镜头停在半像素上时格子边缘会忽宽忽窄；对齐 1 屏幕像素就稳了。内部仍然用没对齐的位置平滑。
+@export var position_snap: float = 0.0
+var _follow_pos: Vector2 = Vector2(NAN, NAN)
 
 ## 跟随目标（由 main.gd 注入）
 @export var follow_target: Node2D
@@ -97,10 +101,20 @@ func _update_follow(delta: float) -> void:
 	else:
 		target.y = clampf(target.y, lo.y, hi.y)
 
+	var cur := global_position
+	if position_snap > 0.0 and is_finite(_follow_pos.x):
+		# 外面直接设过 global_position（开场 / 复活）→ 以外面设的为准
+		var step := position_snap / maxf(z.x, 0.01)
+		if _follow_pos.snapped(Vector2.ONE * step).distance_to(cur) <= step * 0.75:
+			cur = _follow_pos
+	var next := target
 	if follow_smoothing > 0.0:
-		global_position = global_position.lerp(target, clampf(follow_smoothing * delta, 0.0, 1.0))
+		next = cur.lerp(target, clampf(follow_smoothing * delta, 0.0, 1.0))
+	if position_snap > 0.0:
+		_follow_pos = next
+		global_position = next.snapped(Vector2.ONE * position_snap / maxf(z.x, 0.01))
 	else:
-		global_position = target
+		global_position = next
 
 
 func _update_shake(delta: float) -> void:

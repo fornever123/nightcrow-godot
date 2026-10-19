@@ -7,8 +7,10 @@ extends Node2D
 ##   → 方向终结（S+J 下砸：落地反弹 + 冲击波；前+第三刀：横斩撞墙）
 ##   → 连锁击飞（高速飞出去的影撞到别的影，把它们一起撞飞）
 ##
-## 物理全部手动积分（地面是平的 floor_y，封印墙是 arena_left/right），
+## 物理全部手动积分（地面 floor_y + 多层地形 terrain.gd，封印墙是 arena_left/right），
 ## 不依赖碰撞体，所以不会出现“贴地时上挑被地面法线挡住”的老问题。
+## 多层地形（第三轮节点 17）：脚下的面问 terrain.support_y()，石台侧面问 terrain.push_out()；
+## 会跳上平台、从单向平台往下穿去追玩家，只和同一层的人互推、只打同一层的玩家。
 ## 原点 = 身体中心（和木桩一致：玩家的命中点 = 两者中点）。
 
 const MoveDefinition := preload("res://scripts/core/move_definition.gd")
@@ -68,6 +70,8 @@ var floor_y: float = 580.0
 var arena_left: float = -INF
 var arena_right: float = INF
 var target: Node2D = null
+## 多层地形（terrain.gd）；为空 = 平地（训练/测试场景）
+var terrain = null
 var active: bool = true
 var max_attackers: int = 1
 
@@ -92,6 +96,11 @@ var total_damage_taken: float = 0.0
 var dead_frames: int = 0
 var spawn_frames: int = 0
 var _chained: Dictionary = {}
+var _probe_y: float = INF           ## 这一帧开始时的脚底 y（落地判定用：穿过平台的那一帧也接得住）
+var _drop_y: float = NAN            ## 正在往下穿的单向平台高度
+var jump_cool: int = 0
+var _blocked: int = 0               ## 这一帧被石台侧面挡住：+1 石台在右、−1 在左
+var _target_level: float = NAN      ## 玩家最近一次站着时脚下那一层的高度
 var _strike_done: bool = false
 var _wall_factor: float = 0.5
 var strike_move: MoveDefinition
@@ -154,11 +163,22 @@ func _ready() -> void:
 
 
 func ground_y() -> float:
-	return floor_y - half_h
+	if terrain == null:
+		return floor_y - half_h
+	return terrain.support_y(position.x, minf(position.y + half_h, _probe_y), half_w * 0.5, _drop_y) - half_h
+
+
+func feet_y() -> float:
+	return position.y + half_h
+
+
+## 现在站的这一层的高度（脚下的面）
+func level_y() -> float:
+	return ground_y() + half_h
 
 
 func on_ground() -> bool:
-	return position.y >= ground_y() - 0.5
+	return velocity.y >= -1.0 and position.y >= ground_y() - 0.5
 
 
 func is_stunned() -> bool:
@@ -197,6 +217,11 @@ func display_name() -> String:
 # ---------------------------------------------------------------- 主循环
 
 func _physics_process(delta: float) -> void:
+	_probe_y = position.y + half_h
+	if is_finite(_drop_y) and _probe_y > _drop_y + 30.0:
+		_drop_y = NAN
+	if jump_cool > 0:
+		jump_cool -= 1
 	anim_t += delta
 	if flash > 0:
 		flash -= 1
@@ -268,9 +293,16 @@ func _process_ai(delta: float) -> void:
 		facing = 1 if dx > 0.0 else -1
 	cooldown -= 1
 	var want := float(spec.range) * 0.82
+	# 多层地形：玩家站在别的层 → 先想办法上去 / 下去，不在原地干等
+	var lvl := _level_gap()
+	if absf(lvl) >= 40.0:
+		state = State.APPROACH
+		_chase_level(lvl, dx, delta)
+		return
 	if dist > want:
 		state = State.APPROACH
 		velocity.x = move_toward(velocity.x, float(facing) * float(spec.speed), 900.0 * delta)
+		_hop_obstacle()
 	elif dist < want * 0.45:
 		# 贴太近：往后让一步，给玩家留出看得清的出刀距离
 		state = State.APPROACH
@@ -279,8 +311,65 @@ func _process_ai(delta: float) -> void:
 		state = State.IDLE
 		velocity.x = move_toward(velocity.x, 0.0, 1400.0 * delta)
 	var dy := absf(target.global_position.y - global_position.y)
-	if cooldown <= 0 and dist <= float(spec.range) * 1.05 and dy < 150.0 and _attack_slot_free():
+	if cooldown <= 0 and dist <= float(spec.range) * 1.05 and dy < 150.0 and on_ground() and _attack_slot_free():
 		_begin_windup()
+
+
+## 玩家那一层减去自己这一层（负 = 玩家在上面）。玩家跳起来时沿用他最近站过的那一层。
+func _level_gap() -> float:
+	if terrain == null:
+		return 0.0
+	var tf := _target_feet()
+	var standing := true
+	if target is CharacterBody2D:
+		standing = (target as CharacterBody2D).is_on_floor()
+	if standing or not is_finite(_target_level):
+		_target_level = terrain.support_y(target.global_position.x, tf, 12.0)
+	if not on_ground():
+		return 0.0 if absf(_target_level - feet_y()) < 40.0 else _target_level - level_y()
+	return _target_level - level_y()
+
+
+func _target_feet() -> float:
+	var fo = target.get(&"foot_offset")
+	return target.global_position.y + (float(fo) if fo != null else half_h)
+
+
+## 追到别的层：玩家在上面 → 走近了就起跳（跳到比那一层高 40）；在下面 → 单向平台直接往下穿，石台就走下边缘
+func _chase_level(lvl: float, dx: float, delta: float) -> void:
+	var sp := float(spec.speed)
+	var dist := absf(dx)
+	if lvl < 0.0:
+		var near := dist < 300.0
+		var goal := float(facing) * sp * (1.15 if not on_ground() else (1.0 if dist > 40.0 else 0.0))
+		velocity.x = move_toward(velocity.x, goal, 900.0 * delta)
+		if near and on_ground() and jump_cool <= 0:
+			_jump(-lvl + 40.0)
+		else:
+			_hop_obstacle()
+	else:
+		velocity.x = move_toward(velocity.x, float(facing) * sp, 900.0 * delta)
+		_hop_obstacle()
+		if on_ground() and not is_finite(_drop_y):
+			var ow: float = terrain.one_way_at(position.x, feet_y(), half_w * 0.5)
+			if is_finite(ow) and (dist < 360.0 or _rng.randf() < 0.02):
+				_drop_y = ow
+				squash = Vector2(1.12, 0.9)
+
+
+## 往前走被石台侧面挡住 → 跳上去（翻过去）
+func _hop_obstacle() -> void:
+	if terrain == null or _blocked != facing or not on_ground() or jump_cool > 0:
+		return
+	var top: float = terrain.solid_top(position.x + float(facing) * (half_w + 12.0), 4.0)
+	_jump(feet_y() - top + 36.0)
+
+
+func _jump(height: float) -> void:
+	velocity.y = -sqrt(2.0 * FALL_GRAVITY * maxf(height, 40.0))
+	position.y += velocity.y / 60.0
+	jump_cool = 50 if kind == Kind.GRUNT else 80
+	squash = Vector2(0.84, 1.18)
 
 
 func _attack_slot_free() -> bool:
@@ -402,14 +491,17 @@ func _process_down(delta: float) -> void:
 
 
 func _ground_physics(delta: float) -> void:
-	if not on_ground():
+	var gy := ground_y()
+	if velocity.y < 0.0 or position.y < gy - 0.5:
 		velocity.y += FALL_GRAVITY * delta
-		position.y = minf(position.y + velocity.y * delta, ground_y())
-		if on_ground():
+		position.y += velocity.y * delta
+		gy = ground_y()
+		if velocity.y >= 0.0 and position.y >= gy:
+			position.y = gy
 			velocity.y = 0.0
 	else:
 		velocity.y = 0.0
-		position.y = ground_y()
+		position.y = gy
 	position.x += velocity.x * delta
 	_clamp_walls(false)
 
@@ -421,14 +513,31 @@ func _clamp_walls(_impact: bool) -> void:
 	elif position.x + half_w > arena_right:
 		position.x = arena_right - half_w
 		velocity.x = minf(velocity.x, 0.0)
+	var po := _terrain_push()
+	_blocked = int(po.y)
+	if po.y > 0.0:
+		velocity.x = minf(velocity.x, 0.0)
+	elif po.y < 0.0:
+		velocity.x = maxf(velocity.x, 0.0)
 
 
-## 地面上的影互相推开（不叠成一团，也让“连锁”有东西可撞）
+## 石台侧面挡路：推出去并返回 Vector2(新 x, 撞到的一侧)；没有地形 / 没撞返回 y = 0
+func _terrain_push() -> Vector2:
+	if terrain == null:
+		return Vector2(position.x, 0.0)
+	var po: Vector2 = terrain.push_out(position.x, half_w, minf(feet_y(), _probe_y))
+	position.x = po.x
+	return po
+
+
+## 地面上的影互相推开（不叠成一团，也让“连锁”有东西可撞）；只推同一层的
 func _separate() -> void:
 	if not on_ground():
 		return
 	for o in get_tree().get_nodes_in_group(&"shade"):
 		if o == self or o.state == State.DEAD or o.state == State.LAUNCHED:
+			continue
+		if absf(o.position.y + o.half_h - feet_y()) > 20.0:
 			continue
 		var d: float = position.x - o.position.x
 		var need: float = (half_w + o.half_w) * 0.9
@@ -454,7 +563,7 @@ func _process_launched(delta: float) -> void:
 	_wall_check()
 	if chain_armed and velocity.length() >= CHAIN_SPEED:
 		_chain_check()
-	if position.y >= ground_y():
+	if velocity.y >= 0.0 and position.y >= ground_y():
 		position.y = ground_y()
 		_floor_impact()
 
@@ -467,6 +576,8 @@ func _wall_check() -> void:
 	elif position.x + half_w > arena_right:
 		position.x = arena_right - half_w
 		side = 1
+	else:
+		side = int(_terrain_push().y)   # 撞到石台侧面也算撞墙
 	if side == 0:
 		return
 	var speed := absf(velocity.x)
@@ -523,7 +634,7 @@ func _shockwave(point: Vector2, radius: float) -> void:
 		if o == self or o.state == State.DEAD:
 			continue
 		var d: Vector2 = o.global_position - point
-		if absf(d.x) < radius and absf(d.y) < 160.0 and o.on_ground():
+		if absf(d.x) < radius and absf(o.position.y + o.half_h - point.y) < 40.0 and o.on_ground():
 			o.take_chain(self, Vector2(signf(d.x) * 160.0, -760.0), chain_level + 1, true)
 
 
@@ -830,15 +941,19 @@ func _process_dead(delta: float) -> void:
 	velocity.y += g * delta
 	velocity.x = move_toward(velocity.x, 0.0, 200.0 * delta)
 	position += velocity * delta
+	var dside := 0
 	if position.x - half_w < arena_left or position.x + half_w > arena_right:
-		var side := -1 if position.x - half_w < arena_left else 1
-		position.x = arena_left + half_w if side < 0 else arena_right - half_w
+		dside = -1 if position.x - half_w < arena_left else 1
+		position.x = arena_left + half_w if dside < 0 else arena_right - half_w
+	else:
+		dside = int(_terrain_push().y)
+	if dside != 0 and float(dside) * velocity.x > 0.0:
 		if absf(velocity.x) > 300.0:
-			wall_slam.emit(absf(velocity.x), 0.0, global_position + Vector2(float(side) * half_w, 0.0))
+			wall_slam.emit(absf(velocity.x), 0.0, global_position + Vector2(float(dside) * half_w, 0.0))
 		velocity.x = -velocity.x * 0.3
 	if chain_armed and velocity.length() >= CHAIN_SPEED:
 		_chain_check()
-	if position.y >= ground_y():
+	if velocity.y >= 0.0 and position.y >= ground_y():
 		position.y = ground_y()
 		if slammed:
 			slammed = false

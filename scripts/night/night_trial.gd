@@ -5,6 +5,7 @@ extends Node2D
 ## 结构：
 ##   night_trial.gd（本文件）  世界、封印墙、镜头、玩家死亡重开、把战斗事件接到特效/音效/评价
 ##   encounter.gd              一处封印里的波次与刷怪
+##   terrain.gd                多层地形（单向平台 + 实心石台），每处封印一段布局
 ##   shade.gd                  敌人（影卒 / 甲影），失衡→眩晕→挑飞→浮空→方向终结→撞墙/连锁
 ##   style_meter.gd            连击数 + D/C/B/A/S 评价（纯逻辑）
 ##   combat_hud.gd             HUD（纯显示）
@@ -17,6 +18,7 @@ const Encounter := preload("res://scripts/night/encounter.gd")
 const Style := preload("res://scripts/night/style_meter.gd")
 const Hud := preload("res://scripts/night/combat_hud.gd")
 const Backdrop := preload("res://scripts/night/night_backdrop.gd")
+const Terrain := preload("res://scripts/night/terrain.gd")
 const CharLight := preload("res://assets/shaders/char_light.gdshader")
 const RIM_PX := 2.5                 ## 角色月光边缘光宽度（屏幕像素）
 const OUTLINE_PX := 2.0             ## 角色深色描边宽度（屏幕像素，第三轮方案1）
@@ -33,10 +35,12 @@ const Feel := preload("res://scripts/core/feel_scale.gd")
 
 const G := Shade.Kind.GRUNT
 const B := Shade.Kind.BRUTE
-const ARENA_HALF := 620.0           ## 封印竞技场半宽（全宽 1240，比画面窄 40，墙贴着画面边）
-const FIRST_ARENA_X := 1500.0
-const ARENA_SPACING := 1750.0       ## 相邻两处封印中心的距离（中间约 6 秒的散步路）
-const TRIGGER_BEFORE := 240.0       ## 走到封印中心左边这么远就合上封印
+## 第三轮：镜头缩到 0.5 后画面宽 2560 世界单位，竞技场跟着变宽（全宽 2400，墙贴着画面边），
+## 里面摆多层地形（terrain.gd 的 SECTIONS，坐标相对封印中心）
+const ARENA_HALF := 1200.0
+const FIRST_ARENA_X := 2500.0
+const ARENA_SPACING := 3600.0       ## 相邻两处封印中心的距离（中间约 3.5 秒的路，路上也有能跳的台子）
+const TRIGGER_BEFORE := 1000.0      ## 走到封印中心左边这么远就合上封印（= 进了竞技场 200）
 const START_X := 300.0
 const WAVE_HEAL := 25.0
 const ROUND_HP_MUL := 1.2
@@ -68,6 +72,7 @@ var hud: Control
 var style: Style
 var encounter: Node
 var backdrop: Node2D                ## 夜景（节点 4 接入；为空时画占位地面）
+var terrain: Node2D                 ## 多层地形（第三轮节点 17）
 var light_mat: ShaderMaterial       ## 角色环境光（节点 5；夜景缺失时为空）
 var floor_y: float = 580.0
 var phase: Phase = Phase.EXPLORE
@@ -103,6 +108,9 @@ func _ready() -> void:
 	Factory.register_input()
 	_build_world()
 	player = Factory.build(config, moves, Vector2(START_X, floor_y))
+	# 多层地形：玩家也撞单向平台那一层；站在上面按住 S 再按跳 = 往下穿
+	player.collision_mask = 1 | Terrain.ONE_WAY_LAYER
+	player.one_way_mask = Terrain.ONE_WAY_LAYER
 	player.can_die = true
 	player.getup_invuln_frames = 40
 	player.root_motion_block_group = &"shade"
@@ -161,6 +169,12 @@ func _build_world() -> void:
 	ground.add_child(shape)
 	add_child(ground)
 	back_wall = _make_wall(back_limit - 20.0)
+	terrain = Terrain.new()
+	terrain.name = "Terrain"
+	terrain.floor_y = floor_y
+	terrain.z_index = -70           # 背景像素化那层（−75）之后：地形和角色一样清楚
+	add_child(terrain)
+	_ensure_terrain(0)
 
 
 func _make_wall(x: float) -> StaticBody2D:
@@ -214,11 +228,21 @@ func _update_lighting() -> void:
 	var sy := maxf(gt.y.length() * camera.zoom.y, 0.0001)
 	light_mat.set_shader_parameter("px", Vector2(RIM_PX / sx, RIM_PX / sy))
 	light_mat.set_shader_parameter("spx", Vector2(1.0 / sx, 1.0 / sy))
-	var l: Vector3 = backdrop.lantern_light(player.global_position + Vector2(0, player.foot_offset - 60.0))
+	var l: Vector3 = _lamp_at(player.global_position + Vector2(0, player.foot_offset - 60.0))
 	light_mat.set_shader_parameter("warm", l.x * 0.85)
 	light_mat.set_shader_parameter("warm_dir", Vector2(l.y, l.z))
 	for s in get_tree().get_nodes_in_group(&"shade"):
-		s.lamp = backdrop.lantern_light(s.global_position)
+		s.lamp = _lamp_at(s.global_position)
+
+
+## 堤岸石灯笼 + 亭子檐下灯笼，取更亮的那一盏
+func _lamp_at(p: Vector2) -> Vector3:
+	var l: Vector3 = backdrop.lantern_light(p)
+	if terrain != null:
+		var l2: Vector3 = terrain.lantern_light(p)
+		if l2.x > l.x:
+			l = l2
+	return l
 
 
 func _build_camera() -> void:
@@ -227,6 +251,7 @@ func _build_camera() -> void:
 	camera.position = Vector2(640, CAM_Y)
 	camera.zoom = Vector2(ZOOM, ZOOM)
 	camera.lock_y = CAM_Y
+	camera.position_snap = 1.0       # 镜头停在整屏幕像素上：像素风地形的格子不会忽宽忽窄
 	camera.shake_decay = float(config.camera.get("shakeDecay", 7))
 	# 震屏：像素对齐 2 屏幕像素（= 背景像素块，震的时候背景不闪）；幅度在屏幕上约为原来的 0.75
 	# （角色缩小了一半，原样的屏幕幅度会显得太猛）
@@ -250,7 +275,7 @@ func _build_hud() -> void:
 	hud = Hud.new()
 	hud.style = style
 	hud.help_visible = bool(config.ui.get("showMoveHints", true))
-	hud.help_text = "A/D 移动   W/空格 跳（可二段）   J 攻击·按住蓄力   W+J 挑飞   K 远射   L 弹刀·按住格挡   Shift+J 冲刺斩\n空中：J 连斩   S+J 下砸   按住前方+J 横扫        H 隐藏说明   F3 木桩训练场   R 从头开始"
+	hud.help_text = "A/D 移动   W/空格 跳（可二段）   S+空格 跳下木台   J 攻击·按住蓄力   W+J 挑飞   K 远射   L 弹刀·按住格挡   Shift+J 冲刺斩\n空中：J 连斩   S+J 下砸   按住前方+J 横扫        H 隐藏说明   F3 木桩训练场   R 从头开始"
 	layer.add_child(hud)
 
 
@@ -290,6 +315,8 @@ func _physics_process(delta: float) -> void:
 			fallen_frames -= 1
 			if fallen_frames <= 0:
 				_revive()
+	if not _hints_done.has(&"drop") and player.is_on_floor() and player.standing_on_one_way():
+		_queue_hint(&"drop", "站在木台 / 屋檐上：按住 S 再按空格 = 跳下去", 5.0)
 	var juggling := false
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		if s.state == Shade.State.LAUNCHED or s.state == Shade.State.STUNNED:
@@ -307,7 +334,18 @@ func _physics_process(delta: float) -> void:
 
 
 func _next_center() -> float:
-	return FIRST_ARENA_X + float(encounter_index) * ARENA_SPACING
+	return _center_of(encounter_index)
+
+
+func _center_of(i: int) -> float:
+	return FIRST_ARENA_X + float(i) * ARENA_SPACING
+
+
+## 第 i 处和下一处的地形都生成好；走远了的拆掉
+func _ensure_terrain(i: int) -> void:
+	terrain.ensure_section(i, _center_of(i))
+	terrain.ensure_section(i + 1, _center_of(i + 1))
+	terrain.free_sections_before(i - 1)
 
 
 func _lock_arena() -> void:
@@ -320,6 +358,9 @@ func _lock_arena() -> void:
 	camera.arena_max = Vector2(arena_center + ARENA_HALF + 40.0, 720)
 	var waves: Array = ROUND[encounter_index % ROUND.size()]
 	encounter.setup(waves, left, right, floor_y, player, self, pow(ROUND_HP_MUL, float(round_index)))
+	_ensure_terrain(encounter_index)
+	encounter.terrain = terrain
+	encounter.spawn_points = terrain.spawn_points(encounter_index, arena_center)
 	encounter.start()
 	phase = Phase.FIGHT
 	camera.add_shake(4.0 * shake_mul)
@@ -404,7 +445,8 @@ func _on_player_died() -> void:
 
 func _revive() -> void:
 	encounter.restart_wave()
-	player.reset_state(Vector2(arena_center - 320.0, floor_y - player.foot_offset))
+	var rx := arena_center - 320.0
+	player.reset_state(Vector2(rx, terrain.solid_top(rx, 30.0) - player.foot_offset))
 	player.get_node("Visual/ActorSprite").reset_presentation()
 	player.invuln_frames = 60
 	_hp_seen = player.hp
@@ -427,7 +469,7 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.windup_started.connect(audio.play_shade_windup)
 	s.ui_scale = 1.0 / ZOOM
 	s.strike_started.connect(audio.play_shade_swing)
-	fx.spawn_dust(Vector2(s.global_position.x, floor_y), 0.6)
+	fx.spawn_dust(Vector2(s.global_position.x, s.feet_y()), 0.6)
 	if s.kind == B and not _hints_done.has(&"brute"):
 		_queue_hint(&"brute", "甲影出刀时有霸体（白光打不断）→ 弹刀 / 按住 J 蓄力斩 来破防", 6.0)
 
@@ -467,7 +509,7 @@ func _on_shade_launched(point: Vector2) -> void:
 	style.add_event(&"launch")
 	hud.callout("挑飞！", Color("9fd8ff"), 36)
 	audio.play_launch()
-	fx.spawn_dust(Vector2(point.x, floor_y), 0.7)
+	fx.spawn_dust(Vector2(point.x, terrain.support_y(point.x, point.y)), 0.7)
 	_queue_hint(&"air", "跳起来 J 空中连斩 · S + J 下砸 · 按住前方再 J 横扫撞墙", 6.0, true)
 
 
@@ -645,15 +687,17 @@ func _draw_player_shadow() -> void:
 		return
 	var x: float = player.global_position.x
 	var foot: float = player.global_position.y + player.foot_offset
-	var air := clampf((floor_y - foot) / 300.0, 0.0, 1.0)
+	# 影子落在脚下最高的那个面上（平台 / 石台 / 地面）
+	var gy := floor_y if terrain == null else float(terrain.support_y(x, foot, 20.0))
+	var air := clampf((gy - foot) / 300.0, 0.0, 1.0)
 	var k := 1.0 - air * 0.5
-	_soft_ellipse(Vector2(x - 5.0, floor_y + 3.0), Vector2(60.0 * k, 6.5 * k), 0.45 * (1.0 - air * 0.8))   # 外圈淡影
-	_soft_ellipse(Vector2(x - 3.0, floor_y + 2.0), Vector2(40.0 * k, 3.5 * k), 0.8 * (1.0 - air))          # 贴地接触影
-	if backdrop != null:
+	_soft_ellipse(Vector2(x - 5.0, gy + 3.0), Vector2(60.0 * k, 6.5 * k), 0.45 * (1.0 - air * 0.8))   # 外圈淡影
+	_soft_ellipse(Vector2(x - 3.0, gy + 2.0), Vector2(40.0 * k, 3.5 * k), 0.8 * (1.0 - air))          # 贴地接触影
+	if backdrop != null and gy >= floor_y - 1.0:
 		var l: Vector3 = backdrop.lantern_light(Vector2(x, floor_y - 60.0))
 		if l.x > 0.03:
 			var away := -1.0 if l.y > 0.0 else 1.0
-			_soft_ellipse(Vector2(x + away * (40.0 + 40.0 * l.x), floor_y + 3.0), Vector2(56.0 + 50.0 * l.x, 5.0), 0.35 * l.x * (1.0 - air))
+			_soft_ellipse(Vector2(x + away * (40.0 + 40.0 * l.x), gy + 3.0), Vector2(56.0 + 50.0 * l.x, 5.0), 0.35 * l.x * (1.0 - air))
 
 
 func _soft_ellipse(c: Vector2, r: Vector2, alpha: float) -> void:
