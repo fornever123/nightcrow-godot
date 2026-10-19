@@ -172,6 +172,12 @@ var input_source: Object = null
 @export var wall_damage_scale: float = 0.15
 @export var min_wall_impact_speed: float = 90.0
 @export var max_hp: float = 100.0
+## 轻击退阈值（第四轮，疯狂小人式“挨一下就能动”）。击退速度低于它的受击
+## 落地后直接站稳（不倒地），并给 soft_recover_invuln 帧无敌。0 = 关（默认，旧行为不变）。
+@export var soft_knock_threshold: float = 0.0
+@export var soft_recover_invuln: int = 12
+## 真正被打倒（重击 / 挑飞）后躺多少帧
+@export var hard_down_frames: int = 26
 
 @export_group("招式表")
 ## 无类型 Array：元素必须是 move_definition.gd 的实例（由 main.gd 从 .tres 注入）
@@ -221,6 +227,7 @@ var air_suspend_used: int = 0
 var guard_animation: String = ""
 var guard_clock: float = 0.0
 var action_serial: int = 0
+var _soft_knock := false   ## 这次被击退是轻击（落地直接站稳）
 var action_idle_frames: int = 0
 var _turn_target: int = 1
 var _turn_clip: Dictionary = {}
@@ -1457,8 +1464,19 @@ func _die() -> void:
 
 func _enter_down() -> void:
 	_interrupt_action_flow()
+	if _soft_knock and hp > 0.0 and state == State.LAUNCHED:
+		# 轻击：落地就站稳，马上能动（短无敌防止被连着打到起不来）
+		_soft_knock = false
+		state = State.NEUTRAL
+		combo_index = 0
+		velocity.x *= 0.3
+		_set_visual_scale(Vector2(1.12, 0.9))
+		_squash_timer = 4
+		invuln_frames = maxi(invuln_frames, soft_recover_invuln)
+		return
+	_soft_knock = false
 	state = State.DOWN
-	down_frames = 26
+	down_frames = hard_down_frames
 	velocity = Vector2.ZERO
 	_set_visual_scale(Vector2(1.25, 0.72))
 	_squash_timer = 0
@@ -1536,6 +1554,7 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 	current_move = mv
 	state = State.LAUNCHED
 	velocity = mv.knockback_velocity(from_facing)
+	_soft_knock = soft_knock_threshold > 0.0 and not mv.forces_launch and velocity.length() < soft_knock_threshold
 	# 被击退时朝向攻击者
 	_set_facing(-from_facing)
 	return false

@@ -116,6 +116,9 @@ func _ready() -> void:
 	player.one_way_mask = Terrain.ONE_WAY_LAYER
 	player.can_die = true
 	player.getup_invuln_frames = 40
+	# 第四轮：小兵的轻击（击退 < 350）落地就站稳，只有重击/炸弹才会被打倒
+	player.soft_knock_threshold = 350.0
+	player.hard_down_frames = 20
 	player.root_motion_block_group = &"shade"
 	player.launcher_cancel = true
 	# 玩家被打飞后落地/撞墙不再额外扣血（训练场里落地也算"撞墙"，影卒一刀 8 实际会掉 26）。

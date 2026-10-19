@@ -5,6 +5,7 @@ extends SceneTree
 ## 运行：godot --headless --fixed-fps 60 --path . --script res://tests/test_shades_v4.gd
 const Buffer := preload("res://scripts/core/input_buffer.gd")
 const Shade := preload("res://scripts/night/shade.gd")
+const Player := preload("res://scripts/gameplay/player.gd")
 
 var stage
 var p
@@ -90,6 +91,7 @@ func run() -> void:
 	await test_bolt()
 	await test_bomb()
 	await test_keep_distance()
+	await test_soft_knock()
 	print("SHADES_V4_TESTS: ", checks, " checks / ", failures.size(), " failures")
 	quit(0 if failures.is_empty() else 1)
 
@@ -263,3 +265,28 @@ func test_keep_distance() -> void:
 	await hold(90)
 	d = absf(bomber.global_position.x - p.global_position.x)
 	check(d < 900.0, "影爆太远会靠近（%d px）" % int(d))
+
+
+## 玩家被小兵轻击：落地站稳不倒地；被甲影/炸弹重击：倒地
+func knock_trial(kind: int) -> Dictionary:
+	await fresh(600.0)
+	var s := make_shade(kind, 900.0)
+	await hold(2)
+	p.invuln_frames = 0
+	p.take_hit(s.strike_move, -1, p.global_position, 0.0, false, 1.0, s)
+	var r := {"down": false, "free_at": -1}
+	for i in 90:
+		await hold(1)
+		if p.state == Player.State.DOWN:
+			r.down = true
+		if r.free_at < 0 and p.state == Player.State.NEUTRAL:
+			r.free_at = i
+	return r
+
+
+func test_soft_knock() -> void:
+	var g := await knock_trial(Shade.Kind.GRUNT)
+	check(not g.down and g.free_at >= 0 and g.free_at <= 40, "影卒轻击：落地直接站稳（%d 帧后能动）" % g.free_at)
+	var b := await knock_trial(Shade.Kind.BRUTE)
+	check(b.down, "甲影重击：会被打倒")
+	check(b.free_at >= 0, "倒地后能站起来（%d 帧）" % b.free_at)
