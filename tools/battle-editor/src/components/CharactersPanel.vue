@@ -11,7 +11,12 @@ const animations=computed(()=>actor.value?.sprite?.animations||{});
 const movement=computed(()=>actor.value?.sprite?.locomotion||{});
 const guard=computed(()=>actor.value?.sprite?.guard||{});
 const drawSheathe=computed(()=>actor.value?.sprite?.drawSheathe||{});
-const airCombo=computed(()=>actor.value?.sprite?.airCombo||{});
+const airCombat=computed(()=>actor.value?.airCombat||{});
+function setAirCombat(key:string,value:unknown){
+  actor.value.airCombat??={};
+  actor.value.airCombat[key]=value;
+  emit('changed');
+}
 function setSpriteSetting(group:string,key:string,value:unknown){
   const sprite=actor.value.sprite;
   sprite[group]??={};
@@ -47,7 +52,7 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
   </PanelShell>
   <PanelShell title="蓄力时移动" eyebrow="走动与跳跃">
     <EditorField label="蓄力移动速度（正常=100%）" type="number" :model-value="(actor.chargeMovementScale??0.85)*100" min="0" max="100" step="1" @update="actor.chargeMovementScale=$event/100" @changed="emit('changed')"/>
-    <p class="notice">蓄力时可以走动、转向和跳跃。松开攻击键释放蓄力，按格挡键转为防守。</p>
+    <p class="notice">蓄力时可以走动、转向；跳跃会取消蓄力。松开攻击键释放蓄力，按格挡键转为防守。</p>
   </PanelShell>
   <PanelShell title="格挡与弹刀" eyebrow="按下立即防守">
     <p class="notice">按下 L 立即防守，举剑动作不影响判定；挡住或弹刀成功会立即换成对应动作。按住 L 可以移动、跳跃，但不能攻击。</p>
@@ -62,9 +67,14 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
     <div class="field-grid input-bindings"><label class="editor-field"><span>冲刺攻击按键</span><input :value="inputText('dashAttack')" placeholder="SHIFT+J" @change="setInput('dashAttack',$event)"></label><label class="editor-field"><span>按住防守按键</span><input :value="inputText('guard')" placeholder="L_HOLD" @change="setInput('guard',$event)"></label></div>
     <p class="notice">输入可用逗号分隔多个绑定。SHIFT+J 为冲刺攻击，L_HOLD 为持续防守。</p>
   </PanelShell>
-  <PanelShell title="空中连段" eyebrow="三段空中攻击">
-    <p class="notice">空中攻击分三次输入；每段只会在允许接招的窗口进入下一段。</p>
-    <EditorField label="空中连段最长滞空帧数" type="number" :model-value="airCombo.maxSuspendFrames??180" min="0" max="600" @update="setSpriteSetting('airCombo','maxSuspendFrames',$event)"/>
+  <PanelShell title="空中连段与追击" eyebrow="跳跃取消 · 命中慢坠">
+    <p class="notice">有剩余次数时，跳跃可打断大招以外的动作。上挑命中同一刀只奖励一次，落地清空额外次数；空中挥空正常下落，近战命中后短暂慢坠，顿帧不占慢坠时间。</p>
+    <div class="field-grid">
+      <EditorField label="每次上挑命中奖励跳跃次数" type="number" :model-value="airCombat.launcherJumpBonus??1" min="0" max="6" step="1" @update="setAirCombat('launcherJumpBonus',$event)"/>
+      <EditorField label="命中后慢坠时长（秒）" type="number" :model-value="(airCombat.hitFallSlowFrames??12)/60" min="0" max="2" step="0.05" @update="setAirCombat('hitFallSlowFrames',Math.round($event*60))"/>
+      <EditorField label="命中后保留的下落速度（%）" type="number" :model-value="(airCombat.hitFallSpeedScale??0.45)*100" min="0" max="100" step="1" @update="setAirCombat('hitFallSpeedScale',$event/100)"/>
+      <EditorField label="慢坠时的下落重力（%）" type="number" :model-value="(airCombat.hitFallGravityScale??0.35)*100" min="0" max="100" step="1" @update="setAirCombat('hitFallGravityScale',$event/100)"/>
+    </div>
   </PanelShell>
   <PanelShell title="拔刀与收刀" eyebrow="持剑状态">
     <p class="notice">出招可按允许接入的帧提前取消拔刀或收刀；空闲一段时间后自动收刀。</p>

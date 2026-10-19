@@ -118,13 +118,17 @@ func run() -> void:
 		"charge steering turns normally without ending the charge")
 	var jump_y := p.global_position.y
 	await step(frame([&"attack_light", &"move_right", &"jump"], [&"jump"], Vector2.RIGHT))
-	check(p.charge_frames >= 0 and p.global_position.y < jump_y,
-		"jumping during charge keeps charging and uses normal upward movement")
+	check(p.charge_frames < 0 and p.current_move == null and p.global_position.y < jump_y,
+		"jump cancels charging immediately and starts normal upward movement")
 	var vy_after_jump := p.velocity.y
 	for i in 5:
 		await step(frame([&"attack_light", &"move_right", &"jump"], [], Vector2.RIGHT))
-	check(p.charge_frames >= 0 and p.velocity.y > vy_after_jump and p.velocity.y < 0.0,
-		"charge jump follows ordinary gravity instead of freezing vertical speed")
+	check(p.charge_frames < 0 and p.velocity.y > vy_after_jump and p.velocity.y < 0.0,
+		"cancelled charge stays cancelled while the jump follows ordinary gravity")
+	# Test a fresh airborne charge release separately from jump cancellation.
+	p._start_charge()
+	p.charge_frames = p.charge_move.min_charge_frames
+	await step(frame([&"attack_light", &"move_right"], [], Vector2.RIGHT))
 	var release_x := p.global_position.x
 	var release_y := p.global_position.y
 	await step(frame([&"move_right"], [], Vector2.RIGHT))

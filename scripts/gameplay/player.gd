@@ -73,6 +73,11 @@ const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up",
 ## 刹车 / 反向时的减速度（地面）。比加速度大，松手就停、不打滑。
 @export var deceleration: float = 4800.0
 @export_range(0.0, 1.0) var charge_movement_scale: float = 0.85
+@export_group("空中追击")
+@export var launcher_jump_bonus: int = 1
+@export var hit_fall_slow_frames: int = 12
+@export_range(0.0, 1.0) var hit_fall_speed_scale: float = 0.45
+@export_range(0.0, 1.0) var hit_fall_gravity_scale: float = 0.35
 ## 最大下落速度
 @export var max_fall_speed: float = 2400.0
 ## 松开跳跃键后上升段的重力倍率（小跳）。只对真实键盘/手柄生效，
@@ -305,6 +310,11 @@ var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
 var _air_jumps_left: int = 0
+var _bonus_air_jumps: int = 0
+var _launcher_bonus_given: bool = false
+var _air_hit_slow_frames: int = 0
+var _air_slow_hit_tick: int = -1
+var _jump_buffer_tick: int = -1
 var _frame_counter: int = 0
 var _hit_this_swing: Dictionary = {}
 var _squash_timer: int = 0
@@ -432,6 +442,11 @@ func apply_movement_config(c: Dictionary, settings: Dictionary) -> void:
 	acceleration = float(c.get("acceleration", 4800))
 	deceleration = float(c.get("deceleration", acceleration))
 	charge_movement_scale = clampf(float(c.get("chargeMovementScale", 0.85)), 0.0, 1.0)
+	var air_combat: Dictionary = c.get("airCombat", {})
+	launcher_jump_bonus = maxi(0, int(air_combat.get("launcherJumpBonus", 1)))
+	hit_fall_slow_frames = maxi(0, int(air_combat.get("hitFallSlowFrames", 12)))
+	hit_fall_speed_scale = clampf(float(air_combat.get("hitFallSpeedScale", 0.45)), 0.0, 1.0)
+	hit_fall_gravity_scale = clampf(float(air_combat.get("hitFallGravityScale", 0.35)), 0.0, 1.0)
 	speed = float(c.get("speed", 186)) * float(settings.get("characterSpeedMultiplier", 1))
 	air_control = float(c.get("airControl", 0.8))
 	jump_time_to_peak = float(c.get("jumpTimeToPeak", 0.28))
@@ -522,6 +537,12 @@ func _physics_process(delta: float) -> void:
 	# 大招可以取消任何出招 / 自己的顿帧，所以放在顿帧前面判
 	if ult_frame < 0 and ult_enabled and not guard_held:
 		_try_ult()
+	if ult_frame >= 0 or state == State.DEAD:
+		# Reject jumps during the ultimate, including delayed input on its last tick.
+		_jump_buffer_counter = 0
+		_consumed_edge[&"jump"] = frame.seq
+	elif _try_action_jump_cancel(delta, frame):
+		return
 
 	# ---- 2. Hitstop：冻结自己，不影响别人 ----
 	if hitstop_frames > 0:
@@ -532,6 +553,7 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector2.ZERO
 		return
 
+	_air_hit_slow_frames = maxi(_air_hit_slow_frames - 1, 0)
 	_squash_timer = maxi(_squash_timer - 1, 0)
 	if _squash_timer == 0:
 		_lerp_visual_scale(0.18)
@@ -580,10 +602,12 @@ func _update_ground_air() -> void:
 		air_frames = 0
 		_air_jumps_left = extra_air_jumps
 		_air_light_left = air_light_uses
+		_air_hit_slow_frames = 0
 		var landing_peak := _peak_y
 		# 站在地上时最高点 = 脚下，离地之后再往上记
 		_peak_y = global_position.y
 		if ground_frames == 1:
+			_bonus_air_jumps = 0
 			last_fall_height = maxf(global_position.y - landing_peak, 0.0)
 			last_landing_heavy = finisher_intent == &"slam" or last_fall_height >= heavy_landing_height
 			_landing_lag = heavy_landing_lag_frames if last_landing_heavy else 0
@@ -619,6 +643,8 @@ func _update_jump_cut(frame: InputBuffer.Frame) -> void:
 ## 自由行动时的重力：上升用起跳重力（松键小跳加大），下落用下落重力。
 func _air_gravity() -> float:
 	if velocity.y > 0.0:
+		if _air_hit_slow_frames > 0 and finisher_intent == &"" and state != State.LAUNCHED:
+			return _fall_gravity * hit_fall_gravity_scale
 		return _fall_gravity
 	if _jump_cut:
 		return _gravity * jump_cut_gravity_scale
@@ -649,7 +675,8 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 	# 而 W+J 的上挑不受影响：那条路径靠 aim_up（W 按住）+ attack_light 判定，
 	# 只有在"攻击边沿存在"时才走，所以先判跳跃不会吃掉上挑。
 	# W 同时是跳跃和上方向；W+J 必须优先判成地面上挑，不能先跳起来。
-	var wants_up_attack := frame.actions.has(&"aim_up") and _has_edge(&"attack_light")
+	var wants_up_attack := frame.actions.has(&"aim_up") and _has_edge(&"attack_light") \
+			and not (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE))
 	if not wants_up_attack and _try_buffered_jump(frame):
 		return
 
@@ -674,7 +701,7 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 
 # ---------------------------------------------------------------- 跳跃
 
-## 记录跳跃缓冲。任何状态都可以记录，只有允许自由行动时才消费。
+## 记录跳跃缓冲；存活且有跳跃次数就可消费，大招期间直接拒绝。
 ##
 ## 【必须去边沿】一条按下边沿只能记一次跳跃。
 ## 早期版本这里只判 `pressed_this_frame` 就直接把缓冲拉满，而它在
@@ -683,6 +710,9 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 ## 当场自动跳出第二跳（表现：按一次跳，二段跳被白白吃掉，且按键完全失灵）。
 ## 这和攻击边沿用 `_take_edge` 记账是同一个道理，所以这里也用 seq 记账。
 func _buffer_jump(frame: InputBuffer.Frame) -> void:
+	if _jump_buffer_tick == tick_count:
+		return
+	_jump_buffer_tick = tick_count
 	if frame.pressed_this_frame.has(&"jump"):
 		if frame.seq != _consumed_edge.get(&"jump", -1):
 			_consumed_edge[&"jump"] = frame.seq
@@ -696,7 +726,60 @@ func _can_jump() -> bool:
 		return true
 	if air_frames > 0 and air_frames <= coyote_frames:
 		return true
-	return _air_jumps_left > 0
+	return _air_jumps_left > 0 or _bonus_air_jumps > 0
+
+
+## Jump can cancel every live action, including hitstop. Neutral jumps retain
+## their normal command priority and platform drop-through behavior.
+func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
+	var busy := state != State.NEUTRAL or charge_frames >= 0 or hitstop_frames > 0 \
+			or _guard_active or not locomotion_animation.is_empty()
+	if not busy:
+		return false
+	var explicit_space := _keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)
+	if frame.actions.has(&"aim_up") and _has_edge(&"attack_light") and not explicit_space:
+		return false  # W also means jump; preserve W+J uppercuts.
+	_buffer_jump(frame)
+	if _jump_buffer_counter <= 0:
+		return false
+	if is_on_floor():
+		if ground_frames == 0:
+			# An immediate landing cancel still starts a fresh jump budget.
+			_bonus_air_jumps = 0
+			_air_jumps_left = extra_air_jumps
+		ground_frames = maxi(ground_frames, 1)
+		air_frames = 0
+	if not _can_jump():
+		return false
+	var keep_guard := is_guarding() and frame.actions.has(&"parry")
+	if not keep_guard:
+		_stop_guard()
+	_cancel_locomotion()
+	_reset_air_combo()
+	_reaction_guard_held = false
+	charge_frames = -1
+	_charge_accum = 0.0
+	_charge_t = 0.0
+	current_move = null
+	current_is_up = false
+	finisher_intent = &""
+	state = State.NEUTRAL
+	link_open = false
+	down_frames = 0
+	_soft_knock = false
+	_landing_lag = 0
+	hitstop_frames = 0
+	hitstop_this_tick = false
+	_attack_hold_frames = 0
+	_take_edge(&"attack_light")
+	_take_edge(&"attack_ranged")
+	_consumed_edge[&"attack_light_press"] = frame.seq
+	if keep_guard and not _guard_active:
+		_start_guard(false)
+	input_direction = int(signf(frame.axis.x)) if absf(frame.axis.x) > 0.15 else 0
+	_move_horizontal(delta, frame, 1.0)
+	_try_buffered_jump(frame)
+	return true
 
 
 ## 消费跳跃缓冲；真的跳了返回 true。
@@ -767,6 +850,7 @@ func is_dropping_through() -> bool:
 
 
 func _do_jump() -> void:
+	_air_hit_slow_frames = 0
 	if not locomotion_animation.is_empty():
 		_set_facing(input_direction if input_direction != 0 else _turn_target)
 	_cancel_locomotion()
@@ -778,9 +862,14 @@ func _do_jump() -> void:
 	# move_and_slide 会优先解算重叠，把这一帧的起跳速度直接吃掉 ——
 	# 实测表现是"按跳完全没反应"，而且 is_on_floor() 还是 false，
 	# 光看地面判定根本查不出来。
+	var horizontal_velocity := velocity.x
 	_depenetrate()
+	velocity.x = horizontal_velocity
 	if is_double:
-		_air_jumps_left = maxi(_air_jumps_left - 1, 0)
+		if _air_jumps_left > 0:
+			_air_jumps_left -= 1
+		else:
+			_bonus_air_jumps = maxi(_bonus_air_jumps - 1, 0)
 		velocity.y = _jump_velocity * double_jump_scale
 		_jump_rising = true
 		_jump_cut = false
@@ -1010,6 +1099,7 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	_dash_facing = facing
 	current_move = mv
 	finisher_intent = &""
+	_launcher_bonus_given = false
 	if not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
 		var intent_frame := input_buffer.frame_at(0)
 		if intent_frame != null and intent_frame.axis.x * float(facing) > 0.4:
@@ -1453,9 +1543,13 @@ func _do_hit_check(mv: Resource) -> void:
 
 		_hit_this_swing[owner_node.get_instance_id()] = true
 		var point: Vector2 = (global_position + owner_node.global_position) * 0.5
+		var hp_before: Variant = owner_node.get(&"hp")
 		var parried: bool = owner_node.take_hit(mv, facing, point, _charge_t, current_is_up, attack_damage_mul, self)
 		if parried:
 			continue
+		if hp_before != null and float(owner_node.get(&"hp")) < float(hp_before) \
+				and (owner_node.is_in_group(&"shade") or owner_node.is_in_group(&"dummy")):
+			_on_melee_mobility_hit(mv)
 		last_swing_hit = true
 		# Apply the attacker's pause on a real hit, not only when this actor receives damage.
 		var charge_bonus := roundi(mv.charge_hitstop_bonus * _charge_t)
@@ -1464,6 +1558,18 @@ func _do_hit_check(mv: Resource) -> void:
 		_set_visual_scale(mv.squash)
 		_squash_timer = 2
 		hit_confirmed.emit(owner_node, mv, point)
+
+
+func _on_melee_mobility_hit(mv: Resource) -> void:
+	if (mv == up_strike_move or mv == air_up_move) and not _launcher_bonus_given:
+		_bonus_air_jumps += launcher_jump_bonus
+		_launcher_bonus_given = true
+	if not is_on_floor() and not mv.is_ranged() and finisher_intent == &"" \
+			and hit_fall_slow_frames > 0 and _air_slow_hit_tick != tick_count:
+		_air_slow_hit_tick = tick_count
+		_air_hit_slow_frames = hit_fall_slow_frames
+		if velocity.y > 0.0:
+			velocity.y *= hit_fall_speed_scale
 
 
 func _is_light_move(mv: Resource) -> bool:
@@ -1776,6 +1882,11 @@ func reset_state(pos: Vector2) -> void:
 	_air_jumps_left = extra_air_jumps
 	_air_light_left = air_light_uses
 	_jump_buffer_counter = 0
+	_bonus_air_jumps = 0
+	_launcher_bonus_given = false
+	_air_hit_slow_frames = 0
+	_air_slow_hit_tick = -1
+	_jump_buffer_tick = -1
 	if not is_nan(_drop_from_y):
 		_drop_from_y = NAN
 		collision_mask |= one_way_mask
@@ -1817,6 +1928,7 @@ func _start_air_slam() -> void:
 
 
 func _start_air_finisher(intent: StringName) -> void:
+	_air_hit_slow_frames = 0
 	_take_edge(&"attack_light")
 	air_combo_index = air_combo.size()
 	_start_move(air_combo[air_combo.size() - 1], false)
@@ -1990,7 +2102,7 @@ func _apply_air_attack_gravity(delta: float, _mv: Resource) -> void:
 	if finisher_intent == &"slam" and not is_on_floor():
 		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
 		return
-	# Ordinary attacks never reset vertical velocity or replace jump gravity.
+	# Whiffs follow normal gravity; confirmed hits can briefly slow the descent.
 	_apply_gravity(delta, _air_gravity())
 
 func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: InputBuffer.Frame = null) -> void:
@@ -2229,6 +2341,7 @@ func _play_guard_reaction(reactions: Array, parried: bool) -> void:
 	_reaction_guard_held = keep_guard
 
 func _interrupt_action_flow() -> void:
+	_air_hit_slow_frames = 0
 	_reaction_guard_held = false
 	_cancel_locomotion()
 	_stop_guard()

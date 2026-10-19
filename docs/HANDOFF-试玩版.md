@@ -536,3 +536,14 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 长停顿配套：按键采样仍在暂停前；InputBuffer.push可暂停逻辑过期时钟，_take_edge与_unconsumed_edge_frame用logic_age_at，常态16活动帧缓冲不变。原始frame_at仍按物理帧，J+K组合窗仍6真实帧。队列128格支持全局3倍。空中停顿不清vx/vy，恢复后接原轨迹；暂停无敌倒计时，保证大招末尾无敌不会被18帧停顿提前耗光。
 - `tools/dev/apply_feel_v4.py`同步强反馈档，重建不会恢复轻刀不震屏。源图片、动作前后摇时序及既有移动/防守规则不改。
 - 验证：新strong_feedback101，combat_feedback52、action_flow45、guard_charge_movement29、night_combat50、shades_v4 52、training36、air_movement14、feel27、framebaker_runtime52、desktop_integration28、animation_timing21，共507项0失败；主场景headless启动成功。旧防守移动/大招结束断言按实际强化停顿等待。恢复首tick输入年龄保留0，避免接招窗口边界丢掉暂停内提前按下的一刀；下一刀按既有连段指针推进，无强制重置第一刀。未跑整轮机器人或录屏。
+
+### 16.10 跳跃取消与空中追击（节点24，2026-10-19）
+
+用户确认上挑需要命中敌人才增加跳跃。最新规则覆盖16.8的“跳跃继续保持蓄力”。
+
+- 有剩余次数且活着时，跳跃立即取消前摇/判定/后摇、冲刺、蓄力、转向、受击击飞、倒地以及格挡/弹刀成功动作，也能抢出自身hitstop；不等动作播完。无次数不消费/取消。大招不可打断，期间按的跳不延后补出；死亡不复活。W+J保持上挑，实际空格优先；S+跳下穿保留。持L跳仍保持85%防守移动，成功动作跳掉后恢复非精准防守，不重复开弹刀窗。
+- `_bonus_air_jumps`独立记录上挑奖励：地面/空中上挑真实扣血后每招+1，同一招命中多目标只一次，地面所得奖励带入随后的空中；正常额外跳先用、奖励跳后用。不同上挑可以累积，落地/重置清空，立即落地跳取消同样更新预算。
+- `character.airCombat`：launcherJumpBonus1、hitFallSlowFrames12、hitFallSpeedScale.45、hitFallGravityScale.35。空中近战实命中后下降速度保留45%，约0.2秒活动时间内下落重力35%；顿帧不占计时，同tick群攻不连乘减速。上升命中只开窗口，不改上升速度/重力；挥空、远射、打回飞行物、主动S+J下砸/横扫不触发。跳/受击取消/落地清窗口。
+- 统一跳跃缓冲每tick只更新一次，避免新优先分支和旧状态分支重复扣缓冲；起跳脱离地形后恢复原水平速度，取消冲刺时不会平白丢掉横向动量。
+- 修改器新增奖励跳、慢坠秒数与两种百分比；旧无效悬停入口移除，游戏H操作说明更新。类型检查及构建通过。
+- 验证：新jump_combat_mobility29，既有guard_charge_movement29、action_flow45、air_movement14、night_combat50、strong_feedback101、training36、feel27、combat_feedback52、shades_v4 52、framebaker_runtime52、desktop_integration28、animation_timing21，共536项0失败，主场景启动通过。新专项曾捕获群攻速度连乘成.2025倍的问题，已按tick去重后复验。无完整机器人/录屏。
