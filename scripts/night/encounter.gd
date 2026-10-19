@@ -73,6 +73,10 @@ func clear_shades() -> void:
 	alive.clear()
 	_queue.clear()
 	_reinforce.clear()
+	# 第四轮：场上还在飞的影矢 / 炸弹一起清掉
+	if is_inside_tree():
+		for p in get_tree().get_nodes_in_group(&"shade_projectile"):
+			p.queue_free()
 
 
 func alive_count() -> int:

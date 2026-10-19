@@ -12,8 +12,17 @@ extends Node2D
 ## 多层地形（第三轮节点 17）：脚下的面问 terrain.support_y()，石台侧面问 terrain.push_out()；
 ## 会跳上平台、从单向平台往下穿去追玩家，只和同一层的人互推、只打同一层的玩家。
 ## 原点 = 身体中心（和木桩一致：玩家的命中点 = 两者中点）。
+##
+## 第四轮（照《疯狂小人战斗》，见交接文档 §16）：
+##   · 四种影：影卒（快攻，会举刀格挡 / 翻滚）、甲影（重甲霸体，常格挡）、
+##     影弓（拉开距离射影矢）、影爆（抛炸弹）。参数全在 KINDS 表里。
+##   · 击退百分比 pct：挨的伤害越多（血条旁的 %），每一下打得越远，挑飞越高。
+##   · 连段伤害递增：同一套连段里越往后越疼，落地站起清零。
+##   · 会误伤：影卒 / 甲影的刀、影矢、炸弹都会打到挡在路上的同伴。
 
 const MoveDefinition := preload("res://scripts/core/move_definition.gd")
+const Bolt := preload("res://scripts/night/shade_bolt.gd")
+const Bomb := preload("res://scripts/night/shade_bomb.gd")
 
 signal damaged(amount: float, total: float, point: Vector2)
 signal wall_slam(impact_speed: float, damage: float, point: Vector2)
@@ -27,17 +36,36 @@ signal strike_landed(point: Vector2)
 ## 音效用：开始蓄力 / 挥出（heavy = 甲影）
 signal windup_started(heavy: bool)
 signal strike_started(heavy: bool)
+signal guarded(point: Vector2)            ## 举刀挡住了玩家这一刀
+signal guard_broken(point: Vector2)       ## 格挡被重招砸开
+signal dodged(point: Vector2)             ## 翻滚躲开
+signal friendly_hit(point: Vector2)       ## 打到了自己人（误伤）
+signal projectile_spawned(node: Node2D)   ## 射出影矢 / 扔出炸弹
 
-enum Kind { GRUNT, BRUTE }
-enum State { IDLE, APPROACH, WINDUP, STRIKE, RECOVER, HITSTUN, LAUNCHED, DOWN, STUNNED, DEAD }
+enum Kind { GRUNT, BRUTE, ARCHER, BOMBER }
+enum State { IDLE, APPROACH, WINDUP, STRIKE, RECOVER, HITSTUN, LAUNCHED, DOWN, STUNNED, DEAD, GUARD, ROLL }
 
+## weight：击退倍率（疯狂小人的“体重”：越小越重、越难打飞）；guard / roll：看到玩家出招时举刀 / 翻滚的概率；
+## keep_min / keep_max：远程影想保持的距离；down：倒地帧数。
 const KINDS := {
-	Kind.GRUNT: {"name": "影卒", "hp": 110.0, "poise": 46.0, "half_w": 24.0, "half_h": 60.0, "speed": 135.0,
-		"range": 132.0, "windup": 30, "strike": 8, "recover": 38, "damage": 8.0, "knock": 260.0,
-		"cool_min": 55, "cool_max": 105, "stun": 150, "armor": false, "lunge": 230.0},
-	Kind.BRUTE: {"name": "甲影", "hp": 250.0, "poise": 120.0, "half_w": 36.0, "half_h": 76.0, "speed": 92.0,
-		"range": 175.0, "windup": 46, "strike": 10, "recover": 56, "damage": 16.0, "knock": 380.0,
-		"cool_min": 80, "cool_max": 140, "stun": 170, "armor": true, "lunge": 160.0},
+	Kind.GRUNT: {"name": "影卒", "hp": 90.0, "poise": 40.0, "half_w": 24.0, "half_h": 60.0, "speed": 230.0,
+		"range": 132.0, "windup": 16, "strike": 6, "recover": 18, "damage": 8.0, "knock": 260.0,
+		"cool_min": 25, "cool_max": 60, "stun": 60, "armor": false, "lunge": 300.0,
+		"weight": 1.0, "guard": 0.2, "roll": 0.15, "guard_frames": 22, "down": 24, "ranged": false},
+	Kind.BRUTE: {"name": "甲影", "hp": 220.0, "poise": 110.0, "half_w": 36.0, "half_h": 76.0, "speed": 120.0,
+		"range": 175.0, "windup": 26, "strike": 8, "recover": 30, "damage": 15.0, "knock": 420.0,
+		"cool_min": 45, "cool_max": 90, "stun": 80, "armor": true, "lunge": 200.0,
+		"weight": 0.6, "guard": 0.35, "roll": 0.0, "guard_frames": 34, "down": 20, "ranged": false},
+	Kind.ARCHER: {"name": "影弓", "hp": 70.0, "poise": 34.0, "half_w": 22.0, "half_h": 58.0, "speed": 210.0,
+		"range": 760.0, "windup": 24, "strike": 6, "recover": 20, "damage": 9.0, "knock": 300.0,
+		"cool_min": 50, "cool_max": 100, "stun": 50, "armor": false, "lunge": 0.0,
+		"weight": 1.1, "guard": 0.0, "roll": 0.4, "guard_frames": 0, "down": 24, "ranged": true,
+		"keep_min": 430.0, "keep_max": 700.0},
+	Kind.BOMBER: {"name": "影爆", "hp": 80.0, "poise": 36.0, "half_w": 26.0, "half_h": 56.0, "speed": 170.0,
+		"range": 640.0, "windup": 28, "strike": 6, "recover": 24, "damage": 14.0, "knock": 560.0,
+		"cool_min": 70, "cool_max": 120, "stun": 50, "armor": false, "lunge": 0.0,
+		"weight": 1.15, "guard": 0.0, "roll": 0.2, "guard_frames": 0, "down": 24, "ranged": true,
+		"keep_min": 300.0, "keep_max": 600.0},
 }
 const LAUNCH_GRAVITY := 1600.0
 const FALL_GRAVITY := 2000.0
@@ -48,6 +76,15 @@ const WALL_DAMAGE_SCALE := 0.045
 const POISE_REGEN_DELAY := 90
 const POISE_REGEN := 0.55          ## 每帧
 const PARRY_CUE := 10              ## 出刀前多少帧亮"刀尖白星"（配合试玩场景 12 帧弹刀窗口）
+const PCT_KNOCK := 0.006           ## 每 1% 击退百分比 → 击退 +0.6%（100% ≈ 飞远 1.6 倍）
+const KNOCK_MUL_MAX := 2.4
+const COMBO_DMG_STEP := 0.05       ## 同一套连段每多挨一下，伤害 +5%（最多 +50%）
+const ROLL_FRAMES := 18
+const ROLL_IFRAMES := 14
+const ROLL_SPEED := 620.0
+const FRIENDLY_DAMAGE := 0.5       ## 误伤同伴打几折
+## 这些招式能砸开举刀格挡（其余的会被挡住）
+const GUARD_BREAKERS := [&"light_3", &"charge_1", &"up_strike", &"dash_slash", &"dash_slash_left", &"ult"]
 
 ## 每招的失衡值 = 伤害 × 系数（终结类更容易打出失衡）
 const POISE_MUL := {&"light_1": 1.3, &"light_2": 1.4, &"light_3": 2.0, &"charge_1": 2.4, &"up_strike": 1.5,
@@ -95,6 +132,14 @@ var last_hit_damage: float = 0.0
 var total_damage_taken: float = 0.0
 var dead_frames: int = 0
 var spawn_frames: int = 0
+var pct: float = 0.0                ## 击退百分比（= 累计挨的伤害，显示在血条旁）
+var combo_taken: int = 0            ## 这一套连段挨了几下（站起来清零）
+var guard_frames: int = 0
+var roll_frames: int = 0
+var roll_dir: int = 1
+var react_cool: int = 0
+var _seen_serial: int = -1
+var aim: Vector2 = Vector2.RIGHT     ## 影弓瞄准方向 / 影爆抛投目标（世界坐标差）
 var _chained: Dictionary = {}
 var _probe_y: float = INF           ## 这一帧开始时的脚底 y（落地判定用：穿过平台的那一帧也接得住）
 var _drop_y: float = NAN            ## 正在往下穿的单向平台高度
@@ -145,10 +190,23 @@ func _ready() -> void:
 	strike_move.damage = float(spec.damage)
 	strike_move.knockback = float(spec.knock)
 	strike_move.knockback_angle = 24.0
-	strike_move.victim_hitstop_frames = 9 if kind == Kind.GRUNT else 13
-	strike_move.hitstop_frames = 6
+	# 第四轮：受击顿帧缩短（疯狂小人：挨打的一方只停 1–2 帧，重击稍多）
+	strike_move.victim_hitstop_frames = 8 if kind == Kind.BRUTE else 5
+	strike_move.hitstop_frames = 4
 	strike_move.squash = Vector2(1.25, 0.82)
-	strike_move.shake_amount = 6.0 if kind == Kind.GRUNT else 10.0
+	strike_move.shake_amount = 6.0 if kind == Kind.BRUTE else 3.0
+	if kind == Kind.ARCHER:
+		strike_move.id = &"shade_bolt"
+		strike_move.knockback_angle = 14.0
+		strike_move.victim_hitstop_frames = 4
+		strike_move.shake_amount = 2.0
+	elif kind == Kind.BOMBER:
+		strike_move.id = &"shade_bomb"
+		strike_move.knockback_angle = 58.0
+		strike_move.forces_launch = true
+		strike_move.launch_speed = absf(float(spec.knock)) * 0.85
+		strike_move.victim_hitstop_frames = 8
+		strike_move.shake_amount = 0.0
 	_hurtbox = Area2D.new()
 	_hurtbox.name = "Hurtbox"
 	_hurtbox.collision_layer = 4
@@ -202,6 +260,24 @@ func is_armored() -> bool:
 	return bool(spec.armor) and is_attacking()
 
 
+func is_alive() -> bool:
+	return state != State.DEAD
+
+
+func is_ranged_kind() -> bool:
+	return bool(spec.get("ranged", false))
+
+
+## 现在挨打会飞多远（疯狂小人：Power 随伤害% 增长，体重越大越难打飞）
+func knock_mul() -> float:
+	return clampf(float(spec.get("weight", 1.0)) * (1.0 + pct * PCT_KNOCK), 0.3, KNOCK_MUL_MAX)
+
+
+## 翻滚的无敌帧
+func is_dodging() -> bool:
+	return state == State.ROLL and roll_frames > ROLL_FRAMES - ROLL_IFRAMES
+
+
 func telegraph() -> float:
 	if state == State.WINDUP:
 		return clampf(float(state_frames) / float(spec.windup), 0.0, 1.0)
@@ -238,10 +314,21 @@ func _physics_process(delta: float) -> void:
 		return
 	if spawn_frames > 0:
 		spawn_frames -= 1
+	if react_cool > 0:
+		react_cool -= 1
 	_update_poise()
+	if state == State.IDLE or state == State.APPROACH:
+		combo_taken = 0
+		_react_to_player()
+	elif target != null and is_instance_valid(target) and target.get(&"action_serial") != null:
+		# 挨打 / 出刀 / 倒地期间玩家出的招不算“看到了”——站起来以后只对新出的招反应
+		_seen_serial = int(target.get(&"action_serial"))
 	match state:
 		State.IDLE, State.APPROACH:
-			_process_ai(delta)
+			if is_ranged_kind():
+				_process_ranged_ai(delta)
+			else:
+				_process_ai(delta)
 		State.WINDUP:
 			_process_windup(delta)
 		State.STRIKE:
@@ -256,6 +343,10 @@ func _physics_process(delta: float) -> void:
 			_process_down(delta)
 		State.STUNNED:
 			_process_stunned(delta)
+		State.GUARD:
+			_process_guard(delta)
+		State.ROLL:
+			_process_roll(delta)
 	if state != State.LAUNCHED:
 		_separate()
 	queue_redraw()
@@ -374,10 +465,175 @@ func _jump(height: float) -> void:
 
 func _attack_slot_free() -> bool:
 	var n := 0
+	var ranged := is_ranged_kind()
 	for o in get_tree().get_nodes_in_group(&"shade"):
-		if o != self and o.is_attacking():
+		# 远程影和近战影各算各的名额：弓手拉弓时，影卒照样能冲上来
+		if o != self and o.is_attacking() and o.is_ranged_kind() == ranged:
 			n += 1
-	return n < max_attackers
+	return n < (1 if ranged else max_attackers)
+
+
+# ---------------------------------------------------------------- 第四轮：看到出招就反应（格挡 / 翻滚）
+
+## 玩家每出一招（action_serial 变了）只掷一次骰子。只有站着没事干的时候才会反应——
+## 已经在挨打（硬直 / 浮空 / 倒地）的影挡不了，所以“先打中的人赢”。
+func _react_to_player() -> void:
+	if react_cool > 0 or not _target_ok():
+		return
+	var serial = target.get(&"action_serial")
+	if serial == null or int(serial) == _seen_serial:
+		return
+	var st = target.get(&"state")
+	var mv = target.get(&"current_move")
+	if st == null or int(st) != 1 or mv == null:   # 玩家 State.ATTACK = 1
+		return
+	_seen_serial = int(serial)
+	var cmd: StringName = mv.get(&"command") if mv.get(&"command") != null else &""
+	if not cmd in [&"light", &"charge", &"dash", &"air_light", &"ranged"]:
+		return
+	var dx := global_position.x - target.global_position.x
+	var reach := 520.0 if cmd == &"ranged" or cmd == &"dash" else 300.0
+	if absf(dx) > reach or absf(target.global_position.y - global_position.y) > 140.0:
+		return
+	var tf = target.get(&"facing")
+	if tf != null and absf(dx) > 8.0 and signf(dx) != float(int(tf)):
+		return   # 玩家背对着我出招，不用躲
+	var r := _rng.randf()
+	var g := float(spec.get("guard", 0.0))
+	var ro := float(spec.get("roll", 0.0))
+	if r < g:
+		_begin_guard()
+	elif r < g + ro and on_ground():
+		_begin_roll()
+
+
+func _begin_guard() -> void:
+	state = State.GUARD
+	guard_frames = int(spec.get("guard_frames", 22))
+	react_cool = guard_frames + 30
+	velocity.x = 0.0
+	squash = Vector2(0.92, 1.08)
+	if target != null and is_instance_valid(target):
+		var dx := target.global_position.x - global_position.x
+		if absf(dx) > 4.0:
+			facing = 1 if dx > 0.0 else -1
+
+
+func _process_guard(delta: float) -> void:
+	_ground_physics(delta)
+	velocity.x = move_toward(velocity.x, 0.0, 1400.0 * delta)
+	guard_frames -= 1
+	if guard_frames <= 0:
+		# 放下刀马上反击（挡完就砍，逼玩家弹刀）
+		state = State.IDLE
+		cooldown = mini(cooldown, 2)
+
+
+## 翻滚：往后撤；背后贴墙就从玩家身边滚过去（穿身）
+func _begin_roll() -> void:
+	var away := 1 if global_position.x >= target.global_position.x else -1
+	var room := (arena_right - global_position.x) if away > 0 else (global_position.x - arena_left)
+	roll_dir = away if room > 220.0 else -away
+	state = State.ROLL
+	roll_frames = ROLL_FRAMES
+	react_cool = 70
+	velocity.x = float(roll_dir) * ROLL_SPEED
+	facing = -roll_dir if roll_dir == away else roll_dir
+	squash = Vector2(1.2, 0.75)
+	dodged.emit(global_position)
+
+
+func _process_roll(delta: float) -> void:
+	_ground_physics(delta)
+	roll_frames -= 1
+	squash = Vector2(1.28, 0.62) if roll_frames > 4 else squash
+	if roll_frames < 6:
+		velocity.x = move_toward(velocity.x, 0.0, 4000.0 * delta)
+	if roll_frames <= 0:
+		state = State.IDLE
+		cooldown = mini(cooldown, _rng.randi_range(6, 20))
+		if target != null and is_instance_valid(target):
+			var dx := target.global_position.x - global_position.x
+			if absf(dx) > 4.0:
+				facing = 1 if dx > 0.0 else -1
+
+
+# ---------------------------------------------------------------- 第四轮：远程影（影弓 / 影爆）
+
+## 保持距离：太近就后撤（背后没地方就翻滚穿过去），太远就靠近，距离合适就出手
+func _process_ranged_ai(delta: float) -> void:
+	_ground_physics(delta)
+	if not _target_ok():
+		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
+		state = State.IDLE
+		return
+	var dx := target.global_position.x - global_position.x
+	var dist := absf(dx)
+	if dist > 6.0:
+		facing = 1 if dx > 0.0 else -1
+	cooldown -= 1
+	var keep_min := float(spec.get("keep_min", 400.0))
+	var keep_max := float(spec.get("keep_max", 700.0))
+	var lvl := _level_gap()
+	if absf(lvl) >= 40.0 and dist < keep_min * 0.8:
+		state = State.APPROACH
+		_chase_level(lvl, dx, delta)
+		return
+	if dist < keep_min:
+		state = State.APPROACH
+		var back := -facing
+		var room := (arena_right - global_position.x) if back > 0 else (global_position.x - arena_left)
+		if room < 120.0 and dist < 200.0 and react_cool <= 0 and on_ground():
+			_begin_roll()
+			return
+		velocity.x = move_toward(velocity.x, float(back) * float(spec.speed), 1100.0 * delta)
+	elif dist > keep_max:
+		state = State.APPROACH
+		velocity.x = move_toward(velocity.x, float(facing) * float(spec.speed), 900.0 * delta)
+		_hop_obstacle()
+	else:
+		state = State.IDLE
+		velocity.x = move_toward(velocity.x, 0.0, 1400.0 * delta)
+	var dy := absf(target.global_position.y - global_position.y)
+	if cooldown <= 0 and dist <= float(spec.range) and dist >= 160.0 and dy < 300.0 and on_ground() and _attack_slot_free():
+		_begin_windup()
+
+
+func _update_aim() -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var to: Vector2 = target.global_position - global_position
+	if kind == Kind.ARCHER:
+		var d := Vector2(to.x, to.y + 10.0)
+		if absf(d.x) < 1.0:
+			d.x = float(facing)
+		var ang := clampf(atan2(d.y, absf(d.x)), -0.45, 0.45)
+		aim = Vector2(cos(ang) * signf(d.x), sin(ang))
+	else:
+		# 影爆：瞄玩家脚下，稍微提前量（玩家在跑就往前丢一点）
+		var feet: Vector2 = target.global_position
+		if target.get(&"foot_offset") != null:
+			feet.y += float(target.get(&"foot_offset"))
+		var tv = target.get(&"velocity")
+		if tv is Vector2:
+			feet.x += (tv as Vector2).x * 0.25
+		aim = feet - global_position
+
+
+func _fire_bolt() -> void:
+	var b: Node2D = Bolt.new()
+	b.setup(self, global_position + Vector2(float(facing) * (half_w + 18.0), -half_h * 0.35), aim, strike_move)
+	get_parent().add_child(b)
+	projectile_spawned.emit(b)
+
+
+func _throw_bomb() -> void:
+	var b: Node2D = Bomb.new()
+	var from := global_position + Vector2(float(facing) * 10.0, -half_h - 16.0)
+	var land := global_position + aim
+	b.setup(self, from, land, strike_move, terrain, floor_y, arena_left, arena_right)
+	get_parent().add_child(b)
+	projectile_spawned.emit(b)
 
 
 func _begin_windup() -> void:
@@ -397,6 +653,13 @@ func _process_windup(delta: float) -> void:
 		var dx := target.global_position.x - global_position.x
 		if absf(dx) > 6.0:
 			facing = 1 if dx > 0.0 else -1
+	# 远程影：瞄准一直跟到出手前 8 帧才锁定（瞄准线变亮 = 快射了）
+	if is_ranged_kind() and state_frames < int(spec.windup) - 8:
+		if target != null and is_instance_valid(target):
+			var tdx := target.global_position.x - global_position.x
+			if absf(tdx) > 6.0:
+				facing = 1 if tdx > 0.0 else -1
+		_update_aim()
 	if state_frames >= int(spec.windup):
 		state = State.STRIKE
 		state_frames = 0
@@ -412,13 +675,19 @@ func _process_strike(delta: float) -> void:
 	state_frames += 1
 	if not _strike_done and state_frames >= 2:
 		_strike_done = true
-		_strike_check()
+		if kind == Kind.ARCHER:
+			_fire_bolt()
+		elif kind == Kind.BOMBER:
+			_throw_bomb()
+		else:
+			_strike_check()
 	if state == State.STRIKE and state_frames >= int(spec.strike):
 		state = State.RECOVER
 		state_frames = 0
 
 
 func _strike_check() -> void:
+	_friendly_strike()
 	if target == null or not is_instance_valid(target) or not target.has_method(&"take_hit"):
 		return
 	var dx := target.global_position.x - global_position.x
@@ -438,6 +707,24 @@ func _strike_check() -> void:
 		velocity.x = -float(facing) * 140.0
 
 
+## 刀是不长眼的：身前刀够得着的同伴也会挨这一刀（打几折）
+func _friendly_strike() -> void:
+	var hit_any := false
+	for o in get_tree().get_nodes_in_group(&"shade"):
+		if o == self or o.state == State.DEAD or o.spawn_frames > 0:
+			continue
+		var dx: float = o.global_position.x - global_position.x
+		if absf(dx) < 2.0 or signf(dx) != float(facing):
+			continue
+		if absf(dx) > float(spec.range) + o.half_w or absf(o.feet_y() - feet_y()) > 50.0:
+			continue
+		var point: Vector2 = o.global_position + Vector2(-float(facing) * o.half_w * 0.6, -10.0)
+		o.take_hit(strike_move, facing, point, 0.0, false, FRIENDLY_DAMAGE, self)
+		hit_any = true
+	if hit_any:
+		friendly_hit.emit(global_position + Vector2(float(facing) * float(spec.range) * 0.5, -20.0))
+
+
 func _process_recover(delta: float) -> void:
 	_ground_physics(delta)
 	velocity.x = move_toward(velocity.x, 0.0, 1200.0 * delta)
@@ -449,11 +736,11 @@ func _process_recover(delta: float) -> void:
 
 func _process_hitstun(delta: float) -> void:
 	_ground_physics(delta)
-	velocity.x = move_toward(velocity.x, 0.0, 1100.0 * delta)
+	velocity.x = move_toward(velocity.x, 0.0, 1400.0 * delta)
 	state_frames -= 1
 	if state_frames <= 0:
 		state = State.IDLE
-		cooldown = maxi(cooldown, 24)
+		cooldown = maxi(cooldown, 12)
 
 
 func _process_stunned(delta: float) -> void:
@@ -486,7 +773,7 @@ func _process_down(delta: float) -> void:
 			pending_stun = 0
 		else:
 			state = State.IDLE
-			cooldown = maxi(cooldown, 40)
+			cooldown = maxi(cooldown, 20)
 			squash = Vector2(0.9, 1.12)
 
 
@@ -693,15 +980,30 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		attacker: Node = null) -> bool:
 	if state == State.DEAD:
 		return false
+	# 翻滚的无敌帧：这一刀整个落空（返回 true = 攻方不算命中、不顿帧、不出命中声）
+	if is_dodging():
+		return true
 	var intent: StringName = &""
 	if attacker != null and attacker.has_method(&"combat_intent"):
 		intent = attacker.call(&"combat_intent")
+	# 举刀格挡：只挡正面。重招（第三刀 / 蓄力 / 挑飞 / 冲刺斩 / 大招）把刀砸开，这一下照常结算
+	if state == State.GUARD and from_facing == -facing:
+		if mv.id in GUARD_BREAKERS or charge_t > 0.3:
+			state = State.IDLE
+			guard_frames = 0
+			_add_poise(25.0)
+			guard_broken.emit(point)
+		else:
+			_guard_block(mv, from_facing, point, attacker)
+			return true
 	var stunned := state == State.STUNNED
 	var airborne := state == State.LAUNCHED
+	combo_taken += 1
 	var dmg_mul := 1.0 + (mv.charge_damage_bonus - 1.0) * charge_t
 	if airborne:
 		juggle_count += 1
-		dmg_mul *= 1.0 + 0.08 * float(mini(juggle_count, 8))
+	# 连段伤害递增（疯狂小人：连得越长每下越疼；站起来清零）
+	dmg_mul *= 1.0 + COMBO_DMG_STEP * float(mini(combo_taken - 1, 10))
 	if stunned:
 		dmg_mul *= 1.25
 	var dealt := mv.damage * dmg_mul * damage_mul
@@ -725,6 +1027,7 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		return false
 	facing = -from_facing
 	var launches := mv.forces_launch or from_up
+	var km := knock_mul()
 	# ---- 浮空中：托住 / 方向终结 ----
 	if airborne:
 		_juggle(mv, from_facing, from_up, intent)
@@ -736,9 +1039,9 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 			velocity.x += float(from_facing) * 30.0
 			return false
 		if launches or charge_t > 0.3:
-			_flinch(from_facing, 26, minf(mv.knockback * 0.35, 220.0))
+			_flinch(from_facing, 22, minf(mv.knockback * 0.5 * km, 420.0))
 		else:
-			_flinch(from_facing, 14, minf(mv.knockback * 0.2, 120.0))
+			_flinch(from_facing, 14, minf(mv.knockback * 0.35 * km, 220.0))
 		return false
 	if state == State.DOWN:
 		# 倒地追击：只有挑飞类能把它重新挑起来
@@ -751,13 +1054,31 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		# 眩晕中挨普通攻击：不解除眩晕，只被推一点
 		velocity.x = float(from_facing) * minf(mv.knockback * 0.25, 90.0)
 	else:
-		_flinch(from_facing, 16 + mv.victim_hitstop_frames / 2, minf(mv.knockback * 0.55, 260.0))
+		# 疯狂小人：每一下都把人打退一截（带一点上跳），挨得越多（pct 越高）退得越远、僵得越久
+		_flinch(from_facing, 14 + mv.victim_hitstop_frames + mini(int(pct * 0.1), 12), minf(mv.knockback * 1.1 * km, 640.0))
+		if on_ground():
+			velocity.y = -minf(120.0 * km, 260.0)
 	return false
+
+
+## 举刀挡住：不掉血，被震退一点；攻方手上一麻（3 帧顿帧）。挡多了一样会失衡。
+func _guard_block(mv: MoveDefinition, from_facing: int, point: Vector2, attacker: Node) -> void:
+	hitstop_frames = maxi(hitstop_frames, 4)
+	velocity.x = float(from_facing) * minf(120.0 + mv.knockback * 0.25, 260.0)
+	flash = 3
+	flash_color = Color(0.75, 0.85, 1.0)
+	squash = Vector2(0.9, 1.06)
+	guard_frames = maxi(guard_frames, 8)
+	_add_poise(mv.damage * 0.6)
+	if attacker != null and is_instance_valid(attacker) and attacker.get(&"hitstop_frames") != null:
+		attacker.set(&"hitstop_frames", maxi(int(attacker.get(&"hitstop_frames")), 3))
+	guarded.emit(point)
 
 
 func _apply_damage(dmg: float) -> void:
 	hp -= dmg
 	total_damage_taken += dmg
+	pct += dmg
 
 
 func _add_poise(amount: float) -> void:
@@ -809,7 +1130,7 @@ func _flinch(from_facing: int, frames: int, push: float) -> void:
 
 
 func _launch(mv: MoveDefinition, from_facing: int, from_up: bool, stunned: bool, charge_t: float) -> void:
-	var kb_mul := 1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t
+	var kb_mul := (1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t) * knock_mul()
 	var v := mv.knockback_velocity(from_facing) * kb_mul
 	if from_up:
 		v.y = minf(v.y, -absf(mv.launch_speed))
@@ -843,7 +1164,7 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 			hitstop_frames += 3
 			return
 		&"drive":
-			velocity = Vector2(float(from_facing) * 1150.0, -150.0)
+			velocity = Vector2(float(from_facing) * 1150.0 * maxf(1.0, knock_mul()), -150.0)
 			driven_frames = 18
 			chain_armed = true
 			chain_level = 0
@@ -886,7 +1207,7 @@ func on_parried(cause: Node = null) -> void:
 
 func _enter_down() -> void:
 	state = State.DOWN
-	down_frames = 46 if kind == Kind.GRUNT else 38
+	down_frames = int(spec.get("down", 24))
 	velocity = Vector2.ZERO
 	position.y = ground_y()
 	squash = Vector2(1.35, 0.66)
@@ -920,7 +1241,7 @@ func _death_fling(mv: MoveDefinition, from_facing: int, from_up: bool, intent: S
 			driven_frames = 18
 			chain_armed = true
 			return
-	var v := mv.knockback_velocity(from_facing) * 1.3
+	var v := mv.knockback_velocity(from_facing) * 1.3 * maxf(1.0, knock_mul())
 	v.y = minf(v.y, -420.0)
 	if from_up:
 		v.y = minf(v.y, -900.0)
@@ -995,6 +1316,8 @@ func _draw() -> void:
 	var h := half_h
 	var w := half_w
 	var brute := kind == Kind.BRUTE
+	var archer := kind == Kind.ARCHER
+	var bomber := kind == Kind.BOMBER
 	# 接地影子（随离地高度变淡变小）
 	var air := clampf((ground_y() - position.y) / 300.0, 0.0, 1.0)
 	_draw_ellipse(Vector2(0, h + 2), Vector2(w * 1.5 * (1.0 - air * 0.5), 6.0), Color(0, 0, 0, 0.45 * fade * (1.0 - air * 0.7)))
@@ -1019,11 +1342,15 @@ func _draw() -> void:
 			lean = -0.5 * f + sin(t * 9.0) * 0.1
 		State.DOWN:
 			lean = -1.1 * f
+		State.GUARD:
+			lean = -0.1 * f
+		State.ROLL:
+			lean = 0.75 * float(roll_dir) + sin(t * 30.0) * 0.08
 	var bob := sin(t * 3.2) * 2.0
 	var body_h := h * 2.0
 	var top := -body_h + bob
 	# 斗篷：肩线 + 前后襟 + 飘动的下摆（坐标按朝向归一：x>0 = 前方）
-	var hw := w * (1.25 if brute else 1.1)
+	var hw := w * (1.25 if brute else (1.3 if bomber else 1.1))
 	var hem := 7 if not brute else 9
 	var moving := 1.0 if state == State.APPROACH or state == State.STRIKE else 0.35
 	var trail := (6.0 + 8.0 * moving) + sin(t * 4.0) * 3.0
@@ -1086,6 +1413,15 @@ func _draw() -> void:
 	draw_colored_polygon(hood_pts, hood)
 	var void_col := Color(0.0, 0.0, 0.01, fade)
 	_draw_ellipse(head + Vector2(f * r * 0.32, r * 0.08), Vector2(r * 0.55, r * 0.62), void_col)
+	if archer:
+		# 影弓：高高的尖兜帽
+		draw_colored_polygon(PackedVector2Array([head + Vector2(-f * r * 0.7, -r * 0.6), head + Vector2(-f * r * 1.5, -r * 2.3), head + Vector2(f * r * 0.25, -r * 0.85)]), hood)
+	if bomber:
+		# 影爆：宽檐斗笠
+		draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 1.65), head + Vector2(r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 0.8)]), hood)
+		var brim := RIM
+		brim.a = 0.45 * fade
+		draw_line(head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(r * 1.9, -r * 0.55), brim, 1.5)
 	if brute:
 		# 角
 		draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 0.45, -r * 0.5), head + Vector2(-r * 0.95, -r * 1.55), head + Vector2(-r * 0.05, -r * 0.8)]), hood)
@@ -1139,55 +1475,92 @@ func _draw() -> void:
 		draw_circle(e0 + Vector2(f * r * 0.2, 0), 10.0 + tele * 10.0, glow)
 	# 手臂（从前肩到握刀手）
 	var shoulder := _fp(w * 0.5, sh_y + 4.0, f, lean, body_h)
-	# 刀
 	var hand := _lean(Vector2(f * w * 0.75, top + body_h * 0.45), lean, body_h)
+	if bomber and state == State.WINDUP:
+		hand = _lean(Vector2(-f * w * 0.2, top - 6.0 - 10.0 * tele), lean, body_h)   # 把炸弹举过头顶
+	elif archer and (state == State.WINDUP or state == State.STRIKE):
+		hand = _lean(Vector2(f * w * 1.05, top + body_h * 0.3), lean, body_h)        # 举弓平端
 	var arm := cloak
-	draw_line(shoulder, hand, arm, 6.0 if not brute else 8.0)
-	var ang := 0.35
-	match state:
-		State.WINDUP:
-			ang = lerpf(0.35, -2.2, tele)
-		State.STRIKE:
-			ang = 1.05
-		State.RECOVER:
-			ang = 0.9
-		State.STUNNED:
-			ang = 1.4
-	var blade_len := 70.0 if not brute else 96.0
-	var dir := Vector2(cos(ang) * f, sin(ang))
-	if f < 0:
-		dir = Vector2(-cos(ang), sin(ang))
-	var blade := Color(0.16, 0.18, 0.28).lerp(WARN, tele * 0.6)
-	blade.a = fade
-	draw_line(hand, hand + dir * blade_len, blade, 4.0 if not brute else 6.0)
-	var edge := RIM.lerp(WARN, tele)
-	edge.a = 0.8 * fade
-	draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5 * lw)
-	var guard := Vector2(-dir.y, dir.x) * (7.0 if not brute else 9.0)
-	draw_line(hand + dir * 6.0 - guard, hand + dir * 6.0 + guard, blade, 3.0)
-	# 弹刀时机提示：出刀前 PARRY_CUE 帧，刀尖亮起一颗白星（这时按 L 正好弹开）
-	if state == State.WINDUP:
-		var remain := int(spec.windup) - state_frames
-		if remain <= PARRY_CUE:
-			var k := 1.0 - float(remain) / float(PARRY_CUE)
-			var tip := hand + dir * blade_len
-			var star := Color(1, 1, 1, fade * (0.55 + 0.45 * k))
-			_draw_star(tip, 6.0 + 12.0 * k, star)
-			draw_circle(tip, 10.0 + 16.0 * k, Color(1.0, 0.95, 0.8, 0.22 * fade))
-	# 出刀弧光
-	if state == State.STRIKE:
-		var arc := WARN
-		arc.a = 0.65 * fade * (1.0 - float(state_frames) / float(spec.strike))
-		var c := hand
-		var a0 := -1.6 if f > 0 else PI + 1.6
-		var a1 := 1.1 if f > 0 else PI - 1.1
-		draw_arc(c, blade_len * 0.95, minf(a0, a1), maxf(a0, a1), 18, arc, 6.0)
+	draw_line(shoulder, hand, arm, 8.0 if brute else 6.0)
+	var aim_from := Vector2(0, h) + hand * s     # 解除变形后的手的位置（画瞄准线用）
+	if archer:
+		_draw_bow(hand, f, tele, fade, lw)
+	elif bomber:
+		_draw_held_bomb(hand, tele, fade)
+		# 腰上还挂着两颗
+		for k in 2:
+			var bp := _fp(-w * 0.15 + float(k) * w * 0.4, top + body_h * 0.62, f, lean, body_h)
+			draw_circle(bp, 6.0, INK_SOFT.lerp(RIM, 0.15) * Color(1, 1, 1, fade))
+	else:
+		var ang := 0.35
+		match state:
+			State.WINDUP:
+				ang = lerpf(0.35, -2.2, tele)
+			State.STRIKE:
+				ang = 1.05
+			State.RECOVER:
+				ang = 0.9
+			State.STUNNED:
+				ang = 1.4
+			State.GUARD:
+				ang = -1.45   # 刀竖在身前
+		var blade_len := 96.0 if brute else 70.0
+		var dir := Vector2(cos(ang) * f, sin(ang))
+		if f < 0:
+			dir = Vector2(-cos(ang), sin(ang))
+		var blade := Color(0.16, 0.18, 0.28).lerp(WARN, tele * 0.6)
+		blade.a = fade
+		draw_line(hand, hand + dir * blade_len, blade, 6.0 if brute else 4.0)
+		var edge := RIM.lerp(WARN, tele)
+		edge.a = 0.8 * fade
+		draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5 * lw)
+		var guard := Vector2(-dir.y, dir.x) * (9.0 if brute else 7.0)
+		draw_line(hand + dir * 6.0 - guard, hand + dir * 6.0 + guard, blade, 3.0)
+		# 弹刀时机提示：出刀前 PARRY_CUE 帧，刀尖亮起一颗白星（这时按 L 正好弹开）
+		if state == State.WINDUP:
+			var remain := int(spec.windup) - state_frames
+			if remain <= PARRY_CUE:
+				var k := 1.0 - float(remain) / float(PARRY_CUE)
+				var tip := hand + dir * blade_len
+				var star := Color(1, 1, 1, fade * (0.55 + 0.45 * k))
+				_draw_star(tip, 6.0 + 12.0 * k, star)
+				draw_circle(tip, 10.0 + 16.0 * k, Color(1.0, 0.95, 0.8, 0.22 * fade))
+		# 举刀格挡：身前一道淡蓝的弧（看到它 = 普通刀会被挡，换重招 / 绕背）
+		if state == State.GUARD:
+			var gc := Color(0.75, 0.85, 1.0, 0.55 * fade)
+			var gcen := _fp(w * 0.9, top + body_h * 0.45, f, lean, body_h)
+			var a0 := -1.1 if f > 0 else PI - 1.1
+			draw_arc(gcen, body_h * 0.42, a0, a0 + 2.2, 14, gc, 3.0)
+		# 出刀弧光
+		if state == State.STRIKE:
+			var arc := WARN
+			arc.a = 0.65 * fade * (1.0 - float(state_frames) / float(spec.strike))
+			var c := hand
+			var a0 := -1.6 if f > 0 else PI + 1.6
+			var a1 := 1.1 if f > 0 else PI - 1.1
+			draw_arc(c, blade_len * 0.95, minf(a0, a1), maxf(a0, a1), 18, arc, 6.0)
+	# 翻滚：身后拖一道影雾
+	if state == State.ROLL:
+		for i in 4:
+			var puff := INK_SOFT
+			puff.a = 0.5 * fade * (1.0 - float(i) / 4.0)
+			draw_circle(Vector2(-float(roll_dir) * (14.0 + 16.0 * float(i)), -h * 0.6), 12.0 - float(i) * 2.0, puff)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# 影弓瞄准线：前摇时从弓指向玩家，最后 8 帧锁定、变亮变粗 = 马上放箭
+	if archer and state == State.WINDUP:
+		var locked := int(spec.windup) - state_frames <= 8
+		var lc := WARN
+		lc.a = (0.18 + 0.5 * tele) * fade
+		var seg := 26.0
+		for i in 22:
+			var p0 := aim_from + aim * (float(i) * seg * 1.6)
+			draw_line(p0, p0 + aim * seg, lc, (3.5 if locked else 1.5) * lw)
 	# 前摇预警：脚下橙色弧 + 头顶“!”
 	if tele > 0.0 and state == State.WINDUP:
 		var ring := WARN
 		ring.a = (0.35 + 0.5 * tele) * fade
-		draw_arc(Vector2(f * float(spec.range) * 0.5, h), float(spec.range) * 0.55, PI + 0.25, TAU - 0.25, 20, ring, 2.0 + tele * 2.0)
+		if not is_ranged_kind():
+			draw_arc(Vector2(f * float(spec.range) * 0.5, h), float(spec.range) * 0.55, PI + 0.25, TAU - 0.25, 20, ring, 2.0 + tele * 2.0)
 		if tele > 0.55:
 			draw_set_transform(Vector2(0, -h - 34.0), 0.0, Vector2(ui_scale, ui_scale))
 			draw_string(_font, Vector2(-5, 0), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
@@ -1201,6 +1574,38 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, -half_h), 0.0, Vector2(ui_scale, ui_scale))
 	_draw_bars(fade)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## 影弓的弓：竖着的一道弧 + 弦；拉弓时弦往后拉、搭着一支发光的箭
+func _draw_bow(hand: Vector2, f: float, tele: float, fade: float, lw: float) -> void:
+	var wood := Color(0.16, 0.18, 0.28).lerp(WARN, tele * 0.4)
+	wood.a = fade
+	var r := 34.0
+	var c := hand + Vector2(-f * 14.0, 0.0)
+	var a0 := -1.15 if f > 0 else PI - 1.15
+	draw_arc(c, r, a0, a0 + 2.3, 14, wood, 4.0)
+	var top := c + Vector2(cos(a0), sin(a0)) * r
+	var bot := c + Vector2(cos(a0 + 2.3), sin(a0 + 2.3)) * r
+	var pull := hand + Vector2(-f * (8.0 + 18.0 * tele), 0.0)
+	var string_col := RIM
+	string_col.a = 0.7 * fade
+	draw_line(top, pull, string_col, 1.2 * lw)
+	draw_line(bot, pull, string_col, 1.2 * lw)
+	if state == State.WINDUP:
+		var arrow := WARN
+		arrow.a = (0.5 + 0.5 * tele) * fade
+		draw_line(pull, pull + Vector2(f * 54.0, 0.0), arrow, 3.0)
+		draw_circle(pull + Vector2(f * 54.0, 0.0), 4.0 + 4.0 * tele, arrow)
+
+
+## 影爆手里的炸弹（前摇时举过头顶、引信火星越来越亮）
+func _draw_held_bomb(hand: Vector2, tele: float, fade: float) -> void:
+	var body := INK.lerp(WARN, 0.2 * tele)
+	body.a = fade
+	draw_circle(hand + Vector2(0, -8.0), 12.0, body)
+	var spark := Color(1.0, 0.95, 0.75, fade * (0.5 + 0.5 * tele))
+	draw_line(hand + Vector2(3, -18), hand + Vector2(7, -26), INK * Color(1, 1, 1, fade), 2.5)
+	draw_circle(hand + Vector2(7, -26), 2.5 + 3.0 * tele, spark)
 
 
 func _fp(x: float, y: float, f: float, lean: float, body_h: float) -> Vector2:
@@ -1234,8 +1639,8 @@ func _draw_star(c: Vector2, r: float, col: Color) -> void:
 func _draw_bars(fade: float) -> void:
 	if state == State.DEAD:
 		return
-	var w := 64.0 if kind == Kind.GRUNT else 88.0
-	var y := -16.0 - (16.0 if kind == Kind.BRUTE else 0.0)   # 相对头顶（调用前已平移到 -half_h 并按 ui_scale 缩放）
+	var w := 88.0 if kind == Kind.BRUTE else (60.0 if kind == Kind.ARCHER else 64.0)
+	var y := -16.0 - (16.0 if kind == Kind.BRUTE else (14.0 if kind == Kind.ARCHER else 0.0))   # 相对头顶（调用前已平移到 -half_h 并按 ui_scale 缩放）
 	var x := -w / 2.0
 	draw_rect(Rect2(x - 1, y - 1, w + 2, 5), Color(0, 0, 0, 0.6 * fade))
 	draw_rect(Rect2(x, y, w * clampf(hp / max_hp, 0.0, 1.0), 3), Color(0.92, 0.93, 0.96, fade))
@@ -1251,6 +1656,12 @@ func _draw_bars(fade: float) -> void:
 	draw_rect(Rect2(x, py, w * clampf(poise / max_poise, 0.0, 1.0), 3), col)
 	if kind == Kind.BRUTE:
 		draw_string(_font, Vector2(x, y - 4), "霸体" if state != State.STUNNED else "破防", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.75, 0.45, 0.85 * fade))
+	# 击退百分比：挨得越多数字越红，飞得越远
+	if pct >= 1.0:
+		var pc := Color(0.92, 0.93, 0.96).lerp(Color(1.0, 0.62, 0.3), clampf(pct / 60.0, 0.0, 1.0))
+		pc = pc.lerp(Color(1.0, 0.3, 0.25), clampf((pct - 60.0) / 60.0, 0.0, 1.0))
+		pc.a = 0.95 * fade
+		draw_string(_font, Vector2(x + w + 5.0, y + 8.0), "%d%%" % int(pct), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, pc)
 
 
 func debug_state_name() -> String:

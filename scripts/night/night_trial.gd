@@ -35,6 +35,8 @@ const Feel := preload("res://scripts/core/feel_scale.gd")
 
 const G := Shade.Kind.GRUNT
 const B := Shade.Kind.BRUTE
+const A := Shade.Kind.ARCHER        ## 影弓（第四轮）
+const X := Shade.Kind.BOMBER        ## 影爆（第四轮）
 ## 第三轮：镜头缩到 0.5 后画面宽 2560 世界单位，竞技场跟着变宽（全宽 2400，墙贴着画面边），
 ## 里面摆多层地形（terrain.gd 的 SECTIONS，坐标相对封印中心）
 const ARENA_HALF := 1200.0
@@ -47,16 +49,17 @@ const ROUND_HP_MUL := 1.2
 const PARRY_WINDOW := 12
 
 ## 一轮 = 三处封印。每处封印 = 若干波。数据格式见 encounter.gd 顶部注释。
+## 第四轮：加入影弓（A）和影爆（X）。远程影和近战影各算各的出手名额。
 const ROUND: Array = [
 	[
 		{"label": "影卒来袭", "spawns": [G, G], "max_attackers": 1},
-		{"label": "影卒围攻", "spawns": [G, G, G], "reinforce": [G], "reinforce_at": 1, "max_attackers": 2},
+		{"label": "冷箭", "spawns": [G, A, G], "reinforce": [G], "reinforce_at": 1, "max_attackers": 2},
 	],
 	[
-		{"label": "甲影现身", "spawns": [B, G, G], "max_attackers": 2},
+		{"label": "甲影与影爆", "spawns": [B, G, X], "max_attackers": 2},
 	],
 	[
-		{"label": "影潮", "spawns": [G, B, G], "reinforce": [B, G], "reinforce_at": 2, "max_attackers": 2},
+		{"label": "影潮", "spawns": [G, B, A], "reinforce": [X, G], "reinforce_at": 2, "max_attackers": 2},
 	],
 ]
 
@@ -328,6 +331,8 @@ func _physics_process(delta: float) -> void:
 	_round_rank = maxi(_round_rank, style.rank_index())
 	if player.hp > _hp_seen:
 		_hp_seen = player.hp
+	elif player.hp < _hp_seen - 0.01 and phase == Phase.FIGHT:
+		_on_player_hurt(_hp_seen - player.hp, player.global_position + Vector2(0, -20))
 	var target_alpha := 1.0 if phase != Phase.EXPLORE else 0.0
 	seal_alpha = move_toward(seal_alpha, target_alpha, delta * 2.5)
 	_pump_hints()
@@ -468,13 +473,31 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.strike_landed.connect(_on_strike_landed.bind(s))
 	s.windup_started.connect(audio.play_shade_windup)
 	s.ui_scale = 1.0 / ZOOM
-	s.strike_started.connect(audio.play_shade_swing)
+	if s.kind == A:
+		s.strike_started.connect(func(_h: bool): audio.play_shade_shot())
+	else:
+		s.strike_started.connect(audio.play_shade_swing)
+	s.guarded.connect(_on_shade_guarded.bind(s))
+	s.guard_broken.connect(_on_shade_guard_broken)
+	s.dodged.connect(func(_p: Vector2): fx.spawn_dust(Vector2(s.global_position.x, s.feet_y()), 0.5))
+	s.friendly_hit.connect(_on_friendly_hit)
+	s.projectile_spawned.connect(_on_projectile)
 	fx.spawn_dust(Vector2(s.global_position.x, s.feet_y()), 0.6)
 	if s.kind == B and not _hints_done.has(&"brute"):
 		_queue_hint(&"brute", "甲影出刀时有霸体（白光打不断）→ 弹刀 / 按住 J 蓄力斩 来破防", 6.0)
+	elif s.kind == A and not _hints_done.has(&"archer"):
+		_queue_hint(&"archer", "影弓：橙色瞄准线变粗 = 要放箭 → 按 L 弹回去，或者一刀把箭砍回去", 6.0)
+	elif s.kind == X and not _hints_done.has(&"bomber"):
+		_queue_hint(&"bomber", "影爆扔炸弹：落地马上炸（同伴也炸）→ 砍它一刀把炸弹打回去", 6.0)
 
 
 func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
+	if target != player and target.is_in_group(&"shade_projectile"):
+		# 一刀把影矢 / 炸弹砍回去
+		audio.play_deflect()
+		fx.spawn_parry(point, Vector2(player.facing, 0))
+		hud.callout("打回去！", Color("ffe08a"), 34)
+		return
 	if target == player or not target.is_in_group(&"shade"):
 		return
 	style.add_hit(mv.id)
@@ -483,7 +506,9 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	var dir := target.global_position - player.global_position
 	if mv.direction > 0:
 		dir = Vector2.UP
-	camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
+	# 第四轮：普通轻击不震屏（shake_amount = 0），只有重击 / 击杀 / 撞墙 / 下砸 / 大招才震
+	if mv.shake_amount > 0.0:
+		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
 	audio.play_impact(mv)
 	fx.spawn_hit(point.lerp(target.global_position, 0.5), Feel.from_move(mv), mv.forces_launch)
 
@@ -543,6 +568,45 @@ func _on_chain_hit(level: int, point: Vector2) -> void:
 	camera.add_shake(6.0 * shake_mul)
 
 
+func _on_shade_guarded(point: Vector2, s: Node2D) -> void:
+	audio.play_block()
+	fx.spawn_parry(point, s.global_position - player.global_position)
+	fx.spawn_text(point + Vector2(0, -20), "挡")
+	_queue_hint(&"guard", "敌人举刀格挡（身前蓝弧）→ 第三刀 / 按住 J 蓄力 / W+J / Shift+J 能砸开，或者绕到背后", 6.0, true)
+
+
+func _on_shade_guard_broken(point: Vector2) -> void:
+	style.add_event(&"guard_break")
+	hud.callout("破招！", Color("ffe066"), 34)
+	audio.play_guard_break()
+	fx.spawn_parry(point, Vector2.UP)
+
+
+func _on_friendly_hit(point: Vector2) -> void:
+	style.add_event(&"friendly")
+	hud.callout("误伤！", Color("9fe0b0"), 32)
+
+
+## 影弓的箭 / 影爆的炸弹出手：接上它们的事件
+func _on_projectile(node: Node2D) -> void:
+	if node.has_signal(&"exploded"):
+		node.exploded.connect(_on_bomb_exploded)
+	if node.has_signal(&"struck"):
+		node.struck.connect(func(t: Node, _p: Vector2, friendly: bool):
+			if friendly and t.is_in_group(&"shade"):
+				style.add_event(&"reflect"))
+
+
+func _on_bomb_exploded(point: Vector2, friendly: bool) -> void:
+	camera.add_shake(9.0 * shake_mul, Vector2.UP)
+	audio.play_bomb(1.0)
+	fx.spawn_wall_slam(point, Vector2.UP, 1.3)
+	fx.spawn_dust(point, 1.2)
+	if friendly:
+		style.add_event(&"reflect")
+		hud.callout("炸回去！", Color("ffb054"), 36)
+
+
 func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 	style.add_event(&"parry")
 	hud.callout("弹刀！", Color("dfe8ff"), 38)
@@ -563,16 +627,23 @@ func _on_shade_died(s: Node2D) -> void:
 
 func _on_strike_landed(point: Vector2, s: Node2D) -> void:
 	var dmg: float = _hp_seen - float(player.hp)
-	_hp_seen = player.hp
 	if dmg <= 0.01:
+		_hp_seen = player.hp
 		return
+	_on_player_hurt(dmg, point, s.strike_move.shake_amount, player.global_position - s.global_position, s.kind == B)
+
+
+## 玩家掉血（近战刀 / 影矢 / 炸弹都走这里）
+func _on_player_hurt(dmg: float, point: Vector2, shake: float = 3.0, dir: Vector2 = Vector2.ZERO, heavy: bool = false) -> void:
+	_hp_seen = player.hp
 	var combo_before := style.combo
 	style.take_damage(dmg)
 	if combo_before >= 5:
 		hud.callout("连击中断", Color("8d96ab"), 26)
 	hud.hurt()
-	camera.add_shake(s.strike_move.shake_amount * shake_mul, player.global_position - s.global_position)
-	audio.play_hurt(0.8 if s.kind == B else 0.4)
+	if shake > 0.0:
+		camera.add_shake(shake * shake_mul, dir)
+	audio.play_hurt(0.8 if heavy or dmg >= 12.0 else 0.4)
 	fx.spawn_hit(point, 0.6, false)
 	fx.spawn_text(point + Vector2(0, -30), "-%.0f" % dmg, dmg)
 

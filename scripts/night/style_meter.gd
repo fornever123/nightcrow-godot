@@ -20,9 +20,10 @@ const RECENT := 5
 const EVENT_POINTS := {
 	&"stun": 18.0, &"armor_break": 14.0, &"launch": 10.0, &"slam": 22.0, &"wall": 16.0,
 	&"chain": 12.0, &"parry": 20.0, &"kill": 6.0, &"air_kill": 14.0, &"juggle": 1.5,
+	&"friendly": 12.0, &"reflect": 14.0, &"guard_break": 10.0, &"ult": 30.0,
 }
 ## 这些事件本身也算一"击"（会让连击数 +1）
-const EVENT_COUNTS_AS_HIT := [&"wall", &"chain", &"slam"]
+const EVENT_COUNTS_AS_HIT := [&"wall", &"chain", &"slam", &"friendly", &"reflect"]
 
 var points: float = 0.0
 var combo: int = 0
@@ -39,7 +40,8 @@ func _init() -> void:
 
 func reset_stats() -> void:
 	stats = {"hits": 0, "stun": 0, "armor_break": 0, "launch": 0, "slam": 0, "wall": 0, "chain": 0,
-		"parry": 0, "kill": 0, "air_kill": 0, "juggle": 0, "damage_taken": 0.0, "times_hit": 0}
+		"parry": 0, "kill": 0, "air_kill": 0, "juggle": 0, "damage_taken": 0.0, "times_hit": 0,
+		"friendly": 0, "reflect": 0, "guard_break": 0, "ult": 0}
 	max_combo = 0
 	best_rank = rank_index()
 

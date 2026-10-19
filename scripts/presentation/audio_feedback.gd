@@ -307,6 +307,40 @@ func play_shade_swing(heavy: bool = false) -> void:
 	_play_bank("shade_swing_heavy" if heavy else "shade_swing")
 
 
+## 第四轮：炸弹爆炸
+func play_bomb(strength: float = 1.0) -> void:
+	if not _play_bank("bomb", 0.0, _impact_gain_db(strength)):
+		play_slam(strength)
+
+
+## 第四轮：影弓放箭
+func play_shade_shot() -> void:
+	if not _play_bank("shade_shot"):
+		play_shade_swing(false)
+
+
+## 第四轮：格挡被砸开 / 打回去（箭、炸弹）
+func play_guard_break() -> void:
+	if not _play_bank("guard_break"):
+		play_stun()
+
+
+func play_deflect() -> void:
+	if not _play_bank("deflect"):
+		play_parry(0.9)
+
+
+## 第四轮：大招（起手蓄势 / 斩出）
+func play_ult_start() -> void:
+	if not _play_bank("ult_start"):
+		play_charge_start()
+
+
+func play_ult_slash() -> void:
+	if not _play_bank("ult_slash"):
+		play_slam(1.2)
+
+
 func play_seal() -> void:
 	if not _play_bank("seal"):
 		_play_clip("wall", 0.0, -3.0)
