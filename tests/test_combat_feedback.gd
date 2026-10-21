@@ -87,7 +87,7 @@ func run() -> void:
 	check(d.hitstop_frames>=p.hitstop_frames and stage.moves.light_1.victim_hitstop_frames>stage.moves.light_1.hitstop_frames,"木桩使用独立受击停顿（受方比攻方多停一帧）")
 	check(stage.camera._trauma==0,"普通轻击不震屏（大震只留给重击）")
 	check(stage.audio.last_event=="hit_light" and not stage.audio._voices.is_empty(),"刀刃命中事件真正开始播放")
-	check(stage.fx.last_hit_plan.size()==6 and stage.fx.get_child_count()>=6,"实际生成六层错时命中反馈")
+	check(stage.fx.last_hit_plan.size()>=5 and stage.fx.active_count()>=6,"实际生成多层错时命中反馈（闪光 / 斩线 / 火花 / 墨点 / 冲击环）")
 	var first_source: Dictionary = {}
 	for source in stage.config.moves:
 		if source.id == "light_1":
@@ -193,7 +193,7 @@ func run() -> void:
 	check(stage.audio.last_event=="shuriken_hit" and p.hitstop_frames==0,"远射轻反馈保留不打断走位的规则")
 	check(stage.camera._trauma<3,"远射震屏明显轻于近战")
 	stage._reset()
-	check(stage.fx.get_child_count()==0 and stage.audio._voices.is_empty(),"重置清理特效和声音")
+	check(stage.fx.active_count()==0 and stage.audio._voices.is_empty(),"重置清理特效和声音")
 	check(stage.camera.offset==Vector2.ZERO and stage.total_hits==0,"重置清理镜头和命中统计")
 	print("COMBAT_FEEDBACK_TESTS: %d checks / %d failures" % [checks,failures.size()])
 	stage.free()

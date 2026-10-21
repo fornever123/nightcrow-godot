@@ -487,3 +487,11 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 ### 16.6 没做 / 待定
 - 镜头（用户说先不做）、键位（先不动）、跑步序列帧（用户重做中）。
 - 大招按键 J+K 是临时的，等键位统一时再定。
+
+### 16.7 角色特效 v1（程序特效，2026-10-21）
+- **为什么用程序做**：GPT 画不出逐帧连贯的特效动画；命中/尘土/残影这类全部用代码画，风格统一可调。
+- **像素画布** `scripts/presentation/pixel_fx.gd`：所有特效先画进半分辨率的小画布（1 格 = 2 屏幕像素，和背景像素块一样大），最近邻放大贴回世界 → 硬边像素风；淡出用拜耳抖动（`assets/shaders/fx_dither.gdshader`），碎成像素点而不是半透明。每帧按主镜头对齐（含震屏）。零件：STAR / BURST（爆闪，长短不一的尖刺）/ STREAK（斩线）/ RING（冲击环，粗→细，后半段碎成弧段，避免像准星）/ DISC / SPARK / CHUNK / PUFF / LINES（放射线，b<a 时往里收）/ CRACK。
+- **配方** `scripts/presentation/impact_fx.gd`（接口兼容旧版）：`spawn_hit`（力度 `ImpactFX.power_of(mv)` 按伤害算；同一帧打中多只时只有第一只给全套）、`spawn_hurt`（橙红）、`spawn_parry`（白爆闪 + 横向长“镲”光 + 弹跳金属火星）、`spawn_block`、`spawn_break`、`spawn_deflect`、`spawn_wall_slam`、`spawn_ground_slam`（扁环 + 石屑 + 地裂）、`spawn_explosion`、`spawn_launch`、`spawn_kill`、`spawn_muzzle`、`spawn_dust/land/jump/dash/step`；`start_ghosts`（冲刺残影，前半段实心剪影）；`track_player`（蓄力往里收的光刺、可放时叮一下、跑步扬灰）；`track_dissolve`（影死后化黑烟火星）。调色板常量在文件顶部（尘土已调暗成夜色灰蓝）。
+- **接入**：`night_trial.gd` 各战斗事件 → 对应 spawn；`fx.floor_at` 用地形高度让火星/石屑落地弹跳。训练场沿用旧调用（兼容）。
+- **样片工具** `tests/dev/fx_reel.gd`：几只不动的影站主角前，按固定输入出招逐帧截图。`REEL=light,charge,launch,dash,ranged,jump,fx`（`fx` 段直接触发弹刀/格挡/挨打/破防/下砸/炸弹/撞墙/击杀），`SHOT_DIR`、`EVERY`。运行：`DISPLAY=:99 SHOT_DIR=/data/reel timeout 290 godot --path . --script res://tests/dev/fx_reel.gd --resolution 1280x720 --fixed-fps 60`。
+- **还没做**：地面攻击的刀光是烘焙在角色帧里的白灰大刀光（battle.json 动画 `effectsBaked`），下一步换成分层素材（`selected-original/*/effects`）重新上色。
