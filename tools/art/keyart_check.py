@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""检查 GPT 出的定调图/背景图：颜色统计、锁色（蓝→青灰）、放入真实主角、眯眼测试、角色身后加薄雾示意。
+"""检查 GPT 出的定调图/背景图：颜色统计、锁色（鲜蓝→石板灰蓝）、放入真实主角、眯眼测试、角色身后加薄雾示意。
 用法：python3 tools/art/keyart_check.py 图.png 输出目录 [脚底y 角色x 角色高 去掉区域x0,y0,x1,y1]
 """
 import cv2, numpy as np, sys, os
@@ -18,13 +18,15 @@ def stats(img, tag):
     m = np.ones((H, W), bool)
     if EX: m[EX[1]:EX[3], EX[0]:EX[2]] = False
     p = lambda k: round(100 * (k & m).sum() / m.sum(), 1)
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB); C = np.hypot(lab[..., 1], lab[..., 2]); cm = m & (lab[..., 2] < 0) & (C > 4)
+    cc = float(np.median(C[cm])) if cm.any() else 0.0   # 冷色 LAB 彩度中位：比 HSV 饱和更像眼睛看到的“鲜不鲜”（暗色在 HSV 里饱和偏高）
     g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY); lap = np.abs(cv2.Laplacian(g, cv2.CV_32F))
     z = (slice(max(0, FEET - int(CH * 1.5)), FEET - 4), slice(0, W))
     print(f'[{tag}] 饱和蓝 {p((h > 200) & (h < 245) & (s > 0.3) & (v > 0.12))}%  紫/蓝紫 {p((h >= 245) & (h < 300) & (s > 0.25) & (v > 0.12))}%  '
-          f'平均饱和 {s[m & (v > 0.12)].mean():.2f}  角色身后区 明度 {g[z].mean():.2f} 细节 {lap[z].mean():.3f}（天空上方 {lap[0:H // 5].mean():.3f}）')
+          f'平均饱和 {s[m & (v > 0.12)].mean():.2f}  冷色彩度 {cc:.0f}（≤16 合格）  角色身后区 明度 {g[z].mean():.2f} 细节 {lap[z].mean():.3f}（天空上方 {lap[0:H // 5].mean():.3f}）')
 
-def lock(img, tgt=208.0, keep=0.4):
-    """冷色相转到青灰、饱和度降到 keep 倍；暖色只轻降。"""
+def lock(img, tgt=268.0, keep=0.5):   # LAB 色相 268 = 石板灰蓝（208 偏青发绿，用户否了）
+    """冷色相转到石板灰蓝、饱和度降到 keep 倍；暖色只轻降。"""
     L, a, b = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2LAB))
     C = np.hypot(a, b); hue = np.degrees(np.arctan2(b, a)) % 360; cool = np.clip(-b / 8, 0, 1)
     hue2 = hue + (((tgt - hue + 180) % 360) - 180) * 0.85 * cool

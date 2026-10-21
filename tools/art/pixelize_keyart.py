@@ -8,8 +8,8 @@
 """
 import cv2, numpy as np, sys
 
-def lock(img, tgt=208.0, keep=0.4):
-    """冷色相转到青灰、饱和度降到 keep 倍；暖色（灯光）只轻降。与 keyart_check.py 相同。"""
+def lock(img, tgt=268.0, keep=0.5):   # LAB 色相 268 = 石板灰蓝（208 偏青发绿，用户否了）
+    """冷色相转到石板灰蓝、饱和度降到 keep 倍；暖色（灯光）只轻降。与 keyart_check.py 相同。"""
     L, a, b = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2LAB))
     C = np.hypot(a, b); hue = np.degrees(np.arctan2(b, a)) % 360; cool = np.clip(-b / 8, 0, 1)
     hue2 = hue + (((tgt - hue + 180) % 360) - 180) * 0.85 * cool
