@@ -498,7 +498,7 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 
 ### 16.8 地面攻击刀光改紫（`tools/art/recolor_slash.py`，2026-10-21）
 - **为什么不用分层素材**：`selected-original/*/effects` 和 desktop 帧不是同一拍，对不上位置；改成直接在现有帧里按“颜色 + 连通块”认出刀光再重新上色。
-- **范围**：动画 attack_1/2/3、attack_2_start、attack_2_recovery、strong_attack、attack_up、charge_slash（共 138 张图，67 张有刀光/尘土）。空中攻击的白光还没动（冲刺斩见 16.9）。
+- **范围**：动画 attack_1/2/3、attack_2_start、attack_2_recovery、strong_attack、attack_up、charge_slash（共 138 张图，67 张有刀光/尘土）。空中攻击（air_attack_1/2/3、air_slash）的源图刀光本来就是紫色，不用改（冲刺斩见 16.9）。
 - **认法**：低饱和且亮的像素做连通块 → 大块、边缘多挨透明、够粗 = 刀光（附近小碎块并进来）；贴地、不细长 = 尘土；孤立小杂点抹掉；衣服白边、刀身高光不动。
 - **上色**：凸包认外缘（刀尖划过的路径），按到外缘/内缘的距离比上色：外缘固定宽白芯（略偏蓝 `efeaff`）→ 淡紫 → 紫 → 深紫并往里淡出，外缘加不规则刷痕，外侧一圈半透明紫晕（垫在角色下面）。尘土改浅灰蓝半透明。色阶和程序特效的紫一套。
 - **存法**：新帧存 `assets/image/fixed-fx/<原路径>.webp.b64`（GitHub 推送只能传文本），battle.json `assetOverride` 指过去；`assetFxBase` 记原底图（重跑从这重来），`assetFxPad`=四周加的透明边（20px，给紫晕留地方），引用这些帧的 width/height/pivot 已同步换算，位置不变。
@@ -511,3 +511,12 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - **一闪**：冲刺斩命中时 `impact_fx.spawn_dash_hit()`：从冲刺起点（`mark_dash_start`）到命中点前方 70px，一道细长亮线（`pixel_fx` 新零件 `K.SLIT`：白芯 / 浅紫 / 紫三层实色），整条停约 2 帧，再从尾端往刀尖收细消失；上下各一根细速度线往前滑，线上崩几粒紫碎光。一次冲刺打中好几个：同一条线往前接长、重新亮一下。
 - **起步尘土**：帧里已烘焙尘土，`spawn_dash` 只留一小团贴地的（原来 3 团抖动点糊成一片），速度线 5 → 4 根。
 - **样片**：`REEL=dash`（`tests/dev/fx_reel.gd`）。
+
+### 16.10 顶级特效：辉光 + 重击冲击帧 + 命中收小（2026-10-22）
+- **为什么自己做辉光**：渲染器是 gl_compatibility，WorldEnvironment 的 2D glow 靠不住，所以全用着色器 + SubViewport 自己做，两套：
+  - **像素特效辉光**（`pixel_fx.gd` + `assets/shaders/fx_bloom.gdshader`）：像素特效小画布（1 格 = 2 屏幕像素）→ 再缩一半的 `bloom_vp` 里用 fx_bloom 取“亮的（亮度 ≥ 0.55 起）/ 亮紫的”像素做三圈模糊（半径 6 格、gain 2.0）→ `bloom` 精灵相加混合，**垫在像素特效下面**（特效本身保持硬边，柔光只露在外面）。白芯、金火花、紫斩线外面有一层柔光；尘土、墨点暗，不发光。`pfx.bloom_enabled` 可关。
+  - **刀光辉光**（`impact_fx.track_glow(sprite)` + `assets/shaders/fx_glow_sprite.gdshader`）：给主角 ActorSprite 挂一个子精灵 `BladeGlow`，每帧同步贴图 / 翻转 / offset，region 四周多留 pad 给光晕；只取帧里**亮紫**的像素（头发的紫蓝偏暗、白衣服都不算），半径约 7 屏幕像素，相加混合。平时 `glow_base` 0.55 淡淡一层；打中时 `glow_hit(p)` 亮到 +0.45～0.9 再衰减（每秒 −3.2）。只在试玩关（`night_trial.gd`）挂。
+- **重击冲击帧**（`impact_fx.impact_frame(p)`）：力度 `power_of(mv)` ≥ 0.6 的命中（第三刀、冲刺斩、蓄力斩、撞墙等）背景压暗：z −1 绝对（地形 −70 之上、角色 0 之下，和大招压暗同一层），角色、敌人、特效不压。普通重击 0.4 停 0.06s 再 0.16s 淡回；≥ 0.9（蓄力斩）0.52 停 0.09s 再 0.22s。顿帧（hitstop）数值没动。`impact_frames_enabled` 可关。
+- **命中收小**：`spawn_hit(..., slim)`：冲刺斩传 slim=true——不画冲击环和放射线，爆闪 / 白点小 30%（“一闪”亮线顶替）。所有命中：金色爆闪 26+18p → 22+13p，同帧非第一只 0.75 → 0.65；冲击环 34+34p → 28+26p、变细；放射线变短；蓄力斩额外的白圈改浅紫、变小。`last_hit_plan` 记录不变（测试要 ≥ 5 层）。
+- **空中攻击**：源图刀光本来就是紫的，不用改（16.8 已更正）。
+- **样片**：`REEL=charge`（冲击帧最明显）、`light`、`dash`。
