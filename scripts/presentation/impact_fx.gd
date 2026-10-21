@@ -14,6 +14,7 @@ const Feel := preload("res://scripts/core/feel_scale.gd")
 const PixelFx := preload("res://scripts/presentation/pixel_fx.gd")
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
 const GHOST := preload("res://assets/shaders/fx_ghost.gdshader")
+const GLOW := preload("res://assets/shaders/fx_glow_sprite.gdshader")
 const K := PixelFx.K
 
 const WHITE := Color("fffcf2")
@@ -73,6 +74,19 @@ var _last_feet := Vector2.INF
 var _dissolving: Array = []
 var rng := RandomNumberGenerator.new()
 var _frame_seen := {}
+## 刀光辉光（§16.10）：跟着主角精灵的“影子精灵”，只让帧里亮紫的刀光发光
+var glow_base: float = 0.55
+var _glow_src: Sprite2D
+var _glow: Sprite2D
+var _glow_mat: ShaderMaterial
+var _glow_pulse: float = 0.0
+## 重击冲击帧（§16.10）：打中那一下背景压暗、角色和特效亮着，停一下再退
+var impact_frames_enabled: bool = true
+var _impact: Node2D
+var _impact_a: float = 0.0
+var _impact_hold: float = 0.0
+var _impact_fade: float = 0.18
+var _impact_peak: float = 0.0
 
 
 func _ready() -> void:
@@ -81,6 +95,13 @@ func _ready() -> void:
 	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC"])
 	pfx = PixelFx.new()
 	add_child(pfx)
+	_impact = Node2D.new()
+	_impact.top_level = true
+	_impact.z_as_relative = false
+	_impact.z_index = -1                 # 和大招压暗一样：地形 −70 之上、角色 0 之下
+	_impact.visible = false
+	add_child(_impact)
+	_impact.draw.connect(_draw_impact)
 	ghosts = Node2D.new()
 	ghosts.z_as_relative = false
 	ghosts.z_index = -1                  # 残影在角色身后、地形前面
@@ -221,7 +242,8 @@ func _lines(p: Vector2, n: int, r0: float, r1: float, width: float, length: floa
 
 ## 主角打中敌人。strength = 力度 0..1（大招 1.6）；dir = 打击方向（没给就按 up 取上 / 右）
 ## 同一帧打中好几只：第一只给全套，后面的只给闪光 + 斩线 + 少量火花，免得糊成一片
-func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2.ZERO) -> void:
+## slim = 冲刺斩：有“一闪”亮线顶着，不画白圈和放射线，爆闪也小一号
+func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2.ZERO, slim: bool = false) -> void:
 	last_kind = "hit"
 	last_hit_plan.clear()
 	if not enabled:
@@ -233,12 +255,15 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	dir = dir.normalized()
 	var side := 1.0 if dir.x >= 0.0 else -1.0
 	var a := dir.angle()
-	var k := 1.0 if main else 0.75
+	var k := 1.0 if main else 0.65
+	if slim:
+		k *= 0.7
 	# 斩线斜着划过敌人：横砍向下斜 25° 左右；上挑接近竖直
 	var cut := a + _r(-0.55, -0.25) * side if absf(dir.y) < 0.7 else a + _r(-0.3, 0.3)
-	var star_r := (26.0 + 18.0 * p) * k
+	# §16.10 有了辉光以后金色爆闪收小一号（原 26 + 18p）
+	var star_r := (22.0 + 13.0 * p) * k
 	if main:
-		_disc(point, 9.0 + 9.0 * p, WHITE, 0.035)
+		_disc(point, (9.0 + 9.0 * p) * k, WHITE, 0.035)
 	_burst(point, star_r, cut, 8 if p < 0.55 else 10, GOLD, WHITE, AMBER, 0.1 + 0.04 * p)
 	_plan("flash", 0.0, 0.1 + 0.04 * p)
 	_streak(point, (96.0 + 70.0 * p) * k, (9.0 + 6.0 * p) * k, cut, VIO, WHITE, 0.13 + 0.05 * p)
@@ -250,15 +275,18 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	_plan("ink", 0.0, 0.55)
 	if not main:
 		return
-	if p >= 0.3:
-		_ring(point, 10.0, 34.0 + 34.0 * p, 10.0 + 6.0 * p, 0.0, VIO_L, 0.1 + 0.03 * p)
+	glow_hit(p)
+	if p >= 0.6:
+		impact_frame(p)
+	if p >= 0.3 and not slim:
+		_ring(point, 10.0, 28.0 + 26.0 * p, 8.0 + 4.0 * p, 0.0, VIO_L, 0.1 + 0.03 * p)
 	_plan("ring", 0.0, 0.1 + 0.03 * p)
-	if p >= 0.55:
-		_lines(point, 10, 18.0, 84.0 + 44.0 * p, 5.0, 30.0, WHITE, 0.15)
+	if p >= 0.55 and not slim:
+		_lines(point, 10, 18.0, 72.0 + 36.0 * p, 4.0, 26.0, WHITE, 0.15)
 		_plan("lines", 0.0, 0.15)
-	if p >= 0.9:
-		_disc(point, 20.0 + 8.0 * p, WHITE, 0.05)
-		_ring(point, 10.0, 50.0 + 34.0 * p, 12.0, 0.0, WHITE, 0.18, 0.04)
+	if p >= 0.9 and not slim:
+		_disc(point, 15.0 + 6.0 * p, WHITE, 0.05)
+		_ring(point, 10.0, 40.0 + 26.0 * p, 8.0, 0.0, VIO_L, 0.16, 0.04)
 	if up:
 		for i in 3:
 			_streak(point + Vector2(_r(-16, 16), _r(-10, 10)) * _w(), _r(40, 64), 4.0, -PI * 0.5, VIO_L, WHITE, 0.2,
@@ -589,6 +617,98 @@ func _emit_ghost(at := Vector2.INF) -> void:
 	_ghost_list.append([g, 0.0, 0.32, a0])
 
 
+## 刀光辉光：给主角精灵挂一张相加混合的“影子精灵”（子节点，跟着走、跟着翻）
+func track_glow(src: Sprite2D) -> void:
+	if src == null:
+		return
+	_glow_src = src
+	if _glow == null or not is_instance_valid(_glow):
+		_glow = Sprite2D.new()
+		_glow.name = "BladeGlow"
+		_glow_mat = ShaderMaterial.new()
+		_glow_mat.shader = GLOW
+		_glow.material = _glow_mat
+		_glow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_glow.region_enabled = true
+		_glow.region_filter_clip_enabled = false
+	if _glow.get_parent() != src:
+		if _glow.get_parent() != null:
+			_glow.get_parent().remove_child(_glow)
+		src.add_child(_glow)
+	_sync_glow()
+
+
+## 打中时刀光亮一下（力度越大越亮）
+func glow_hit(p: float) -> void:
+	_glow_pulse = maxf(_glow_pulse, 0.45 + 0.45 * clampf(p, 0.0, 1.0))
+
+
+func _sync_glow() -> void:
+	if _glow == null or not is_instance_valid(_glow) or not is_instance_valid(_glow_src):
+		return
+	var src := _glow_src
+	var on := enabled and src.visible and src.texture != null
+	_glow.visible = on
+	if not on:
+		return
+	var tex := src.texture
+	var tsize := tex.get_size()
+	var rect := src.region_rect if src.region_enabled else Rect2(Vector2.ZERO, tsize)
+	# 光晕约 7 个屏幕像素：换算成贴图像素；四周多留一圈给光晕
+	var spp := absf(src.get_global_transform_with_canvas().get_scale().x)
+	var radius := clampf(7.0 / maxf(spp, 0.01), 4.0, 64.0)
+	var pad := ceilf(radius + 2.0)
+	_glow.texture = tex
+	_glow.centered = src.centered
+	_glow.flip_h = src.flip_h
+	_glow.flip_v = src.flip_v
+	_glow.region_rect = rect.grow(pad)
+	_glow.offset = src.offset - Vector2(pad, pad)
+	_glow_mat.set_shader_parameter("radius", radius)
+	_glow_mat.set_shader_parameter("bounds", Vector4(rect.position.x / tsize.x, rect.position.y / tsize.y,
+		rect.end.x / tsize.x, rect.end.y / tsize.y))
+	_glow_mat.set_shader_parameter("strength", glow_base + _glow_pulse)
+
+
+## 重击冲击帧：背景压暗（角色、敌人、特效不压），停 hold 秒再淡回去。p ≥ 0.9（蓄力斩）更暗更久
+func impact_frame(p: float) -> void:
+	if not enabled or not impact_frames_enabled:
+		return
+	var a := 0.4 if p < 0.9 else 0.52
+	if a < _impact_a:
+		return
+	_impact_peak = a
+	_impact_a = a
+	_impact_hold = 0.06 if p < 0.9 else 0.09
+	_impact_fade = 0.16 if p < 0.9 else 0.22
+	_impact.visible = true
+	_impact.queue_redraw()
+
+
+func impact_alpha() -> float:
+	return _impact_a
+
+
+func _tick_impact(delta: float) -> void:
+	if _impact_a <= 0.0:
+		return
+	if _impact_hold > 0.0:
+		_impact_hold -= delta
+	else:
+		_impact_a = maxf(_impact_a - _impact_peak * delta / maxf(_impact_fade, 0.01), 0.0)
+	_impact.visible = _impact_a > 0.0
+	_impact.queue_redraw()
+
+
+func _draw_impact() -> void:
+	if _impact_a <= 0.0 or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	var inv := vp.get_canvas_transform().affine_inverse()
+	var r := inv * vp.get_visible_rect()
+	_impact.draw_rect(r.grow(maxf(r.size.x, r.size.y) * 0.1), Color(0.015, 0.02, 0.04, _impact_a))
+
+
 ## 跟踪主角：蓄力聚气、跑步扬灰
 func track_player(player: Node2D) -> void:
 	_player = player
@@ -600,6 +720,10 @@ func track_dissolve(s: Node2D) -> void:
 
 
 func _process(delta: float) -> void:
+	_tick_impact(delta)
+	if _glow_pulse > 0.0:
+		_glow_pulse = maxf(_glow_pulse - delta * 3.2, 0.0)
+	_sync_glow()
 	_tick_ghosts(delta)
 	_tick_player(delta)
 	_tick_dissolve()
@@ -748,6 +872,11 @@ func clear() -> void:
 	_ghost_list.clear()
 	_ghost_left = 0.0
 	_dissolving.clear()
+	_glow_pulse = 0.0
+	_impact_a = 0.0
+	_impact_hold = 0.0
+	if _impact != null:
+		_impact.visible = false
 	pfx.clear()
 	last_hit_plan.clear()
 	last_kind = ""

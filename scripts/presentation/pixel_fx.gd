@@ -7,6 +7,7 @@ extends Node2D
 ## 外面（impact_fx.gd）负责“配方”：一次命中由哪些零件组成、多大、什么颜色。
 
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
+const BLOOM := preload("res://assets/shaders/fx_bloom.gdshader")
 enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT }
 ## 画的先后（0 最先画 = 最下面）：尘土 → 碎块 / 冲击环 → 斩线 / 速度线 → 火花 → 闪光
 const LAYER_OF := {K.PUFF: 0, K.CRACK: 0, K.CHUNK: 1, K.RING: 1, K.LINES: 2, K.STREAK: 2,
@@ -18,6 +19,11 @@ var max_items: int = 900
 var viewport: SubViewport
 var canvas: Node2D
 var display: Sprite2D
+## 辉光（§16.10）：小画布再缩一半 → fx_bloom 取亮的像素模糊 → 相加混合垫在像素特效下面
+var bloom_enabled: bool = true
+var bloom_vp: SubViewport
+var bloom_src: Sprite2D
+var bloom: Sprite2D
 var items: Array[Fx] = []
 
 
@@ -62,6 +68,7 @@ func _ready() -> void:
 	canvas.material = mat
 	viewport.add_child(canvas)
 	canvas.draw.connect(_draw_items)
+	_build_bloom()
 	display = Sprite2D.new()
 	display.centered = false
 	display.texture = viewport.get_texture()
@@ -69,6 +76,32 @@ func _ready() -> void:
 	display.visible = false
 	add_child(display)
 	RenderingServer.frame_pre_draw.connect(_sync)
+
+
+func _build_bloom() -> void:
+	bloom_vp = SubViewport.new()
+	bloom_vp.transparent_bg = true
+	bloom_vp.disable_3d = true
+	bloom_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	bloom_vp.size = Vector2i(320, 180)
+	add_child(bloom_vp)
+	bloom_src = Sprite2D.new()
+	bloom_src.centered = false
+	bloom_src.texture = viewport.get_texture()
+	bloom_src.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var bm := ShaderMaterial.new()
+	bm.shader = BLOOM
+	bloom_src.material = bm
+	bloom_vp.add_child(bloom_src)
+	bloom = Sprite2D.new()
+	bloom.centered = false
+	bloom.texture = bloom_vp.get_texture()
+	bloom.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var add_mat := CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	bloom.material = add_mat
+	bloom.visible = false
+	add_child(bloom)
 
 
 func _exit_tree() -> void:
@@ -88,6 +121,12 @@ func _sync() -> void:
 		viewport.size = want
 	viewport.canvas_transform = Transform2D(0.0, Vector2(1.0 / pix, 1.0 / pix), 0.0, Vector2.ZERO) * ct
 	display.global_transform = ct.affine_inverse() * Transform2D(0.0, Vector2(pix, pix), 0.0, Vector2.ZERO)
+	var half := Vector2i(maxi((want.x + 1) / 2, 1), maxi((want.y + 1) / 2, 1))
+	if bloom_vp.size != half:
+		bloom_vp.size = half
+	var k := Vector2(want) / Vector2(half)
+	bloom_src.scale = Vector2.ONE / k
+	bloom.global_transform = ct.affine_inverse() * Transform2D(0.0, k * pix, 0.0, Vector2.ZERO)
 
 
 ## 世界单位 / 屏幕像素（镜头 zoom 0.5 时是 2）
@@ -119,14 +158,18 @@ func clear() -> void:
 		canvas.queue_redraw()
 	if display != null:
 		display.visible = false
+	if bloom != null:
+		bloom.visible = false
 
 
 func _process(delta: float) -> void:
 	if items.is_empty():
 		if display.visible:
 			display.visible = false
+			bloom.visible = false
 		return
 	display.visible = true
+	bloom.visible = bloom_enabled
 	for f in items:
 		if f.age < f.delay:
 			f.age += delta

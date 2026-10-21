@@ -155,6 +155,7 @@ func _ready() -> void:
 	fx.floor_at = func(x: float, y: float) -> float: return terrain.support_y(x, y)
 	add_child(fx)
 	fx.track_player(player)
+	fx.track_glow(player.get_node("Visual/ActorSprite"))
 	ult_fx = UltFx.new()
 	add_child(ult_fx)
 	style = Style.new()
@@ -542,8 +543,9 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	if mv.shake_amount > 0.0:
 		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
 	audio.play_impact(mv)
-	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir)
-	if mv == player.dash_move or mv == player.dash_left_move:
+	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move
+	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir, is_dash)
+	if is_dash:
 		fx.spawn_dash_hit(point.lerp(target.global_position, 0.5), player.facing)
 
 
