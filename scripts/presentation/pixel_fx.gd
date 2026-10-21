@@ -7,10 +7,10 @@ extends Node2D
 ## 外面（impact_fx.gd）负责“配方”：一次命中由哪些零件组成、多大、什么颜色。
 
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
-enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST }
+enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT }
 ## 画的先后（0 最先画 = 最下面）：尘土 → 碎块 / 冲击环 → 斩线 / 速度线 → 火花 → 闪光
 const LAYER_OF := {K.PUFF: 0, K.CRACK: 0, K.CHUNK: 1, K.RING: 1, K.LINES: 2, K.STREAK: 2,
-	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4}
+	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4, K.SLIT: 4}
 const LAYERS := 5
 
 var pix: float = 2.0            ## 小画布 1 格 = 几个屏幕像素
@@ -165,6 +165,7 @@ func _draw_items() -> void:
 				K.LINES: _draw_lines(f, t)
 				K.CRACK: _draw_crack(f, t)
 				K.BURST: _draw_burst(f, t)
+				K.SLIT: _draw_slit(f, t)
 
 
 static func _fade(t: float, from: float) -> float:
@@ -346,3 +347,27 @@ func _burst_pts(f: Fx, r: float, inner: float) -> PackedVector2Array:
 		out.append(f.pos + Vector2.from_angle(a0) * r * f.lens[i])
 		out.append(f.pos + Vector2.from_angle((a0 + a1) * 0.5) * r * inner)
 	return out
+
+
+## 一闪（冲刺斩命中）：沿冲刺路径的一道细长亮线，白芯 + 浅紫 + 紫边（实色分层，不抖动）。
+## a = 长，b = 粗，ang = 冲刺方向，c = 整条亮着停住的时间比例；
+## 停住之后从尾端往刀尖收、同时变细（刀尖那头还往前探一点）。
+func _draw_slit(f: Fx, t: float) -> void:
+	var u := Vector2.from_angle(f.ang)
+	var s := 0.0 if t < f.c else (t - f.c) / maxf(1.0 - f.c, 0.001)
+	var e := 1.0 - pow(1.0 - s, 2.0)
+	var head := f.pos + u * f.a * (0.5 + 0.06 * e)
+	var tail := (f.pos - u * f.a * 0.5).lerp(head, pow(s, 1.3))
+	var width := f.b * (1.0 - e * 0.85)
+	if width < 0.5 or head.distance_to(tail) < 2.0:
+		return
+	canvas.draw_colored_polygon(_needle(tail, head, width * 1.9), f.c2)
+	canvas.draw_colored_polygon(_needle(tail, head, width), f.c1)
+	if s < 0.75:
+		canvas.draw_colored_polygon(_needle(tail.lerp(head, 0.04), head, maxf(width * 0.42, 2.4)), f.c0)
+
+
+static func _needle(a: Vector2, b: Vector2, width: float) -> PackedVector2Array:
+	var d := b - a
+	var v := Vector2(-d.y, d.x).normalized() * width * 0.5
+	return PackedVector2Array([a, a + d * 0.08 + v, b - d * 0.12 + v, b, b - d * 0.12 - v, a + d * 0.08 - v])

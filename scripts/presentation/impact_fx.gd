@@ -13,6 +13,7 @@ extends Node2D
 const Feel := preload("res://scripts/core/feel_scale.gd")
 const PixelFx := preload("res://scripts/presentation/pixel_fx.gd")
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
+const GHOST := preload("res://assets/shaders/fx_ghost.gdshader")
 const K := PixelFx.K
 
 const WHITE := Color("fffcf2")
@@ -55,11 +56,15 @@ var floor_at: Callable
 var pfx: PixelFx
 var ghosts: Node2D
 var _ghost_mat: ShaderMaterial
-var _ghost_list: Array = []           ## [Sprite2D, age, life]
+var _ghost_list: Array = []           ## [Sprite2D, age, life, 起始不透明度]
 var _ghost_src: Sprite2D
 var _ghost_left: float = 0.0
-var _ghost_clock: float = 0.0
 var _ghost_tint := VIO_L
+var _ghost_spacing: float = 16.0      ## 残影间距（屏幕像素）：按“走了多远”留，不按时间（起步没动时不会叠成一坨）
+var _ghost_last := Vector2.INF
+var _ghost_total: float = 0.3
+var _dash_from := Vector2.INF        ## 这次冲刺斩起步的位置（“一闪”从这里画到命中点）
+var _dash_slit: PixelFx.Fx
 var _player: Node2D
 var _charge_ready_shown: bool = false
 var _charge_pulse: float = 0.0
@@ -81,9 +86,7 @@ func _ready() -> void:
 	ghosts.z_index = -1                  # 残影在角色身后、地形前面
 	add_child(ghosts)
 	_ghost_mat = ShaderMaterial.new()
-	_ghost_mat.shader = DITHER
-	_ghost_mat.set_shader_parameter("cell", 2.0)
-	_ghost_mat.set_shader_parameter("silhouette", true)
+	_ghost_mat.shader = GHOST
 	rng.randomize()
 
 
@@ -488,13 +491,51 @@ func spawn_dash(point: Vector2, facing: int) -> void:
 		return
 	var w := _w()
 	var back := -float(facing)
-	for i in 3:
-		_puff(point + Vector2(back * _r(4, 16), _r(-4, 0)) * w, Vector2(back * _r(60, 160), _r(-30, -8)), 4.0, 12.0,
-			_r(0.35, 0.5), 0.03 * float(i))
-	for i in 5:
-		var h := _r(12, 72)
-		_streak(point + Vector2(back * _r(0, 30), -h) * w, _r(40, 72), _r(2, 3), 0.0, VIO_L, WHITE, _r(0.16, 0.24),
+	# 尘土帧里已经烘焙了（浅灰蓝），这里只补一小团贴地的，免得抖动点糊成一片
+	_puff(point + Vector2(back * 6.0, -2.0) * w, Vector2(back * 90.0, -10.0), 3.0, 8.0, 0.3)
+	for i in 4:
+		var h := _r(16, 70)
+		_streak(point + Vector2(back * _r(0, 30), -h) * w, _r(40, 72), 2.0, 0.0, VIO_L, WHITE, _r(0.16, 0.24),
 			_r(0.0, 0.08), 0.0, Vector2(back * 420.0, 0))
+
+
+## 冲刺斩起步：记下起点（命中时“一闪”从这里画起）
+func mark_dash_start(point: Vector2) -> void:
+	_dash_from = point
+	_dash_slit = null
+
+
+## 冲刺斩命中“一闪”：沿冲刺路径一道细长亮线（白芯紫边），整条停 2 帧，再从尾端往刀尖收细消失；
+## 上下各一根细速度线往前滑，线上崩出几粒紫色碎光。一次冲刺打中好几个：同一条线往前接长、重新亮一下。
+func spawn_dash_hit(point: Vector2, facing: int) -> void:
+	if not enabled:
+		return
+	var w := _w()
+	var f := float(facing)
+	var x0 := _dash_from.x if _dash_from != Vector2.INF else point.x - f * 150.0 * w
+	var x1 := point.x + f * 70.0 * w
+	if _dash_slit != null and pfx.items.has(_dash_slit):
+		var old_tail := _dash_slit.pos.x - f * _dash_slit.a * 0.5
+		x0 = old_tail
+		x1 = point.x + f * 70.0 * w if f * (point.x - _dash_slit.pos.x) > 0.0 else _dash_slit.pos.x + f * _dash_slit.a * 0.5
+	var length := clampf(absf(x1 - x0), 110.0 * w, 560.0 * w)
+	x0 = x1 - f * length
+	var center := Vector2((x0 + x1) * 0.5, point.y)
+	var sl: PixelFx.Fx = _dash_slit if (_dash_slit != null and pfx.items.has(_dash_slit)) else pfx.add(K.SLIT, center, 0.3)
+	sl.pos = center; sl.age = 0.0; sl.delay = 0.0
+	sl.a = length; sl.b = 6.0 * w; sl.c = 0.12; sl.ang = 0.0 if facing > 0 else PI
+	sl.c0 = WHITE; sl.c1 = VIO_L; sl.c2 = VIO
+	_dash_slit = sl
+	_plan("dash_slit", 0.0, 0.3)
+	for k in [-1.0, 1.0]:
+		_streak(center + Vector2(f * length * 0.12, k * _r(9, 13)) * Vector2(1.0, w), length * 0.55 / w, 2.0, sl.ang,
+			VIO, VIO_L, _r(0.18, 0.24), 0.03, 0.0, Vector2(f * 260.0, 0))
+	for i in 6:
+		var q := Vector2(lerpf(x0, x1, _r(0.25, 1.0)), point.y + _r(-3, 3) * w)
+		var sp := pfx.add(K.SPARK, q, _r(0.18, 0.3), _r(0.02, 0.08))
+		sp.vel = Vector2(f * _r(40, 140), _r(-70, -20)) * w
+		sp.drag = 3.0; sp.grav = 220.0 * w
+		sp.b = 2.0 * w; sp.d = 0.02; sp.c0 = WHITE; sp.c1 = VIO_L; sp.c2 = VIO
 
 
 ## 跑步脚步扬起的一点点灰
@@ -506,18 +547,22 @@ func spawn_step(point: Vector2, facing: int) -> void:
 
 # ---------------------------------------------------------------- 残影 / 蓄力 / 消散（需要每帧跟着角色）
 
-## 冲刺斩等：seconds 秒内每 interval 秒留一个残影（纯色剪影，抖动淡出）
-func start_ghosts(src: Sprite2D, seconds: float = 0.3, interval: float = 0.035, tint := VIO_L) -> void:
+## 冲刺斩等：seconds 秒内，身体每走 spacing 个屏幕像素留一个残影。
+## 第四轮 v2：只取身体轮廓（帧里烘焙的刀光 / 尘土不算），平滑半透明 + 外圈亮边（fx_ghost.gdshader），
+## 浅紫 → 深紫渐隐；越晚留下的越淡，5～7 个就够，多了会糊成一团。
+func start_ghosts(src: Sprite2D, seconds: float = 0.45, spacing: float = 16.0, tint := VIO_L) -> void:
 	if not enabled or src == null:
 		return
 	_ghost_src = src
 	_ghost_left = seconds
-	_ghost_clock = 0.0
+	_ghost_total = seconds
+	_ghost_spacing = spacing
 	_ghost_tint = tint
+	_ghost_last = src.global_position
 	_emit_ghost()
 
 
-func _emit_ghost() -> void:
+func _emit_ghost(at := Vector2.INF) -> void:
 	if not is_instance_valid(_ghost_src) or not _ghost_src.visible or _ghost_src.texture == null:
 		return
 	var g := Sprite2D.new()
@@ -531,8 +576,17 @@ func _emit_ghost() -> void:
 	g.material = _ghost_mat
 	ghosts.add_child(g)
 	g.global_transform = _ghost_src.global_transform
-	g.modulate = Color(_ghost_tint, 0.95)
-	_ghost_list.append([g, 0.0, 0.24])
+	if at != Vector2.INF:
+		g.global_position = at
+	_ghost_last = g.global_position
+	# 亮边约 1.5 个屏幕像素：换算成贴图像素
+	var spp := _ghost_src.get_global_transform_with_canvas().get_scale().x
+	_ghost_mat.set_shader_parameter("rim", clampf(1.5 / maxf(absf(spp), 0.01), 1.0, 12.0))
+	# 冲刺越往后留下的残影越淡（第一个最实）
+	var k := 1.0 - clampf(1.0 - _ghost_left / maxf(_ghost_total, 0.01), 0.0, 1.0) * 0.45
+	var a0 := 0.85 * k
+	g.modulate = Color(_ghost_tint, a0)
+	_ghost_list.append([g, 0.0, 0.32, a0])
 
 
 ## 跟踪主角：蓄力聚气、跑步扬灰
@@ -554,11 +608,15 @@ func _process(delta: float) -> void:
 func _tick_ghosts(delta: float) -> void:
 	if _ghost_left > 0.0:
 		_ghost_left -= delta
-		_ghost_clock += delta
-		var step := 0.035
-		while _ghost_clock >= step:
-			_ghost_clock -= step
-			_emit_ghost()
+		# 一帧走得比间距远（冲刺很快）：在这段路上按间距补几个，残影才连成均匀的一串
+		if is_instance_valid(_ghost_src):
+			var gap := _ghost_spacing * _w()
+			var to := _ghost_src.global_position
+			var n := 0
+			while _ghost_last.distance_to(to) >= gap and n < 4:
+				var nxt := _ghost_last.move_toward(to, gap)
+				_emit_ghost(nxt if nxt.distance_to(to) > 1.0 else Vector2.INF)
+				n += 1
 	var keep: Array = []
 	for e in _ghost_list:
 		var g: Sprite2D = e[0]
@@ -568,8 +626,8 @@ func _tick_ghosts(delta: float) -> void:
 			if is_instance_valid(g):
 				g.queue_free()
 			continue
-		# 前半段几乎是实心的剪影，后半段才碎成像素点（太早抖动会像一层纱网）
-		g.modulate = Color(_ghost_tint.lerp(VIO_D, minf(t * 1.4, 1.0)), 0.95 if t < 0.35 else 0.95 * (1.0 - (t - 0.35) / 0.65))
+		# 浅紫 → 深紫，透明度先快后慢地淡掉（平滑，不碎成点）
+		g.modulate = Color(_ghost_tint.lerp(VIO_D, minf(t * 1.25, 1.0)), float(e[3]) * pow(1.0 - t, 1.6))
 		keep.append(e)
 	_ghost_list = keep
 

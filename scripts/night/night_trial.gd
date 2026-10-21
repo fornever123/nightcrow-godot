@@ -309,7 +309,8 @@ func _connect_player() -> void:
 		if move == player.dash_move or move == player.dash_left_move:
 			audio.play_dash()
 			fx.spawn_dash(player.global_position + Vector2(0, player.foot_offset), player.facing)
-			fx.start_ghosts(player.get_node("Visual/ActorSprite"), 0.3))
+			fx.mark_dash_start(player.global_position)
+			fx.start_ghosts(player.get_node("Visual/ActorSprite"), 0.45))
 	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
 	player.jumped.connect(func(is_double: bool):
 		audio.play_jump(is_double)
@@ -542,6 +543,8 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
 	audio.play_impact(mv)
 	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir)
+	if mv == player.dash_move or mv == player.dash_left_move:
+		fx.spawn_dash_hit(point.lerp(target.global_position, 0.5), player.facing)
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
