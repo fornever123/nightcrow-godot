@@ -494,4 +494,13 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - **配方** `scripts/presentation/impact_fx.gd`（接口兼容旧版）：`spawn_hit`（力度 `ImpactFX.power_of(mv)` 按伤害算；同一帧打中多只时只有第一只给全套）、`spawn_hurt`（橙红）、`spawn_parry`（白爆闪 + 横向长“镲”光 + 弹跳金属火星）、`spawn_block`、`spawn_break`、`spawn_deflect`、`spawn_wall_slam`、`spawn_ground_slam`（扁环 + 石屑 + 地裂）、`spawn_explosion`、`spawn_launch`、`spawn_kill`、`spawn_muzzle`、`spawn_dust/land/jump/dash/step`；`start_ghosts`（冲刺残影，前半段实心剪影）；`track_player`（蓄力往里收的光刺、可放时叮一下、跑步扬灰）；`track_dissolve`（影死后化黑烟火星）。调色板常量在文件顶部（尘土已调暗成夜色灰蓝）。
 - **接入**：`night_trial.gd` 各战斗事件 → 对应 spawn；`fx.floor_at` 用地形高度让火星/石屑落地弹跳。训练场沿用旧调用（兼容）。
 - **样片工具** `tests/dev/fx_reel.gd`：几只不动的影站主角前，按固定输入出招逐帧截图。`REEL=light,charge,launch,dash,ranged,jump,fx`（`fx` 段直接触发弹刀/格挡/挨打/破防/下砸/炸弹/撞墙/击杀），`SHOT_DIR`、`EVERY`。运行：`DISPLAY=:99 SHOT_DIR=/data/reel timeout 290 godot --path . --script res://tests/dev/fx_reel.gd --resolution 1280x720 --fixed-fps 60`。
-- **还没做**：地面攻击的刀光是烘焙在角色帧里的白灰大刀光（battle.json 动画 `effectsBaked`），下一步换成分层素材（`selected-original/*/effects`）重新上色。
+- 地面攻击烘焙在帧里的白刀光已改成主角紫，见 16.8。
+
+### 16.8 地面攻击刀光改紫（`tools/art/recolor_slash.py`，2026-10-21）
+- **为什么不用分层素材**：`selected-original/*/effects` 和 desktop 帧不是同一拍，对不上位置；改成直接在现有帧里按“颜色 + 连通块”认出刀光再重新上色。
+- **范围**：动画 attack_1/2/3、attack_2_start、attack_2_recovery、strong_attack、attack_up、charge_slash（共 138 张图，67 张有刀光/尘土）。空中攻击、冲刺的白光还没动。
+- **认法**：低饱和且亮的像素做连通块 → 大块、边缘多挨透明、够粗 = 刀光（附近小碎块并进来）；贴地、不细长 = 尘土；孤立小杂点抹掉；衣服白边、刀身高光不动。
+- **上色**：凸包认外缘（刀尖划过的路径），按到外缘/内缘的距离比上色：外缘固定宽白芯（略偏蓝 `efeaff`）→ 淡紫 → 紫 → 深紫并往里淡出，外缘加不规则刷痕，外侧一圈半透明紫晕（垫在角色下面）。尘土改浅灰蓝半透明。色阶和程序特效的紫一套。
+- **存法**：新帧存 `assets/image/fixed-fx/<原路径>.webp.b64`（GitHub 推送只能传文本），battle.json `assetOverride` 指过去；`assetFxBase` 记原底图（重跑从这重来），`assetFxPad`=四周加的透明边（20px，给紫晕留地方），引用这些帧的 width/height/pivot 已同步换算，位置不变。
+- **夜景描边**：`char_light.gdshader` 的深色描边原来只跳过“亮、偏蓝白”的像素，现在也跳过亮紫（b≥0.68、比 g 高 0.2、比 r 高 0.08），所以紫刀光、紫晕、尘土外面都不会描黑边。
+- **重跑**：`python3 tools/art/recolor_slash.py preview [名字过滤]` 出预览到 /data/fxwork/recolor/；`write` 写帧并改 battle.json（可直接重跑）。

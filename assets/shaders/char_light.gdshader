@@ -7,7 +7,7 @@ render_mode blend_premul_alpha;
 //   3) 灯笼暖光：离灯笼越近，朝灯笼那一侧越暖（宽的漫反射 + 窄的暖边）。
 //   取色走高清采样（节点 10，char_hq.gdshaderinc）：贴图是预乘透明度的，先还原成普通颜色再打光。
 //   4) 第三轮（节点 16，见 §14）：角色缩小后从背景里“跳出来”——
-//      外圈 ol_width 屏幕像素的深色描边（刀光不描：亮、偏蓝白的像素不算轮廓），再略提对比和饱和。
+//      外圈 ol_width 屏幕像素的深色描边（刀光不描：亮、偏蓝白或亮紫的像素不算轮廓），再略提对比和饱和。
 // 方向都是“屏幕方向”，脚本按精灵是否镜像（flip）换算到贴图方向。
 uniform vec3 ambient = vec3(0.85, 0.9, 1.0);
 uniform float desat = 0.08;
@@ -26,13 +26,14 @@ uniform vec3 ol_col = vec3(0.04, 0.047, 0.094);
 uniform float punch_con = 1.0;      // 对比
 uniform float punch_sat = 1.0;      // 饱和
 
-// 轮廓取样：某点“算不算身体”（刀光：亮且偏蓝白 → 不算，所以刀光外面不描边）
+// 轮廓取样：某点“算不算身体”（刀光：亮且偏蓝白、或亮紫（紫刀光/紫晕，见 tools/art/recolor_slash.py）→ 不算，所以刀光外面不描边）
 #define OL_TAP(ACC, UVV) { \
 	vec2 ol_u = (UVV); \
 	vec4 ol_t = texture(TEXTURE, ol_u) * inside(ol_u); \
 	if (ol_t.a > 0.02) { \
 		vec3 ol_s = ol_t.rgb / ol_t.a; \
-		float ol_fx = step(0.55, min(ol_s.r, min(ol_s.g, ol_s.b))) * step(ol_s.r + 0.04, ol_s.b); \
+		float ol_fx = max(step(0.55, min(ol_s.r, min(ol_s.g, ol_s.b))) * step(ol_s.r + 0.04, ol_s.b), \
+			step(0.68, ol_s.b) * step(ol_s.g + 0.2, ol_s.b) * step(ol_s.r + 0.08, ol_s.b)); \
 		ACC = max(ACC, ol_t.a * (1.0 - ol_fx)); \
 	} \
 }
