@@ -140,13 +140,16 @@ func test_backdrop() -> void:
 	check(b != null and b.ok, "夜景图层加载成功（webp + 着色器）")
 	if b == null:
 		return
-	check(b.tex.sky.get_width() == 1280 and b.tex.moon.get_width() == int(b.meta.moon.size[0]), "星空 1280 宽、月亮单独一层")
+	check(b.tex.sky.get_width() >= 1376 and b.tex.moon.get_width() == int(b.meta.moon.size[0]), "星空比一屏宽（镜像接缝不进画面）、月亮单独一层")
 	var same := true
-	for n in ["clouds", "sea", "mountains", "castle", "bridge", "near"]:
+	for n in ["clouds_low", "clouds", "sea", "mountains", "castle", "bridge", "near"]:
 		same = same and b.tex[n].get_width() == int(b.meta[n].period)
 	check(same, "云/海/山/城堡/桥/近景：贴图宽 = 无缝周期")
-	var order := [b._scroll("sky", -1), b._scroll("clouds", -1), b._scroll("mountains", -1), b._scroll("castle", -1), b._scroll("bridge", -1)]
-	check(order[0] < order[1] and order[1] < order[2] and order[2] < order[3] and order[3] < order[4] and order[4] < 1.0, "视差由远到近递增：星空 < 云 < 山 < 城堡 < 桥 < 步道")
+	var order := [b._scroll("sky", -1), b._scroll("clouds_low", -1), b._scroll("clouds", -1), b._scroll("mountains", -1), b._scroll("castle", -1), b._scroll("bridge", -1)]
+	var inc := true
+	for i in range(1, order.size()):
+		inc = inc and order[i - 1] < order[i]
+	check(inc and order[-1] < 1.0, "视差由远到近递增：星空 < 下层云 < 上层云 < 山 < 城堡 < 桥 < 步道")
 	check(is_equal_approx(b.near_top() + b.NEAR_STAND_ROW, stage.floor_y), "近景石板顶面对齐脚下地面")
 	var lan: Vector2 = b.nearest_lantern(p.global_position.x)
 	check(is_finite(lan.x) and absf(lan.x - p.global_position.x) <= float(b.meta.near.period) * 0.5 + 1.0, "能找到最近的灯笼")

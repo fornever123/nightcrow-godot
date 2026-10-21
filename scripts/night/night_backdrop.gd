@@ -3,7 +3,8 @@ extends Node2D
 ##
 ## 图层（用户用 GPT 出的原图 → tools/art/make_night_layers_v2.py 拆层 + 无缝 → base64 文本）。
 ## 括号里是跟镜头移动的倍率（0 = 贴在屏幕上不动，1 = 跟地面一起走）：
-##   月亮 moon + 月晕 halo（0，超远景）  星空银河 sky（0.01）  云 clouds（0.05，另加风飘）
+##   月亮 moon + 月晕 halo（0，超远景）  星空 sky（0.01）  下层云 clouds_low（0.03，慢飘）  上层云 clouds（0.05，快飘）
+##   （星空和两层云 = 超远景 v3，tools/art/make_sky_v3.py，见 docs/美术方案-10分.md 8.6）
 ##   海面 sea（逐行视差：桥脚 0.42 → 步道后沿 1.0；步道下面 1.0 → 屏幕底 1.25；月光带固定在月亮下方）
 ##   雪山 mountains（0.12）  城堡小镇 castle（0.3）  雾（0.36，程序噪声）  石桥 bridge（0.42）
 ##   近景步道 near（1.0，沿用 v1）
@@ -25,7 +26,7 @@ const MARGIN := 48.0
 const LANTERN_REACH := 330.0      ## 灯笼暖光照到角色身上的半径
 const SNAP := 2.0                 ## 滚动对齐的步长（屏幕像素）= 背景像素块大小
 const PIXEL_Z := -75              ## 像素化 + 退后调色这一层：它下面的全部夜景层被处理，上面的（地形、角色）不受影响
-const LAYERS := ["sky", "halo", "moon", "clouds", "sea", "mountains", "castle", "bridge", "near"]
+const LAYERS := ["sky", "halo", "moon", "clouds_low", "clouds", "sea", "mountains", "castle", "bridge", "near"]
 
 static var _cache: Dictionary = {}
 
@@ -146,6 +147,7 @@ func _ready() -> void:
 	var moon := _sprite(tex.moon, -97, false)
 	moon.centered = true
 	_spr.moon = moon
+	_spr.clouds_low = _sprite(tex.clouds_low, -96, true)   # 同一 z，先加的画在后面：靠地平线的云更远
 	_spr.clouds = _sprite(tex.clouds, -96, true)
 	var sea := _sprite(tex.sea, -95, true)
 	_sea_mat = _shader_mat(preload("res://assets/shaders/night_sea.gdshader"), {
@@ -283,7 +285,8 @@ func _process(delta: float) -> void:
 	var mc := Vector2(float(meta.moon.center[0]), float(meta.moon.center[1]))
 	(_spr.moon as Sprite2D).position = Vector2(cl, top_y) + mc
 	(_spr.halo as Sprite2D).position = Vector2(cl, top_y) + mc
-	# 云：0.05 倍 + 风飘（向左）
+	# 云：两层，都向左飘；下层（靠地平线，更远）视差和风都慢一些
+	_place_strip(_spr.clouds_low, "clouds_low", _scroll("clouds_low", 0.03), _time * float(meta.clouds_low.get("drift", 2.0)), top_y)
 	_place_strip(_spr.clouds, "clouds", _scroll("clouds", 0.05), _time * float(meta.clouds.get("drift", 3.0)), top_y)
 	# 海面：逐行视差在着色器里算
 	var sea: Sprite2D = _spr.sea
