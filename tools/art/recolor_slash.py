@@ -14,7 +14,8 @@ from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..', 'assets') + '/'
 CFG = ROOT + 'data/battle.json'
-ANIMS = ['attack_1', 'attack_2', 'attack_3', 'attack_2_start', 'attack_2_recovery', 'strong_attack', 'attack_up', 'charge_slash']
+ANIMS = ['attack_1', 'attack_2', 'attack_3', 'attack_2_start', 'attack_2_recovery', 'strong_attack', 'attack_up', 'charge_slash',
+         'dash_right', 'dash_left']
 PAD = 20
 OUT_DIR = 'image/fixed-fx/'
 
@@ -28,6 +29,9 @@ GLOW = hexc('9a7cff')
 # 尘土：浅灰蓝、半透明；三档都“亮且偏蓝”（最小通道 ≥0.55、蓝比红高），夜景描边不会给尘土描黑边
 DUST_L, DUST, DUST_D = hexc('cdd4e2'), hexc('aab4c8'), hexc('96a0b6')
 DUST_A = 0.62
+# 冲刺斩（desktop-actions/冲刺攻击）：①冲刺时画在身上的横向白色速度条也算刀光；②贴地那一截（尾迹扬起的白烟）渐变成尘土
+DASH_DIR = 'desktop-actions/冲刺攻击/'
+WAKE_TOP, WAKE_W = 58.0, 22.0   # 地面往上 WAKE_TOP 像素处开始过渡成尘土，过渡宽 WAKE_W
 
 def ramp(u):
     out = np.zeros(u.shape + (3,), np.float32)
@@ -53,7 +57,7 @@ def load_base(sprite, asset):
         im[y:y + h, x:x + w] = 0
     return im
 
-def classify(D, ground_y):
+def classify(D, ground_y, dash=False):
     rgb = D[..., :3].astype(np.int16); a = D[..., 3]
     mx = rgb.max(-1); ch = mx - rgb.min(-1)
     white = (a > 24) & (ch <= 46) & (mx >= 100)
@@ -61,6 +65,7 @@ def classify(D, ground_y):
     trans = a < 24
     H, W = a.shape
     slash = np.zeros((H, W), bool); dust = np.zeros((H, W), bool)
+    solid_fx = np.zeros((H, W), bool)   # 压在身上的速度条：底下没有身体像素，上色后要保持不透明
     minor = []
     k5 = np.ones((5, 5), np.uint8)
     for i in range(1, n):
@@ -86,6 +91,23 @@ def classify(D, ground_y):
             m = lab == i
             if (near & m).sum() >= 0.5 * m.sum():
                 slash |= m
+    if dash:
+        # 冲刺时压在身上的纯白速度条：宽松的“白”会连上身体外圈的灰边（抠像残留），所以用纯白当种子，
+        # 只往外长 5px 吃掉它自己的过渡边
+        strict = (a > 24) & (ch <= 24) & (mx >= 228)
+        n3, lab3, st3, _ = cv2.connectedComponentsWithStats(strict.astype(np.uint8), connectivity=8)
+        for i in range(1, n3):
+            x, y, w, h, area = st3[i]
+            if area < 300: continue
+            comp = (lab3 == i)
+            if (comp & (slash | dust)).sum() >= 0.5 * area: continue
+            if float(cv2.distanceTransform(comp.astype(np.uint8), cv2.DIST_L2, 3).max()) < 5: continue
+            grown = (cv2.dilate(comp.astype(np.uint8), np.ones((11, 11), np.uint8)) > 0) & white & ~slash & ~dust
+            aspect = max(w, h) / max(1, min(w, h))
+            if (y + h) >= ground_y - 70 and aspect < 3.5:
+                dust |= grown
+            else:
+                slash |= grown; solid_fx |= grown
     # 孤立的小杂点（源视频带进来的）：周围 60px 内没有别的东西 → 直接抹掉
     stray = np.zeros((H, W), bool)
     solid = a > 24
@@ -98,9 +120,10 @@ def classify(D, ground_y):
         if not (solid[y0:y1, x0:x1] & ~comp).any():
             stray[lab2 == i] = True
     slash &= ~stray; dust &= ~stray
+    classify.solid_fx = solid_fx & slash
     return slash, dust, white, stray
 
-def recolor(D, slash, dust, stray=None, seed=0):
+def recolor(D, slash, dust, stray=None, seed=0, wake_y=None, solid_fx=None):
     H, W = slash.shape
     P = PAD
     Dp = cv2.copyMakeBorder(D, P, P, P, P, cv2.BORDER_CONSTANT, value=0)
@@ -198,6 +221,19 @@ def recolor(D, slash, dust, stray=None, seed=0):
     alpha *= (0.25 + 0.75 * lum_t) * np.clip(a0 * 1.1, 0, 1)
     alpha *= 1 - band * 0.18 * streak
     m = S > 0
+    # 冲刺斩尾迹：贴地那截渐变成尘土（颜色、透明度都过去，紫晕也跟着淡掉）
+    wd = np.zeros(S.shape, np.float32)
+    if wake_y is not None:
+        yy = np.arange(S.shape[0], dtype=np.float32)[:, None] + np.zeros((1, S.shape[1]), np.float32)
+        z = np.clip((yy - (wake_y + P - WAKE_TOP - WAKE_W / 2)) / WAKE_W, 0, 1)
+        wd = z * z * (3 - 2 * z)
+        tt = np.clip((lum - 100) / 140, 0, 1)[..., None]
+        dcol = np.where(tt > 0.5, DUST * (2 - 2 * tt) + DUST_L * (2 * tt - 1), DUST_D * (1 - 2 * tt) + DUST * (2 * tt))
+        col = col * (1 - wd[..., None]) + dcol * wd[..., None]
+        alpha = alpha * (1 - wd) + np.clip(a0, 0, 1) * DUST_A * wd
+    if solid_fx is not None and solid_fx.any():
+        sf = cv2.copyMakeBorder(solid_fx.astype(np.uint8), P, P, P, P, cv2.BORDER_CONSTANT, value=0) > 0
+        alpha = np.where(sf, np.maximum(alpha, np.clip(a0, 0, 1) * 0.97), alpha)
     # 边缘抗锯齿：用略糊的刀光遮罩
     soft = cv2.GaussianBlur(S.astype(np.float32), (0, 0), 1.1)
     edge_a = np.where(m, np.clip(soft * 1.6, 0, 1), 0)
@@ -209,6 +245,7 @@ def recolor(D, slash, dust, stray=None, seed=0):
     near_outer = da <= dout + 2.5
     ga = np.where((~m) & (dout < g) & near_outer, 0.5 * np.clip(1 - dout / g, 0, 1) ** 1.6, 0) * np.clip(cv2.GaussianBlur(lum_t, (0, 0), 3) * 1.4 + 0.25, 0, 1)
     ga = np.where(m, 0.5 * np.clip(lum_t * 1.4 + 0.25, 0, 1), ga)
+    ga *= 1 - cv2.GaussianBlur(wd, (0, 0), 4)
     # 刀光/原像素 over 紫晕
     base_a = out[..., 3]
     na = base_a + ga * (1 - base_a)
@@ -273,11 +310,12 @@ def process(cfg, asset):
     p_old = sprite.get('assetFxPad', {}).get(asset, 0)
     sy = float(f.get('height', D.shape[0] + 2 * p_old)) / (D.shape[0] + 2 * p_old)
     ground = float(f.get('pivotY', (D.shape[0] + p_old) * sy)) / sy - p_old
-    slash, dust, white, stray = classify(D, ground)
+    dash = DASH_DIR in asset
+    slash, dust, white, stray = classify(D, ground, dash)
     if not slash.any() and not dust.any() and not stray.any():
         return D, None, slash, dust
     seed = sum(asset.encode('utf-8')) % 9973
-    return D, recolor(D, slash, dust, stray, seed=seed), slash, dust
+    return D, recolor(D, slash, dust, stray, seed=seed, wake_y=ground if dash else None, solid_fx=classify.solid_fx), slash, dust
 
 if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else 'preview'
