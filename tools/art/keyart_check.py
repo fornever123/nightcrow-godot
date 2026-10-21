@@ -3,7 +3,8 @@
 用法：python3 tools/art/keyart_check.py 图.png 输出目录 [脚底y 角色x 角色高 去掉区域x0,y0,x1,y1]
 """
 import cv2, numpy as np, sys, os
-SPR = os.path.join(os.path.dirname(__file__), '../../assets/image/characters/nightcrow/idle/frame_0001.png')
+SPR = os.environ.get('SPR') or os.path.join(os.path.dirname(__file__), '../../assets/image/desktop-actions/待机/frame_00001.png')   # 游戏里现在用的主角（desktop-actions-20261018）
+FLIP = os.environ.get('FLIP', '0') == '1'
 src, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True)
 FEET = int(sys.argv[3]) if len(sys.argv) > 3 else 662
 CX = int(sys.argv[4]) if len(sys.argv) > 4 else 700
@@ -40,10 +41,12 @@ def haze(img, top, bot, col=(0.44, 0.39, 0.29), amt=0.42):
     return o * (1 - w[..., None]) + np.array(col, np.float32) * w[..., None]
 
 spr = cv2.imread(SPR, -1).astype(np.float32) / 255
-ys, xs = np.where(spr[..., 3] > 0.1); spr = cv2.flip(spr[ys.min():ys.max() + 1, xs.min():xs.max() + 1], 1)
+ys, xs = np.where(spr[..., 3] > 0.1); spr = spr[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+if FLIP: spr = cv2.flip(spr, 1)
 def paste(base):
     s = CH / spr.shape[0]; sp = cv2.resize(spr, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
     h, w = sp.shape[:2]; o = base.copy(); a = sp[..., 3:]
+    w = min(w, W - CX); sp = sp[:, :w]; a = a[:, :w]
     sh = np.zeros((H, W), np.float32); cv2.ellipse(sh, (CX + w // 2, FEET - 2), (int(w * 0.42), 6), 0, 0, 360, 1, -1)
     o *= (1 - 0.45 * cv2.GaussianBlur(sh, (0, 0), 4))[..., None]                       # 脚下软影子
     o[FEET - h:FEET, CX:CX + w] = sp[..., :3] * a + o[FEET - h:FEET, CX:CX + w] * (1 - a); return o
