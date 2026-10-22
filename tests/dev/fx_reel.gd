@@ -39,11 +39,8 @@ func plan_of(name: String) -> Array:
 				[1, [], [], Vector2.ZERO, "hurt"], [34, [], []], [1, [], [], Vector2.ZERO, "break"], [34, [], []],
 				[1, [], [], Vector2.ZERO, "slam"], [44, [], []], [1, [], [], Vector2.ZERO, "bomb"], [50, [], []],
 				[1, [], [], Vector2.ZERO, "wall"], [40, [], []], [1, [], [], Vector2.ZERO, "kill"], [80, [], []]]
-		"fx":      # 不走输入，直接触发各种事件特效：弹刀 / 格挡 / 挨打 / 破防 / 下砸 / 炸弹 / 撞墙 / 击杀
-			return [[1, [], [], Vector2.ZERO, "parry"], [34, [], []], [1, [], [], Vector2.ZERO, "block"], [30, [], []],
-				[1, [], [], Vector2.ZERO, "hurt"], [34, [], []], [1, [], [], Vector2.ZERO, "break"], [34, [], []],
-				[1, [], [], Vector2.ZERO, "slam"], [44, [], []], [1, [], [], Vector2.ZERO, "bomb"], [50, [], []],
-				[1, [], [], Vector2.ZERO, "wall"], [40, [], []], [1, [], [], Vector2.ZERO, "kill"], [80, [], []]]
+		"ult":     # 能量加满 → J + K 同时按 → 大招（起手 24 帧 → 全屏斩 → 余波）
+			return [[1, [], [], Vector2.ZERO, "ultfill"], [1, [J, &"attack_ranged"], [J, &"attack_ranged"]], [80, [], []]]
 		"jump":    # 跳、二段跳、落地
 			return [[1, [&"jump"], [&"jump"]], [10, [&"jump"], []], [10, [], []], [1, [&"jump"], [&"jump"]], [10, [&"jump"], []], [60, [], []]]
 	return [[30, [], []]]
@@ -59,6 +56,8 @@ func trigger_event(ev: String, x: float) -> void:
 		"slam": stage._on_slam_impact(Vector2(x + 200.0, stage.floor_y), 1.0)
 		"bomb": stage._on_bomb_exploded(Vector2(x + 300.0, stage.floor_y - 12.0), false)
 		"wall": stage._on_shade_wall(900.0, 12.0, Vector2(x + 470.0, stage.floor_y - 60.0), sh[2])
+		"ultfill":
+			p.ult_energy = p.ult_max
 		"kill":
 			sh[0]._die(1)
 			sh[1]._die(1)

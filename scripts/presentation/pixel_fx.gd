@@ -8,10 +8,10 @@ extends Node2D
 
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
 const BLOOM := preload("res://assets/shaders/fx_bloom.gdshader")
-enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT }
+enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT, WISP }
 ## 画的先后（0 最先画 = 最下面）：尘土 → 碎块 / 冲击环 → 斩线 / 速度线 → 火花 → 闪光
 const LAYER_OF := {K.PUFF: 0, K.CRACK: 0, K.CHUNK: 1, K.RING: 1, K.LINES: 2, K.STREAK: 2,
-	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4, K.SLIT: 4}
+	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4, K.SLIT: 4, K.WISP: 2}
 const LAYERS := 5
 
 var pix: float = 2.0            ## 小画布 1 格 = 几个屏幕像素
@@ -209,6 +209,7 @@ func _draw_items() -> void:
 				K.CRACK: _draw_crack(f, t)
 				K.BURST: _draw_burst(f, t)
 				K.SLIT: _draw_slit(f, t)
+				K.WISP: _draw_wisp(f, t)
 
 
 static func _fade(t: float, from: float) -> float:
@@ -414,3 +415,21 @@ static func _needle(a: Vector2, b: Vector2, width: float) -> PackedVector2Array:
 	var d := b - a
 	var v := Vector2(-d.y, d.x).normalized() * width * 0.5
 	return PackedVector2Array([a, a + d * 0.08 + v, b - d * 0.12 + v, b, b - d * 0.12 - v, a + d * 0.08 - v])
+
+
+## 光丝（大招起手往刀上聚）：绕着 pos 转着往里收的一根细丝，尾巴渐细。
+## a = 起始半径，b = 头部粗细，c = 起始角度，d = 一共转多少弧度，squash = 尾巴占多长（0..1 的时间）
+func _draw_wisp(f: Fx, t: float) -> void:
+	var tail := clampf(f.squash, 0.05, 0.9)
+	var n := 7
+	var prev := Vector2.INF
+	for i in n + 1:
+		var s := maxf(t - tail * (1.0 - float(i) / float(n)), 0.0)
+		var r := f.a * (1.0 - pow(s, 1.35))
+		var q := f.pos + Vector2.from_angle(f.c + f.d * s) * r
+		if prev != Vector2.INF:
+			var k := float(i) / float(n)
+			var w := maxf(f.b * k * (1.0 if t < 0.8 else (1.0 - t) / 0.2), 0.0)
+			if w >= 0.6:
+				canvas.draw_line(prev, q, f.c0 if k > 0.75 else f.c1, maxf(w, 1.0))
+		prev = q

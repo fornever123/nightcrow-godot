@@ -157,6 +157,8 @@ func _ready() -> void:
 	fx.track_player(player)
 	fx.track_glow(player.get_node("Visual/ActorSprite"))
 	ult_fx = UltFx.new()
+	ult_fx.fx = fx
+	ult_fx.player = player
 	add_child(ult_fx)
 	style = Style.new()
 	_build_hud()
@@ -488,6 +490,7 @@ func _revive() -> void:
 	player.invuln_frames = 60
 	_hp_seen = player.hp
 	fx.clear()
+	ult_fx.clear()
 	phase = Phase.FIGHT
 
 
@@ -892,5 +895,3 @@ func _on_ult_hit() -> void:
 	camera.add_shake(16.0 * shake_mul, Vector2(player.facing, 0))
 	player.hitstop_frames = maxi(player.hitstop_frames, 8)
 	style.add_event(&"ult")
-	if n > 0:
-		hud.callout("月下斩 ×%d" % n, Color("ffe08a"), 44)

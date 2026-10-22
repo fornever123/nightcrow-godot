@@ -80,6 +80,10 @@ var _glow_src: Sprite2D
 var _glow: Sprite2D
 var _glow_mat: ShaderMaterial
 var _glow_pulse: float = 0.0
+## 大招起手“刀身点亮”（§16.11，ult_fx.gd 每帧写）：刀柄 xy → 刀尖 zw（贴图像素）、点亮到哪（0..1）、额外亮度
+var blade_seg := Vector4.ZERO
+var blade_sweep: float = 0.0
+var blade_boost: float = 0.0
 ## 重击冲击帧（§16.10）：打中那一下背景压暗、角色和特效亮着，停一下再退
 var impact_frames_enabled: bool = true
 var _impact: Node2D
@@ -668,6 +672,9 @@ func _sync_glow() -> void:
 	_glow_mat.set_shader_parameter("bounds", Vector4(rect.position.x / tsize.x, rect.position.y / tsize.y,
 		rect.end.x / tsize.x, rect.end.y / tsize.y))
 	_glow_mat.set_shader_parameter("strength", glow_base + _glow_pulse)
+	_glow_mat.set_shader_parameter("blade", blade_seg)
+	_glow_mat.set_shader_parameter("sweep", blade_sweep)
+	_glow_mat.set_shader_parameter("boost", blade_boost if blade_seg != Vector4.ZERO else 0.0)
 
 
 ## 重击冲击帧：背景压暗（角色、敌人、特效不压），停 hold 秒再淡回去。p ≥ 0.9（蓄力斩）更暗更久
@@ -873,6 +880,8 @@ func clear() -> void:
 	_ghost_left = 0.0
 	_dissolving.clear()
 	_glow_pulse = 0.0
+	blade_boost = 0.0
+	blade_seg = Vector4.ZERO
 	_impact_a = 0.0
 	_impact_hold = 0.0
 	if _impact != null:
