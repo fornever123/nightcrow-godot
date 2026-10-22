@@ -864,6 +864,33 @@ func _emit_ghost(at := Vector2.INF) -> void:
 	_ghost_list.append([g, 0.0, 0.32, a0])
 
 
+## 大招“一闪”：瞬间在 from → to 这段路上一次性摆 n 个残影（越靠近终点越实、留得越久）。
+## 不改变正在进行的冲刺残影（临时借用参数，结束后还原）。
+func ghost_line(src: Sprite2D, from: Vector2, to: Vector2, n: int, tint := VIO_L) -> void:
+	if not enabled or src == null or n <= 0:
+		return
+	var keep_src := _ghost_src
+	var keep_tint := _ghost_tint
+	var keep_total := _ghost_total
+	var keep_left := _ghost_left
+	var keep_last := _ghost_last
+	_ghost_src = src
+	_ghost_tint = tint
+	_ghost_total = 1.0
+	for i in n:
+		var k := float(i + 1) / float(n)
+		_ghost_left = k
+		var before := _ghost_list.size()
+		_emit_ghost(from.lerp(to, k))
+		if _ghost_list.size() > before:
+			_ghost_list.back()[2] = 0.22 + 0.12 * k
+	_ghost_src = keep_src
+	_ghost_tint = keep_tint
+	_ghost_total = keep_total
+	_ghost_left = keep_left
+	_ghost_last = keep_last
+
+
 ## 刀光辉光：给主角精灵挂一张相加混合的“影子精灵”（子节点，跟着走、跟着翻）
 func track_glow(src: Sprite2D) -> void:
 	if src == null:

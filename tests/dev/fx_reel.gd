@@ -39,8 +39,8 @@ func plan_of(name: String) -> Array:
 				[1, [], [], Vector2.ZERO, "hurt"], [34, [], []], [1, [], [], Vector2.ZERO, "break"], [34, [], []],
 				[1, [], [], Vector2.ZERO, "slam"], [44, [], []], [1, [], [], Vector2.ZERO, "bomb"], [50, [], []],
 				[1, [], [], Vector2.ZERO, "wall"], [40, [], []], [1, [], [], Vector2.ZERO, "kill"], [80, [], []]]
-		"ult":     # 能量加满 → J + K 同时按 → 大招（起手 24 帧 → 全屏斩 → 余波）
-			return [[1, [], [], Vector2.ZERO, "ultfill"], [1, [J, &"attack_ranged"], [J, &"attack_ranged"]], [80, [], []]]
+		"ult":     # 能量加满 → J + K 同时按 → 大招（§16.12 分镜：蓄力 → 切入 → 一闪 → 定格 → 收刀 → 爆）
+			return [[1, [], [], Vector2.ZERO, "ultfill"], [1, [J, &"attack_ranged"], [J, &"attack_ranged"]], [150, [], []]]
 		"hits":    # §16.11 不走输入，每招的命中斩痕 × 3 种变体（敌人头顶前方，背景干净一些）
 			var out := []
 			for st in ["light_1", "light_2", "light_3", "charge_1", "up_strike", "dash_slash", "ranged_1", "air_light_1"]:

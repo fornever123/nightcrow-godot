@@ -996,7 +996,8 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		if mv.id in GUARD_BREAKERS or charge_t > 0.3:
 			state = State.IDLE
 			guard_frames = 0
-			_add_poise(25.0)
+			if not is_ult:          # §16.12：大招不让人晕（只打飞）
+				_add_poise(25.0)
 			guard_broken.emit(point)
 		else:
 			_guard_block(mv, from_facing, point, attacker)
@@ -1019,7 +1020,7 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	flash = 3
 	flash_color = Color.WHITE
 	squash = Vector2(mv.squash.x, mv.squash.y).lerp(Vector2.ONE, 0.45)
-	if not stunned:
+	if not stunned and not is_ult:
 		_add_poise(mv.damage * float(POISE_MUL.get(mv.id, 1.2)) * (1.0 + charge_t))
 	damaged.emit(dealt, hp, point)
 	if hp <= 0.0:

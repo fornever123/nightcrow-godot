@@ -16,6 +16,7 @@ var ult_frac: float = 0.0          ## 大招能量 0..1（满 = 可以放）
 var wave_text: String = ""
 var help_visible: bool = true
 var help_text: String = ""
+var muted := false                 ## 大招期间不弹提示字（ult_fx 控制）
 
 var _font: Font
 var _callouts: Array = []       ## {text, color, t, life, size}
@@ -46,6 +47,8 @@ func _ready() -> void:
 
 
 func callout(text: String, color: Color = GOLD, size: int = 34) -> void:
+	if muted:
+		return
 	# 同样的字刚弹过就只刷新时间（连锁一串时不刷屏）
 	for c in _callouts:
 		if c.text == text and c.t < 0.35:
