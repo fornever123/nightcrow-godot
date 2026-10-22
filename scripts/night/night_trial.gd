@@ -550,7 +550,7 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
 	audio.play_impact(mv)
 	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move
-	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir, is_dash)
+	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir, is_dash, mv.id)
 	if is_dash:
 		fx.spawn_dash_hit(point.lerp(target.global_position, 0.5), player.facing)
 

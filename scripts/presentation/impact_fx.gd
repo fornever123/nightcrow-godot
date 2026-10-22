@@ -45,6 +45,8 @@ var damage_numbers_enabled: bool = true
 var max_effects: int = 64            ## 同时最多几个伤害数字
 var last_hit_plan: Array[Dictionary] = []
 var last_kind: String = ""
+var last_hit_variant: int = 0   ## 上一次命中用了第几种随机变体（测试 / 样片用）
+var debug_variant: int = -1     ## ≥0 时强制用这一种变体（样片 REEL=hits 用）
 var text_sequence: int = 0
 var font: SystemFont
 ## 伤害数字的放大倍数（试玩关卡镜头缩到 0.5 时，数字放大 2 倍保持看得清）
@@ -175,19 +177,48 @@ func _ring(p: Vector2, r0: float, r1: float, th0: float, th1: float, col: Color,
 	var f := pfx.add(K.RING, p, life, delay)
 	f.a = r0 * w; f.b = r1 * w; f.c = th0 * w; f.d = th1 * w; f.squash = squash; f.ang = ang
 	f.c1 = col
+	# §16.11 断弧：2–4 段，长短、粗细、消失快慢都不一样，缺口也不均匀
+	var n := rng.randi_range(2, 4)
+	var cover := _r(0.5, 0.78) * TAU
+	var ws: Array[float] = []
+	var gs: Array[float] = []
+	for i in n:
+		ws.append(_r(0.4, 1.6))
+		gs.append(_r(0.3, 1.7))
+	var wsum: float = 0.0
+	var gsum: float = 0.0
+	for i in n:
+		wsum += ws[i]
+		gsum += gs[i]
+	var a := _r(0.0, TAU)
+	for i in n:
+		var span := cover * ws[i] / wsum
+		f.angs.append(a)
+		f.lens.append(span)
+		f.pts.append(Vector2(_r(0.6, 1.3), _r(0.2, 1.0)))
+		a += span + (TAU - cover) * gs[i] / gsum
 
 
-## 爆闪：n 根刺，沿 ang 方向那两根最长（顺着刀的方向炸开）
+## 爆闪：n 根刺（±1 根随机），顺着 ang 方向的那半边长、背后短；总有一根特别长的往前戳，偶尔一根很短 —— 不对称
 func _burst(p: Vector2, r: float, ang: float, n: int, rim: Color, core: Color, cool: Color, life: float,
 		delay: float = 0.0) -> void:
 	var f := pfx.add(K.BURST, p, life, delay)
 	f.a = r * _w(); f.ang = ang
 	f.c0 = core; f.c1 = rim; f.c2 = cool
-	for i in n:
-		var g := float(i) * TAU / float(n) + _r(-0.12, 0.12)
+	var m := maxi(n + rng.randi_range(-1, 1), 5)
+	var front: Array[int] = []
+	for i in m:
+		var g := float(i) * TAU / float(m) + _r(-0.22, 0.22)
 		f.angs.append(g)
-		var along := absf(cos(g))
-		f.lens.append(lerpf(_r(0.45, 0.75), _r(1.0, 1.25), pow(along, 3.0)))
+		var c := cos(g)
+		var l := _r(0.38, 0.68) + pow(maxf(c, 0.0), 2.0) * _r(0.4, 0.7) - maxf(-c, 0.0) * _r(0.05, 0.2)
+		if rng.randf() < 0.2:
+			l *= 0.55
+		f.lens.append(maxf(l, 0.22))
+		if c > 0.35:
+			front.append(i)
+	if not front.is_empty():
+		f.lens[front[rng.randi() % front.size()]] = _r(1.25, 1.5)
 
 
 func _disc(p: Vector2, r: float, col: Color, life: float, delay: float = 0.0) -> void:
@@ -204,7 +235,13 @@ func _sparks(p: Vector2, n: int, ang: float, spread: float, v0: float, v1: float
 	for i in n:
 		var f := pfx.add(K.SPARK, p, _r(life0, life1), delay + _r(0.0, 0.02))
 		f.vel = Vector2.from_angle(ang + _r(-spread, spread)) * _r(v0, v1) * w
-		f.grav = grav * w; f.drag = drag; f.b = width * w; f.d = tail; f.floor_y = fy
+		# §16.11 大小不一（偶尔一颗大的）、拖尾长短不一、消失方式不一样（淡出 / 闪着灭 / 缩成点）
+		var sz := rng.randf()
+		var wk := 0.6 if sz < 0.3 else (1.0 if sz < 0.75 else (1.5 if sz < 0.93 else 2.2))
+		f.grav = grav * w; f.drag = drag; f.b = width * w * wk; f.d = tail * _r(0.6, 1.5); f.floor_y = fy
+		var mr := rng.randf()
+		f.mode = 0 if mr < 0.5 else (1 if mr < 0.75 else 2)
+		f.seed = float(rng.randi() % 2)
 		f.c0 = cols[0]; f.c1 = cols[1]; f.c2 = cols[2]
 
 
@@ -232,14 +269,22 @@ func _puff(p: Vector2, vel: Vector2, r0: float, r1: float, life: float, delay: f
 	f.c0 = cols[0]; f.c1 = cols[1]; f.c2 = cols[2]
 
 
+## 放射速度线。fwd 给了（有限值）= 只往前 fwd ± spread 那一片随机撒（§16.11 普通命中）；没给 = 一圈
 func _lines(p: Vector2, n: int, r0: float, r1: float, width: float, length: float, col: Color, life: float,
-		delay: float = 0.0) -> void:
+		delay: float = 0.0, fwd: float = INF, spread: float = 0.9) -> void:
 	var w := _w()
 	var f := pfx.add(K.LINES, p, life, delay)
 	f.a = r0 * w; f.b = r1 * w; f.c = width * w; f.d = length * w; f.c1 = col
-	f.ang = _r(0, TAU)
-	for i in n:
-		f.angs.append(float(i) * TAU / float(n) + _r(-0.18, 0.18))
+	if is_finite(fwd):
+		f.ang = fwd
+		for i in maxi(n + rng.randi_range(-2, 2), 3):
+			f.angs.append(_r(-spread, spread) * _r(0.3, 1.0))
+			f.lens.append(_r(0.45, 1.25))
+	else:
+		f.ang = _r(0, TAU)
+		for i in n:
+			f.angs.append(float(i) * TAU / float(n) + _r(-0.18, 0.18))
+			f.lens.append(_r(0.7, 1.15))
 
 
 ## 笔刷月牙（K.CRESCENT）：圆心 center，半径 r、最粗 b（屏幕像素），从角 c 扫到角 d。
@@ -278,12 +323,28 @@ static func crescent_point(f: PixelFx.Fx, u: float, off: float = 0.0) -> Vector2
 	return f.pos + Vector2.from_angle(lerpf(f.c, f.d, u)) * (f.a + f.edge * off)
 
 
+## 命中斩线（§16.11）：一道穿过 p、顺着 ang 方向扫的小月牙。length / width 屏幕像素；
+## curve = 半径 / 长度（越大越直）；bend = 往哪边弯；mode = 消失方式（见 pixel_fx Fx.mode）
+func _arc_cut(p: Vector2, ang: float, length: float, width: float, life: float, delay: float = 0.0,
+		curve: float = 1.6, bend: float = 1.0, mode: int = 0, cols: Array = [WHITE, VIO_L, VIO], hairs: int = 2) -> PixelFx.Fx:
+	var t := Vector2.from_angle(ang)
+	var r := maxf(length * curve, 8.0)
+	var cen := p + Vector2(-t.y, t.x) * bend * r * _w()
+	var phi := (p - cen).angle()
+	var s := length * 0.5 / r
+	var f := _crescent(cen, r, width, phi - s * bend, phi + s * bend, life, delay, cols, 0.26, 0.42, 1.0, hairs, 0.8)
+	f.mode = mode
+	return f
+
+
 # ---------------------------------------------------------------- 命中
 
 ## 主角打中敌人。strength = 力度 0..1（大招 1.6）；dir = 打击方向（没给就按 up 取上 / 右）
-## 同一帧打中好几只：第一只给全套，后面的只给闪光 + 斩线 + 少量火花，免得糊成一片
+## 同一帧打中好几只：第一只给全套，后面的只给闪光 + 一道斩痕 + 少量火花，免得糊成一片
 ## slim = 冲刺斩：有“一闪”亮线顶着，不画白圈和放射线，爆闪也小一号
-func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2.ZERO, slim: bool = false) -> void:
+## style = 招式 id（§16.11）：每招斩痕形状不同，每招还有 3 种随机变体；没给就按 up / slim 猜
+func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2.ZERO, slim: bool = false,
+		style: StringName = &"") -> void:
 	last_kind = "hit"
 	last_hit_plan.clear()
 	if not enabled:
@@ -298,18 +359,122 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	var k := 1.0 if main else 0.65
 	if slim:
 		k *= 0.7
-	# 斩线斜着划过敌人：横砍向下斜 25° 左右；上挑接近竖直
-	var cut := a + _r(-0.55, -0.25) * side if absf(dir.y) < 0.7 else a + _r(-0.3, 0.3)
-	# §16.10 有了辉光以后金色爆闪收小一号（原 26 + 18p）
+	var fam := _hit_family(style, up, slim)
+	var v := rng.randi() % 3 if debug_variant < 0 else debug_variant
+	last_hit_variant = v
+	var back := Vector2(-side, 0.0)
+	var life := 0.13 + 0.05 * p
+	var ln := (110.0 + 80.0 * p) * k
+	var wd := (12.0 + 7.0 * p) * k
+	var w := _w()
+	var cut := a
+	match fam:
+		&"down":
+			cut = a + side * _r(0.25, 0.55)
+		&"rise":
+			cut = a - side * _r(0.3, 0.6)
+		&"steep":
+			cut = a + side * _r(0.7, 1.05) * (-1.0 if v == 2 else 1.0)
+		&"up":
+			cut = -PI * 0.5 + _r(-0.22, 0.22)
+			back = Vector2(-1.0 if rng.randf() < 0.5 else 1.0, 0.0)
+		&"dash":
+			cut = a + _r(-0.1, 0.1)
+		&"heavy", &"charge":
+			cut = a + side * _r(0.15, 0.5)
+		_:
+			cut = a + _r(-0.35, 0.35)
+	var t := Vector2.from_angle(cut)
+	var nrm := Vector2(-t.y, t.x)
+	# ---- 闪光（§16.10 有了辉光以后金色爆闪收小一号）
 	var star_r := (22.0 + 13.0 * p) * k
+	if fam == &"ranged" or (fam == &"dash" and v == 1):
+		star_r *= 0.75
 	if main:
 		_disc(point, (9.0 + 9.0 * p) * k, WHITE, 0.035)
-	_burst(point, star_r, cut, 8 if p < 0.55 else 10, GOLD, WHITE, AMBER, 0.1 + 0.04 * p)
+	if fam == &"ranged" and v == 0:
+		_star(point, star_r * 0.9, cut, 1.6, VIO_L, WHITE, 0.1)
+	else:
+		_burst(point, star_r, cut, (8 if p < 0.55 else 10) - (2 if fam == &"ranged" else 0), GOLD, WHITE, AMBER, 0.1 + 0.04 * p)
 	_plan("flash", 0.0, 0.1 + 0.04 * p)
-	_streak(point, (96.0 + 70.0 * p) * k, (9.0 + 6.0 * p) * k, cut, VIO, WHITE, 0.13 + 0.05 * p)
-	_plan("cut", 0.0, 0.13 + 0.05 * p)
+	# ---- 斩痕：一道道小月牙，消失方式随机
+	match fam:
+		&"down", &"rise", &"steep":
+			_hit_arc(point, cut, ln, wd, life, 0.0, 1.4, back)
+			if main and v == 1:
+				_hit_arc(point - nrm * _bend(cut, back) * 13.0 * k * w, cut, ln * 0.6, wd * 0.45, life * 0.9, 0.03, 1.6, back)
+			elif main and v == 2:
+				var q := point + t * ln * 0.22 * w
+				var g := cut + _r(0.3, 0.5) * (1.0 if rng.randf() < 0.5 else -1.0)
+				_hit_arc(q + Vector2.from_angle(g) * ln * 0.18 * w, g, ln * 0.42, wd * 0.5, life * 0.85, 0.04, 1.2, back)
+		&"heavy":
+			if v == 0 or not main:
+				_hit_arc(point, cut, ln * 1.3, wd * 1.2, life * 1.1, 0.0, 1.0, back)
+				if main:
+					var g := cut - side * _r(0.35, 0.55)
+					_hit_arc(point + t * ln * 0.3 * w + Vector2.from_angle(g) * ln * 0.2 * w, g, ln * 0.5, wd * 0.55, life, 0.04, 1.3, back)
+			elif v == 1:
+				var g1 := cut - side * _r(0.45, 0.65)
+				var g2 := cut + side * _r(0.45, 0.65)
+				_hit_arc(point, g1, ln * 0.9, wd * 0.9, life, 0.0, 1.5, back)
+				_hit_arc(point, g2, ln * 0.85, wd * 0.85, life, 0.035, 1.5, back)
+			else:
+				var bd := _bend(cut, back)
+				var lk := [0.8, 1.0, 0.72]
+				for i in 3:
+					var o := float(i - 1) * 15.0 * k
+					_hit_arc(point + nrm * bd * o * w + t * _r(-8, 8) * w, cut, ln * float(lk[i]), wd * 0.7, life,
+						0.02 * float(i), 1.2, back)
+		&"charge":
+			_hit_arc(point, cut, ln * 1.5, wd * 1.35, life * 1.15, 0.0, 0.9, back)
+			if main:
+				if v == 0:
+					_hit_arc(point - nrm * _bend(cut, back) * 18.0 * k * w, cut, ln * 0.7, wd * 0.5, life, 0.035, 1.1, back)
+				elif v == 1:
+					var g := cut - side * _r(0.9, 1.2)
+					_hit_arc(point + t * 10.0 * w, g, ln * 0.85, wd * 0.8, life, 0.05, 1.4, back)
+				else:
+					var g := cut + _r(0.3, 0.45) * (1.0 if rng.randf() < 0.5 else -1.0)
+					_hit_arc(point + t * ln * 0.3 * w + Vector2.from_angle(g) * ln * 0.3 * w, g, ln * 0.75, wd * 0.6, life, 0.04, 1.2, back)
+					_ring(point, 10.0, 44.0 + 20.0 * p, 7.0, 0.0, VIO_L, 0.14, 0.05)
+		&"up":
+			if v == 1 and main:
+				for sgn: float in [-1.0, 1.0]:
+					var g := cut + sgn * _r(0.28, 0.42)
+					_hit_arc(point + Vector2.from_angle(g) * ln * 0.38 * w, g, ln * 0.85, wd * 0.85, life, 0.0 if sgn < 0.0 else 0.03,
+						1.6, Vector2(sgn, 0.0))
+			else:
+				_hit_arc(point, cut, ln * 1.15, wd, life, 0.0, 1.3, back)
+				if v == 2 and main:
+					var g := cut + _r(0.35, 0.5) * (1.0 if rng.randf() < 0.5 else -1.0)
+					_hit_arc(point + t * ln * 0.25 * w + Vector2.from_angle(g) * ln * 0.18 * w, g, ln * 0.45, wd * 0.5, life, 0.04, 1.2, back)
+		&"dash":
+			if v == 0:
+				_hit_arc(point, cut - 0.42, ln * 1.1, wd * 0.5, life, 0.0, 2.2, back)
+				_hit_arc(point, cut + 0.42, ln * 1.05, wd * 0.5, life, 0.025, 2.2, back)
+			elif v == 2:
+				for sgn: float in [-1.0, 1.0]:
+					_hit_arc(point + t * sgn * ln * 0.2 * w + nrm * sgn * 8.0 * w, cut + sgn * 0.5, ln * 0.45, wd * 0.6, life,
+						0.0 if sgn < 0.0 else 0.03, 0.6, back)
+			else:
+				_hit_arc(point, cut, ln * 1.4, wd * 0.3, life * 0.7, 0.0, 4.0, back)
+		_:
+			if v == 0:
+				_hit_arc(point, cut, ln * 0.45, wd * 0.5, life * 0.8, 0.0, 1.4, back)
+			elif v == 1:
+				_arc_cut(point, cut, ln * 0.6, wd * 0.55, life, 0.0, 1.0, _bend(cut, back), 1)
+			else:
+				_hit_arc(point, cut, ln * 0.55, wd * 0.6, life, 0.0, 1.2, back)
+	_plan("cut", 0.0, life)
+	# ---- 火花 / 墨点
 	var ns := (6 + int(8.0 * p)) if main else 3
-	_sparks(point, ns, a, 0.75, 260.0, 520.0 + 380.0 * p, 0.14, 0.26 + 0.1 * p, [WHITE, GOLD, AMBER], 700.0, 3.0 if p >= 0.5 else 2.0)
+	var spread := 0.75
+	if fam == &"ranged":
+		ns = maxi(ns - 2, 3) + (4 if v != 1 else 0)
+		spread = 0.55
+	elif fam == &"up":
+		spread = 0.6
+	_sparks(point, ns, a, spread, 260.0, 520.0 + 380.0 * p, 0.14, 0.26 + 0.1 * p, [WHITE, GOLD, AMBER], 700.0, 3.0 if p >= 0.5 else 2.0)
 	_plan("spark", 0.0, 0.26 + 0.1 * p)
 	_chunks(point, (3 + int(5.0 * p)) if main else 2, a, 1.0, 120.0, 280.0 + 180.0 * p, 2.0, 5.0, [INK, INK, INK_RIM], 1000.0, 0.3, 0.55)
 	_plan("ink", 0.0, 0.55)
@@ -318,19 +483,61 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	glow_hit(p)
 	if p >= 0.6:
 		impact_frame(p)
-	if p >= 0.3 and not slim:
+	# ---- 断环（2–4 段）+ 只往前撒的速度线
+	if p >= 0.3 and not slim and fam != &"ranged":
 		_ring(point, 10.0, 28.0 + 26.0 * p, 8.0 + 4.0 * p, 0.0, VIO_L, 0.1 + 0.03 * p)
 	_plan("ring", 0.0, 0.1 + 0.03 * p)
 	if p >= 0.55 and not slim:
-		_lines(point, 10, 18.0, 72.0 + 36.0 * p, 4.0, 26.0, WHITE, 0.15)
+		_lines(point, 9, 18.0, 72.0 + 36.0 * p, 4.0, 26.0, WHITE, 0.15, 0.0, a, 0.8 if fam != &"up" else 0.55)
 		_plan("lines", 0.0, 0.15)
 	if p >= 0.9 and not slim:
 		_disc(point, 15.0 + 6.0 * p, WHITE, 0.05)
 		_ring(point, 10.0, 40.0 + 26.0 * p, 8.0, 0.0, VIO_L, 0.16, 0.04)
 	if up:
 		for i in 3:
-			_streak(point + Vector2(_r(-16, 16), _r(-10, 10)) * _w(), _r(40, 64), 4.0, -PI * 0.5, VIO_L, WHITE, 0.2,
+			_streak(point + Vector2(_r(-16, 16), _r(-10, 10)) * w, _r(40, 64), 4.0, -PI * 0.5, VIO_L, WHITE, 0.2,
 				0.03 + 0.03 * float(i), 0.0, Vector2(0, -520))
+
+
+## 招式 id → 斩痕家族
+func _hit_family(style: StringName, up: bool, slim: bool) -> StringName:
+	match style:
+		&"light_1":
+			return &"down"
+		&"light_2":
+			return &"rise"
+		&"light_3", &"air_light_3":
+			return &"heavy"
+		&"charge_1":
+			return &"charge"
+		&"up_strike", &"air_up":
+			return &"up"
+		&"dash_slash", &"dash_slash_left":
+			return &"dash"
+		&"ranged_1":
+			return &"ranged"
+		&"air_light_1", &"air_light_2":
+			return &"steep"
+	if up:
+		return &"up"
+	if slim:
+		return &"dash"
+	return &"down" if rng.randf() < 0.5 else &"rise"
+
+
+## 弧往哪边弯：圆心放在 back（身后）那一侧，看起来是从身后抡过来的；说不清时随机
+func _bend(ang: float, back: Vector2) -> float:
+	var t := Vector2.from_angle(ang)
+	var d := Vector2(-t.y, t.x).dot(back)
+	if absf(d) < 0.15:
+		return 1.0 if rng.randf() < 0.5 else -1.0
+	return signf(d)
+
+
+## 命中斩痕：曲率小抖、消失方式随机
+func _hit_arc(p: Vector2, ang: float, length: float, width: float, life: float, delay: float, curve: float,
+		back: Vector2, cols: Array = [WHITE, VIO_L, VIO]) -> void:
+	_arc_cut(p, ang, length, width, life, delay, curve * _r(0.85, 1.2), _bend(ang, back), rng.randi() % 3, cols)
 
 
 ## 同一物理帧里第一次出这种特效吗（多目标同时命中时减量）

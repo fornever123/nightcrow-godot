@@ -41,6 +41,13 @@ func plan_of(name: String) -> Array:
 				[1, [], [], Vector2.ZERO, "wall"], [40, [], []], [1, [], [], Vector2.ZERO, "kill"], [80, [], []]]
 		"ult":     # 能量加满 → J + K 同时按 → 大招（起手 24 帧 → 全屏斩 → 余波）
 			return [[1, [], [], Vector2.ZERO, "ultfill"], [1, [J, &"attack_ranged"], [J, &"attack_ranged"]], [80, [], []]]
+		"hits":    # §16.11 不走输入，每招的命中斩痕 × 3 种变体（敌人头顶前方，背景干净一些）
+			var out := []
+			for st in ["light_1", "light_2", "light_3", "charge_1", "up_strike", "dash_slash", "ranged_1", "air_light_1"]:
+				for v in 3:
+					out.append([1, [], [], Vector2.ZERO, "hit:%s:%d" % [st, v]])
+					out.append([15, [], []])
+			return out
 		"jump":    # 跳、二段跳、落地
 			return [[1, [&"jump"], [&"jump"]], [10, [&"jump"], []], [10, [], []], [1, [&"jump"], [&"jump"]], [10, [&"jump"], []], [60, [], []]]
 	return [[30, [], []]]
@@ -48,6 +55,16 @@ func plan_of(name: String) -> Array:
 func trigger_event(ev: String, x: float) -> void:
 	var sh: Array = get_nodes_in_group(&"shade")
 	var front: Vector2 = p.global_position + Vector2(56, -36)
+	if ev.begins_with("hit:"):
+		var parts := ev.split(":")
+		var mv: Resource = stage.moves.get(StringName(parts[1]))
+		var up: bool = mv != null and mv.direction > 0
+		var slim: bool = parts[1].begins_with("dash")
+		stage.fx.debug_variant = int(parts[2])
+		stage.fx.spawn_hit(p.global_position + Vector2(150, -150), stage.fx.power_of(mv), up,
+			Vector2.UP if up else Vector2.RIGHT, slim, StringName(parts[1]))
+		stage.fx.debug_variant = -1
+		return
 	match ev:
 		"parry": stage._on_parry(sh[0], front)
 		"block": stage._on_shade_guarded(front + Vector2(40, 0), sh[0])

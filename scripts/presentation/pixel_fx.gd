@@ -55,6 +55,7 @@ class Fx:
 	var s1: float = 0.45         ## 月牙：从什么时候开始从尾巴擦掉
 	var seed: float = 0.0        ## 月牙：粗细起伏的相位
 	var edge: float = 1.0        ## 月牙：亮的刃口在外缘（1）还是内缘（−1）
+	var mode: int = 0            ## 怎么消失：火花 0 变色淡出 / 1 闪着灭 / 2 缩成点；月牙 0 从尾巴擦 / 1 两头往中间收 / 2 原地变细碎掉
 
 
 func _ready() -> void:
@@ -274,28 +275,31 @@ static func _lens(p: Vector2, u: Vector2, length: float, width: float) -> Packed
 		p + u * h, p + u * h * 0.5 - v * w * 0.72, p - v * w, p - u * h * 0.5 - v * w * 0.72])
 
 
-## 冲击环：a → b 半径，c → d 粗细，squash = 竖向压扁，ang = 旋转
+## 冲击环：a → b 半径，c → d 粗细，squash = 竖向压扁，ang = 旋转。
+## §16.11 不画整圆：angs / lens = 每段断弧的起点 / 弧长，pts[i] = (粗细倍数, 变细快慢) —— 几段长短、粗细不一的弧，各自变细消失
 func _draw_ring(f: Fx, t: float) -> void:
 	var e := 1.0 - pow(1.0 - t, 3.0)
 	var r := lerpf(f.a, f.b, e)
-	# 粗细一路收细到 d（一般是 0）：硬边的冲击波，不是越来越淡的细线圈
-	var th := lerpf(f.c, f.d, pow(t, 0.6))
-	if th < 0.75 or r < 0.5:
+	if r < 0.5:
 		return
 	var segs := clampi(int(r / 3.0), 16, 64)
-	canvas.draw_set_transform(f.pos, f.ang, Vector2(1.0, f.squash))
-	# 后半段碎成几段弧（不留一个干净的细圆圈，否则像瞄准镜）
-	var gap := smoothstep(0.2, 0.9, t) * 0.75
 	var col := Color(f.c1, _fade(t, 0.8))
-	var rr := maxf(r - th * 0.5, th * 0.5)
-	if gap < 0.02:
-		canvas.draw_arc(Vector2.ZERO, rr, 0.0, TAU, segs, col, th)
+	canvas.draw_set_transform(f.pos, f.ang, Vector2(1.0, f.squash))
+	if f.angs.is_empty():
+		var th := lerpf(f.c, f.d, pow(t, 0.6))
+		if th >= 0.75:
+			canvas.draw_arc(Vector2.ZERO, maxf(r - th * 0.5, th * 0.5), 0.0, TAU, segs, col, th)
 	else:
-		var n := 6
-		var span := TAU / float(n)
-		for i in n:
-			var a0 := float(i) * span + f.d * 0.0 + float(i % 2) * 0.12
-			canvas.draw_arc(Vector2.ZERO, rr, a0, a0 + span * (1.0 - gap), maxi(3, segs / n), col, th)
+		for i in f.angs.size():
+			var q: Vector2 = f.pts[i] if i < f.pts.size() else Vector2.ONE
+			var th := lerpf(f.c * q.x, f.d, pow(t, 0.35 + 0.6 * q.y))
+			if th < 0.75:
+				continue
+			# 每段弧两头往里缩（缩的快慢跟着它变细的快慢）
+			var full: float = f.lens[i]
+			var span := full * (1.0 - 0.55 * smoothstep(0.15, 1.0, t) * q.y)
+			var a0 := f.angs[i] + (full - span) * 0.5
+			canvas.draw_arc(Vector2.ZERO, maxf(r - th * 0.5, th * 0.5), a0, a0 + span, maxi(3, int(float(segs) * span / TAU) + 2), col, th)
 	canvas.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
@@ -311,7 +315,17 @@ func _draw_spark(f: Fx, t: float) -> void:
 	if tail.length() < f.b:
 		tail = tail.normalized() * f.b if tail.length() > 0.001 else Vector2(f.b, 0)
 	var w := f.b * (1.0 if t < 0.6 else 0.6)
-	canvas.draw_line(f.pos - tail, f.pos, Color(col, _fade(t, 0.75)), maxf(w, 1.0))
+	var al := _fade(t, 0.75)
+	match f.mode:
+		1:   # 闪着灭：后半段一亮一灭
+			if t > 0.45 and (int(t * 28.0 + f.seed) % 2) == 1:
+				return
+			al = 1.0
+		2:   # 缩成点：越来越短、越来越细
+			tail *= 1.0 - t
+			w = f.b * maxf(1.0 - t, 0.4)
+			al = 1.0
+	canvas.draw_line(f.pos - tail, f.pos, Color(col, al), maxf(w, 1.0))
 
 
 ## 碎块：转着飞的小方块（石屑 / 影子碎片）
@@ -349,10 +363,13 @@ func _draw_lines(f: Fx, t: float) -> void:
 		r_in = lerpf(f.a, f.b, minf(1.0, e * 1.3))
 	if r_out - r_in < 1.0:
 		return
-	for g in f.angs:
-		var u := Vector2.from_angle(f.ang + g)
-		var v := Vector2(-u.y, u.x) * f.c * 0.5
-		canvas.draw_colored_polygon(PackedVector2Array([f.pos + u * r_in + v, f.pos + u * r_out, f.pos + u * r_in - v]), f.c1)
+	for j in f.angs.size():
+		var u := Vector2.from_angle(f.ang + f.angs[j])
+		# lens = 每根长短（§16.11：长短、粗细都不一样）
+		var lk: float = f.lens[j] if j < f.lens.size() else 1.0
+		var ro := r_in + (r_out - r_in) * lk
+		var v := Vector2(-u.y, u.x) * f.c * 0.5 * (0.55 + 0.45 * lk)
+		canvas.draw_colored_polygon(PackedVector2Array([f.pos + u * r_in + v, f.pos + u * ro, f.pos + u * r_in - v]), f.c1)
 
 
 ## 地裂：一条折线，先显出来再慢慢碎掉
@@ -449,10 +466,19 @@ func _draw_crescent(f: Fx, t: float) -> void:
 	var uh := 1.0 - pow(1.0 - minf(t / maxf(f.s0, 0.001), 1.0), 3.0)
 	var er := clampf((t - f.s1) / maxf(1.0 - f.s1, 0.001), 0.0, 1.0)
 	var ut := pow(er, 1.5) * uh
-	if uh - ut < 0.003 or f.angs.is_empty():
-		return
 	var thin := 1.0 - 0.6 * er
 	var al := _fade(t, 0.86)
+	match f.mode:
+		1:   # 两头往中间收
+			var q := 0.5 * pow(er, 1.4)
+			ut = q * uh
+			uh = uh * (1.0 - q)
+		2:   # 原地变细、碎成像素点
+			ut = 0.0
+			thin = 1.0 - 0.8 * er
+			al = minf(al, 1.0 - er)
+	if uh - ut < 0.003 or f.angs.is_empty():
+		return
 	var m := f.angs.size()
 	# 采样点放在固定的弧上位置（k / m）+ 两个端点：毛边跟着弧走，不会每帧乱闪
 	var us := PackedFloat32Array([ut])
