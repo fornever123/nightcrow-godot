@@ -8,10 +8,10 @@ extends Node2D
 
 const DITHER := preload("res://assets/shaders/fx_dither.gdshader")
 const BLOOM := preload("res://assets/shaders/fx_bloom.gdshader")
-enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT, WISP }
+enum K { STAR, STREAK, RING, DISC, SPARK, CHUNK, PUFF, LINES, CRACK, BURST, SLIT, WISP, CRESCENT }
 ## 画的先后（0 最先画 = 最下面）：尘土 → 碎块 / 冲击环 → 斩线 / 速度线 → 火花 → 闪光
 const LAYER_OF := {K.PUFF: 0, K.CRACK: 0, K.CHUNK: 1, K.RING: 1, K.LINES: 2, K.STREAK: 2,
-	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4, K.SLIT: 4, K.WISP: 2}
+	K.SPARK: 3, K.DISC: 4, K.STAR: 4, K.BURST: 4, K.SLIT: 4, K.WISP: 2, K.CRESCENT: 2}
 const LAYERS := 5
 
 var pix: float = 2.0            ## 小画布 1 格 = 几个屏幕像素
@@ -51,6 +51,10 @@ class Fx:
 	var angs := PackedFloat32Array()
 	var lens := PackedFloat32Array()
 	var pts := PackedVector2Array()
+	var s0: float = 0.16         ## 月牙：前多少时间扫出来
+	var s1: float = 0.45         ## 月牙：从什么时候开始从尾巴擦掉
+	var seed: float = 0.0        ## 月牙：粗细起伏的相位
+	var edge: float = 1.0        ## 月牙：亮的刃口在外缘（1）还是内缘（−1）
 
 
 func _ready() -> void:
@@ -210,6 +214,7 @@ func _draw_items() -> void:
 				K.BURST: _draw_burst(f, t)
 				K.SLIT: _draw_slit(f, t)
 				K.WISP: _draw_wisp(f, t)
+				K.CRESCENT: _draw_crescent(f, t)
 
 
 static func _fade(t: float, from: float) -> float:
@@ -433,3 +438,85 @@ func _draw_wisp(f: Fx, t: float) -> void:
 			if w >= 0.6:
 				canvas.draw_line(prev, q, f.c0 if k > 0.75 else f.c1, maxf(w, 1.0))
 		prev = q
+
+
+## 笔刷月牙（§16.11 大招主斩 / X 交叉斩，普通攻击的弧形斩线也用它）：圆心 pos、半径 a 的一段弧，从角 c 扫到角 d。
+## b = 最粗处的粗细；s0 = 前多少时间扫出来；s1 = 从什么时候开始从尾巴往头擦掉（同时变细）；edge = 亮刃口在外缘 / 内缘。
+## 两头尖、最粗处偏向刀头；刃口一侧干净锋利，另一侧是毛笔的毛边；尾段拖几根刷毛细线。
+## c0 = 刃口（白芯），c1 = 中段（浅紫），c2 = 外层（紫）。angs / lens = 刃口 / 毛边的抖动（按弧上的位置取，不随时间闪），
+## pts = 刷毛：每根两项 (相对刃口的深度 × b, 粗细格数) (起点, 终点)（0 = 尾巴，1 = 刀头，可以小于 0 拖到尾巴后面）。
+func _draw_crescent(f: Fx, t: float) -> void:
+	var uh := 1.0 - pow(1.0 - minf(t / maxf(f.s0, 0.001), 1.0), 3.0)
+	var er := clampf((t - f.s1) / maxf(1.0 - f.s1, 0.001), 0.0, 1.0)
+	var ut := pow(er, 1.5) * uh
+	if uh - ut < 0.003 or f.angs.is_empty():
+		return
+	var thin := 1.0 - 0.6 * er
+	var al := _fade(t, 0.86)
+	var m := f.angs.size()
+	# 采样点放在固定的弧上位置（k / m）+ 两个端点：毛边跟着弧走，不会每帧乱闪
+	var us := PackedFloat32Array([ut])
+	var k0 := int(floor(ut * float(m))) + 1
+	var k1 := int(ceil(uh * float(m))) - 1
+	for k in range(k0, k1 + 1):
+		us.append(float(k) / float(m))
+	us.append(uh)
+	var cell := pix * world_per_px()
+	var outer := PackedFloat32Array()
+	var inner := PackedFloat32Array()
+	var mid := PackedFloat32Array()
+	var core := PackedFloat32Array()
+	var rim := PackedFloat32Array()
+	for u in us:
+		var v := (u - ut) / (uh - ut)
+		var prof := pow(maxf(sin(PI * pow(v, 1.5)), 0.0), 0.7)
+		var wob := 0.86 + 0.14 * sin(u * 9.0 + f.seed) + 0.06 * sin(u * 23.0 + f.seed * 1.7)
+		var th := f.b * prof * wob * thin
+		var i := clampi(int(u * float(m)), 0, m - 1)
+		var no := f.angs[i]
+		var ni := f.lens[i] if i < f.lens.size() else 0.0
+		var e := th * 0.5 * (1.0 + 0.05 * no)
+		outer.append(e)
+		inner.append(-th * 0.5 * (1.0 + 0.45 * ni))
+		mid.append(e - th * (0.5 + 0.16 * f.lens[(i + 7) % m]))
+		rim.append(e - minf(cell, th * 0.2))
+		core.append(e - th * 0.24)
+	_arc_band(f, us, outer, inner, Color(f.c2, al))
+	_arc_band(f, us, outer, mid, Color(f.c1, al))
+	if er < 0.85:
+		_arc_band(f, us, rim, core, Color(f.c0, al))
+	# 刷毛：尾段几根细线（顺着弧，深浅、长短不一）
+	if er < 0.6:
+		var nh := f.pts.size() / 2
+		for j in nh:
+			var hp := f.pts[j * 2]
+			var hv := f.pts[j * 2 + 1]
+			var r := f.a + f.edge * (f.b * thin * 0.5 - hp.x * f.b * thin)
+			var a0 := lerpf(ut, uh, hv.x)
+			var a1 := lerpf(ut, uh, hv.y)
+			if a1 - a0 < 0.002:
+				continue
+			var pts := PackedVector2Array()
+			var steps := clampi(int((a1 - a0) * float(m)) + 2, 2, 24)
+			for q in steps + 1:
+				var u := lerpf(a0, a1, float(q) / float(steps))
+				pts.append(f.pos + Vector2.from_angle(lerpf(f.c, f.d, u)) * r)
+			canvas.draw_polyline(pts, Color(f.c2 if j % 3 else f.c1, al), maxf(hp.y * cell * (1.0 - er), cell * 0.75))
+
+
+## 沿弧的一条带子：us = 弧上位置（0..1 对应角 c..d），o / i = 两条边相对半径 a 的偏移（正 = 往 edge 那侧）
+func _arc_band(f: Fx, us: PackedFloat32Array, o: PackedFloat32Array, i: PackedFloat32Array, col: Color) -> void:
+	var n := us.size()
+	if n < 2 or col.a <= 0.0:
+		return
+	var pts := PackedVector2Array()
+	pts.resize(n * 2)
+	for k in n:
+		var dirv := Vector2.from_angle(lerpf(f.c, f.d, us[k]))
+		pts[k * 2] = f.pos + dirv * (f.a + f.edge * o[k])
+		pts[k * 2 + 1] = f.pos + dirv * (f.a + f.edge * minf(i[k], o[k]))
+	var idx := PackedInt32Array()
+	for k in n - 1:
+		var a := k * 2
+		idx.append_array([a, a + 1, a + 2, a + 1, a + 3, a + 2])
+	RenderingServer.canvas_item_add_triangle_array(canvas.get_canvas_item(), idx, pts, PackedColorArray([col]))

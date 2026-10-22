@@ -242,6 +242,42 @@ func _lines(p: Vector2, n: int, r0: float, r1: float, width: float, length: floa
 		f.angs.append(float(i) * TAU / float(n) + _r(-0.18, 0.18))
 
 
+## 笔刷月牙（K.CRESCENT）：圆心 center，半径 r、最粗 b（屏幕像素），从角 c 扫到角 d。
+## cols = [刃口白芯, 中段, 外层]；edge = 1 亮刃口在外缘 / −1 在内缘；hairs = 尾段几根刷毛；rough = 毛边有多毛
+func _crescent(center: Vector2, r: float, b: float, c: float, d: float, life: float, delay: float = 0.0,
+		cols: Array = [WHITE, VIO_L, VIO], s0: float = 0.16, s1: float = 0.45, edge: float = 1.0,
+		hairs: int = 6, rough: float = 1.0) -> PixelFx.Fx:
+	var w := _w()
+	var f := pfx.add(K.CRESCENT, center, life, delay)
+	f.a = r * w; f.b = b * w; f.c = c; f.d = d
+	f.s0 = s0; f.s1 = s1; f.edge = edge; f.seed = _r(0.0, TAU)
+	f.c0 = cols[0]; f.c1 = cols[1]; f.c2 = cols[2]
+	var m := clampi(int(absf(d - c) * r / 14.0), 12, 96)
+	for i in m:
+		f.angs.append(_r(-1.0, 1.0))
+		# 毛边：大多数地方小抖，隔几格冒出一撮长毛 / 缺一口
+		var x := _r(-0.4, 0.5)
+		if rng.randf() < 0.18:
+			x = _r(0.6, 1.2) if rng.randf() < 0.7 else _r(-0.9, -0.6)
+		f.lens.append(x * rough)
+	for j in hairs:
+		f.pts.append(Vector2(_r(0.35, 1.15), _r(0.8, 1.8)))
+		var v0 := _r(-0.16, 0.12)
+		f.pts.append(Vector2(v0, v0 + _r(0.18, 0.5)))
+	return f
+
+
+## 月牙在时刻 t（0..1）时刀头 / 尾巴的位置（弧上 0..1），和 _draw_crescent 一致
+static func crescent_span(f: PixelFx.Fx, t: float) -> Vector2:
+	var uh := 1.0 - pow(1.0 - minf(t / maxf(f.s0, 0.001), 1.0), 3.0)
+	var er := clampf((t - f.s1) / maxf(1.0 - f.s1, 0.001), 0.0, 1.0)
+	return Vector2(pow(er, 1.5) * uh, uh)
+
+
+static func crescent_point(f: PixelFx.Fx, u: float, off: float = 0.0) -> Vector2:
+	return f.pos + Vector2.from_angle(lerpf(f.c, f.d, u)) * (f.a + f.edge * off)
+
+
 # ---------------------------------------------------------------- 命中
 
 ## 主角打中敌人。strength = 力度 0..1（大招 1.6）；dir = 打击方向（没给就按 up 取上 / 右）

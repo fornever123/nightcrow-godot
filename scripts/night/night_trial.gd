@@ -104,6 +104,8 @@ var _round_max_combo: int = 0
 var _time: float = 0.0
 var ult_fx: Node2D
 var _ult_hint_shown := false
+var _ult_collect := false         ## 大招出刀那一下：伤害数字先记着，等影爆开再冒
+var _ult_texts := {}
 
 
 func _ready() -> void:
@@ -160,6 +162,7 @@ func _ready() -> void:
 	ult_fx.fx = fx
 	ult_fx.player = player
 	add_child(ult_fx)
+	ult_fx.popped.connect(_on_ult_pop)
 	style = Style.new()
 	_build_hud()
 	encounter = Encounter.new()
@@ -553,6 +556,9 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
+	if _ult_collect:
+		_ult_texts[s] = [point, amount]
+		return
 	fx.spawn_text(point.lerp(s.global_position + Vector2(0, -s.half_h), 0.5), "%.0f" % amount, amount)
 
 
@@ -653,7 +659,8 @@ func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 
 func _on_shade_died(s: Node2D) -> void:
 	audio.play_shade_die()
-	fx.spawn_kill(s.global_position)
+	if not _ult_collect:          # 大招砍死的：等它爆开（ult_fx 的余波）再炸，不在这里炸
+		fx.spawn_kill(s.global_position)
 	fx.track_dissolve(s)
 	var airborne: bool = s.position.y < s.ground_y() - 10.0
 	if airborne:
@@ -868,30 +875,50 @@ func _on_ult_started() -> void:
 		b.set_physics_process(false)
 
 
-## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎
+## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎。
+## §16.11：被砍中的影先定住，按远近一个接一个爆开（ult_fx 发 popped），伤害数字等爆开那一下再冒
 func _on_ult_hit() -> void:
 	audio.play_ult_slash()
 	var mv: Resource = player.ult_move()
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM + 60.0
-	var ys := []
-	var n := 0
+	var hit: Array = []
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		if not s.is_alive() or s.spawn_frames > 0 or absf(s.global_position.x - cx) > half:
 			continue
+		hit.append(s)
+	hit.sort_custom(func(a, b): return absf(a.global_position.x - player.global_position.x) < absf(b.global_position.x - player.global_position.x))
+	var targets := []
+	_ult_texts.clear()
+	_ult_collect = true
+	var i := 0
+	for s in hit:
 		var dir := 1 if s.global_position.x >= player.global_position.x else -1
 		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
 		s.hitstop_frames = 0
 		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
-		s.hitstop_frames = maxi(s.hitstop_frames, 14)
-		fx.spawn_hit(pt, 1.6, true)
-		ys.append(pt.y)
-		n += 1
+		s.hitstop_frames = maxi(s.hitstop_frames, int(ceil(UltFx.pop_delay(i) * 60.0)) + 1)
+		targets.append({"node": s, "pt": pt})
+		i += 1
+	_ult_collect = false
 	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
 		if is_instance_valid(b):
 			fx.spawn_deflect(b.global_position, Vector2(player.facing, 0))
 			b.queue_free()
-	ult_fx.slash(player.global_position.y - 20.0, player.facing, ys)
+	ult_fx.slash(player.global_position.y - 20.0, player.facing, targets)
 	camera.add_shake(16.0 * shake_mul, Vector2(player.facing, 0))
 	player.hitstop_frames = maxi(player.hitstop_frames, 8)
 	style.add_event(&"ult")
+
+
+## 大招余波：一只影爆开 —— 补上伤害数字、一声斩击、一下小震屏
+func _on_ult_pop(s: Node2D, point: Vector2) -> void:
+	audio.play_blade_hit(1.0)
+	camera.add_shake(5.0 * shake_mul, Vector2(player.facing, 0))
+	if s != null and _ult_texts.has(s):
+		var e: Array = _ult_texts[s]
+		_ult_texts.erase(s)
+		if is_instance_valid(s):
+			fx.spawn_text((e[0] as Vector2).lerp(s.global_position + Vector2(0, -s.half_h), 0.5), "%.0f" % float(e[1]), float(e[1]))
+		else:
+			fx.spawn_text(point, "%.0f" % float(e[1]), float(e[1]))
