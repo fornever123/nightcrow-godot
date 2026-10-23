@@ -39,6 +39,8 @@ signal plunge_landed(point: Vector2)
 ## 大招（第四轮）：开始（暗屏、全场定住）→ 出刀那一帧（全屏斩）→ 收招
 signal ult_started()
 signal ult_hit()
+## 千刃：第 index 斩（0 起，共 count 斩）。关卡收到后把主角瞬移到下一个目标的另一侧
+signal ult_pass(index: int, count: int)
 signal ult_finished()
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
@@ -224,16 +226,19 @@ var input_source: Object = null
 @export var ult_enabled: bool = false
 @export var ult_max: float = 100.0
 @export var ult_chord_frames: int = 6
-## 整招多少帧 / 第几帧出刀。§16.12 动画分镜：0～29 蓄力（架势）→ 30～53 切入特写 → 54 白屏 → 55 黑屏 = 出刀
-## → 出刀后 0～24 帧残心（刀伸在身后）→ 转刀 → 第 ult_click_frame 帧收刀“咔” → 收尾
-@export var ult_total_frames: int = 95
-@export var ult_hit_frame: int = 55
-## 蓄力阶段多少帧（架势动画在这段里摆完，之后定在最后一帧）
-@export var ult_charge_frames: int = 30
-## 出刀后第几帧收刀“咔”（之后被砍中的影一个接一个爆）
-@export var ult_click_frame: int = 38
-## 出刀那一下瞬间冲过敌人（false = 原地斩）
-@export var ult_dash: bool = true
+## 「千刃」（2026-10-23 重做，取代 §16.12 分镜版）。时间轴（60 帧 / 秒）：
+##   0～ult_charge_frames-1：起手——时间停住，拔刀架势（蓄力斩 0～7 帧）
+##   ult_charge_frames 起：按 ult_pass_gaps 的间隔瞬移连斩 N 次（越砍越快），每次发 ult_pass(i, N)，关卡决定瞬移到哪
+##   最后一斩后：背对敌人残心 → 转刀 → 第 ult_click_frame 帧收刀“咔”
+##   第 ult_hit_frame 帧：所有挨过刀的影一齐爆开（ult_hit，关卡结算伤害）→ 收尾
+@export var ult_total_frames: int = 112
+@export var ult_hit_frame: int = 92
+## 起手（拔刀架势）多少帧
+@export var ult_charge_frames: int = 16
+## 每两斩之间隔几帧（个数 = 斩几刀）。前慢后快：读得清第一刀，后面连成一片
+@export var ult_pass_gaps: PackedInt32Array = PackedInt32Array([9, 8, 7, 6, 5, 5, 4, 4, 4])
+## 收刀“咔”在第几帧（绝对帧）；之后 ult_hit_frame 一齐爆
+@export var ult_click_frame: int = 89
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")
@@ -2539,21 +2544,20 @@ func _process_ult(delta: float) -> void:
 		state = State.NEUTRAL
 		return
 	ult_frame += 1
+	var passes := ult_pass_frames()
+	var k := passes.find(ult_frame)
+	if k >= 0:
+		ult_pass.emit(k, passes.size())
+		_set_visual_scale(Vector2(1.22, 0.86))
+		_squash_timer = 3
 	_update_ult_pose()
-	# 动画对时：出刀前把蓄力斩的前摇拉长成“摆架势”，出刀后正常播完
-	var total: int = maxi(int(mv.total_frames()), 1)
-	var s: int = int(mv.startup_frames)
-	if ult_frame < ult_hit_frame:
-		move_frame = int(float(ult_frame) / float(ult_hit_frame) * float(s))
-	else:
-		var rest := float(ult_frame - ult_hit_frame) / float(maxi(ult_total_frames - ult_hit_frame, 1))
-		move_frame = mini(total - 1, s + int(rest * float(total - s)))
+	move_frame = mini(int(mv.total_frames()) - 1, int(float(ult_frame) / float(maxi(ult_total_frames, 1)) * float(mv.total_frames())))
 	if ult_frame == ult_hit_frame:
-		_set_visual_scale(Vector2(1.3, 0.8))
+		_set_visual_scale(Vector2(0.9, 1.12))
 		_squash_timer = 5
 		ult_hit.emit()
-	# 摆架势和出刀那几帧悬在空中不动；之后正常下落
-	if ult_frame < ult_hit_frame + 8:
+	# 连斩和收刀都悬在原地（瞬移由关卡调 ult_dash_by）；一齐爆开之后才正常下落
+	if ult_frame < ult_hit_frame + 4:
 		velocity = Vector2.ZERO
 	else:
 		velocity.x = 0.0
@@ -2567,25 +2571,47 @@ func _process_ult(delta: float) -> void:
 		ult_finished.emit()
 
 
-## 大招的“动画分镜”姿势：出刀前 = 蓄力斩的架势（0～7 帧在 ult_charge_frames 里摆完，切入时定住）；
-## 出刀后 = 收刀动画：先停在残心（第 0 帧），再转刀，第 ult_click_frame 帧正好到第 14 帧（刀横在腰间“咔”），之后慢慢收尾
+## 每一斩发生在第几帧（绝对帧）
+func ult_pass_frames() -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var f := ult_charge_frames
+	for i in ult_pass_gaps.size() + 1:
+		out.append(f)
+		if i < ult_pass_gaps.size():
+			f += maxi(ult_pass_gaps[i], 1)
+	return out
+
+
+## 千刃的姿势：起手 = 蓄力斩架势；每一斩 = 冲刺斩挥出（第 11 帧，带刀光）2 帧 → 收势（第 15 帧）；
+## 最后一斩后 = 收刀：残心（第 0 帧）→ 转刀 → 第 ult_click_frame 帧到第 14 帧“咔” → 慢慢收尾
 func _update_ult_pose() -> void:
 	if ult_frame < 0:
 		ult_clip = ""
 		ult_pose = -1
 		return
-	if ult_frame < ult_hit_frame:
+	if ult_frame < ult_charge_frames:
 		ult_clip = "charge_slash"
 		ult_pose = mini(int(float(ult_frame) * 8.0 / float(maxi(ult_charge_frames, 1))), 7)
 		return
-	var s := ult_frame - ult_hit_frame
+	var passes := ult_pass_frames()
+	var last: int = passes[passes.size() - 1]
+	if ult_frame < last + 6:
+		var since := 999
+		for pf in passes:
+			if pf <= ult_frame:
+				since = ult_frame - pf
+		ult_clip = "dash_right"
+		ult_pose = 11 if since < 2 else 15
+		return
+	var s := ult_frame - (last + 6)
+	var click_s := maxi(ult_click_frame - (last + 6), 8)
 	ult_clip = "sheathe"
-	if s < 25:
+	if s < 6:
 		ult_pose = 0
-	elif s < ult_click_frame:
-		ult_pose = 4 + int(float(s - 25) * 10.0 / float(maxi(ult_click_frame - 25, 1)))
+	elif s < click_s:
+		ult_pose = 4 + int(float(s - 6) * 10.0 / float(maxi(click_s - 6, 1)))
 	else:
-		ult_pose = mini(14 + int(float(s - ult_click_frame) / 2.5), 38)
+		ult_pose = mini(14 + int(float(s - click_s) / 2.0), 38)
 
 
 ## 大招出刀：瞬间横移 dx（先抬一点越过台阶，横着走，碰墙就停，再落回地面）。关卡在 ult_hit 里调用

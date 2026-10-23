@@ -106,10 +106,13 @@ var _round_max_combo: int = 0
 var _time: float = 0.0
 var ult_fx: Node2D
 var _ult_hint_shown := false
-var _ult_collect := false         ## 大招出刀那一下：伤害数字先记着，等影爆开再冒
-var _ult_texts := {}
-var _ult_pops := 0                ## 这一招已经爆了几只（伤害数字错开高度）
-var _ult_text_y := INF
+var _ult_collect := false         ## 旧分镜大招用；千刃直接冒伤害数字，恒为 false（大招砍死的影照常放击杀特效）
+var _ult_targets: Array = []      ## 千刃：起手时屏幕里的影 {node, cuts}
+var _ult_dir: int = 1             ## 千刃：当前往哪边斩
+var _ult_left: float = 0.0
+var _ult_right: float = 0.0
+var _ult_anchor: Node2D           ## 千刃期间镜头钉在这里
+const ULT_PASS_OVERSHOOT := 130.0 ## 千刃：瞬移到目标另一侧多远
 
 
 func _ready() -> void:
@@ -166,11 +169,13 @@ func _ready() -> void:
 	ult_fx.fx = fx
 	ult_fx.player = player
 	add_child(ult_fx)
-	ult_fx.popped.connect(_on_ult_pop)
 	style = Style.new()
 	_build_hud()
 	ult_fx.hud = hud
 	ult_fx.sheathed.connect(func(_p: Vector2): audio.play_block())
+	_ult_anchor = Node2D.new()
+	_ult_anchor.name = "UltCameraAnchor"
+	add_child(_ult_anchor)
 	encounter = Encounter.new()
 	encounter.name = "Encounter"
 	add_child(encounter)
@@ -342,6 +347,8 @@ func _connect_player() -> void:
 	player.died.connect(_on_player_died)
 	player.ult_started.connect(_on_ult_started)
 	player.ult_hit.connect(_on_ult_hit)
+	player.ult_pass.connect(_on_ult_pass)
+	player.ult_finished.connect(_ult_release_camera)
 	audio.attach_player(player)
 
 
@@ -500,6 +507,7 @@ func _revive() -> void:
 	_hp_seen = player.hp
 	fx.clear()
 	ult_fx.clear()
+	_ult_release_camera()
 	phase = Phase.FIGHT
 
 
@@ -563,9 +571,6 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
-	if _ult_collect:
-		_ult_texts[s] = [point, amount]
-		return
 	fx.spawn_text(point.lerp(s.global_position + Vector2(0, -s.half_h), 0.5), "%.0f" % amount, amount)
 
 
@@ -880,82 +885,115 @@ func _draw_seals() -> void:
 			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.6, 0), p + Vector2(0, s), p + Vector2(-s * 0.6, 0)]), col)
 
 
-# ---------------------------------------------------------------- 大招（第四轮）
+# ---------------------------------------------------------------- 大招「千刃」（2026-10-23 重做）
 
-## 摆架势：背景压暗、全场的影和飞行物定住
+## 起手：时间停住——屏幕里活着的影和飞行物全部定住；镜头钉在当前位置（连斩瞬移时画面不乱晃）
 func _on_ult_started() -> void:
 	audio.play_ult_start()
 	ult_fx.begin()
 	camera.add_shake(3.0 * shake_mul, Vector2.UP)
-	var freeze: int = player.ult_hit_frame + 2
+	var cx: float = camera.get_screen_center_position().x
+	var half := 640.0 / ZOOM - 40.0
+	_ult_targets.clear()
+	var freeze: int = player.ult_total_frames + 2
 	for s in get_tree().get_nodes_in_group(&"shade"):
-		if s.is_alive():
-			s.hitstop_frames = maxi(s.hitstop_frames, freeze)
+		if not s.is_alive():
+			continue
+		s.hitstop_frames = maxi(s.hitstop_frames, freeze)
+		if s.spawn_frames <= 0 and absf(s.global_position.x - cx) <= half + 100.0:
+			_ult_targets.append({"node": s, "cuts": 0})
+	_ult_targets.sort_custom(func(a, b): return a.node.global_position.x < b.node.global_position.x)
 	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
 		b.set_physics_process(false)
+	_ult_dir = player.facing
+	_ult_left = cx - half
+	_ult_right = cx + half
+	_ult_anchor.global_position = camera.get_screen_center_position()
+	camera.follow_target = _ult_anchor
 
 
-## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎。
-## §16.11：被砍中的影先定住，按远近一个接一个爆开（ult_fx 发 popped），伤害数字等爆开那一下再冒
-## §16.12：不再给主角顿帧（时间轴由 ult_fx 的分镜控制）；震屏留给收刀之后的爆炸
+## 第 k 斩：瞬移穿过下一个目标（来回折返），沿路留残影和一道斩线，目标身上多一道刀痕
+func _on_ult_pass(k: int, count: int) -> void:
+	if k == 0:
+		# 第一刀先把飞在半空的影矢 / 炸弹全部斩碎
+		for b in get_tree().get_nodes_in_group(&"shade_projectile"):
+			if is_instance_valid(b):
+				fx.spawn_deflect(b.global_position, Vector2(player.facing, 0))
+				b.queue_free()
+	var from: Vector2 = player.global_position
+	var tg: Dictionary = _ult_pick_target(from.x)
+	var dest_x: float
+	if tg.is_empty():
+		# 屏幕里没有影：对着空气来回斩（照样好看）
+		dest_x = from.x + float(_ult_dir) * 300.0
+		if dest_x < _ult_left or dest_x > _ult_right:
+			_ult_dir = -_ult_dir
+			dest_x = from.x + float(_ult_dir) * 300.0
+	else:
+		dest_x = tg.node.global_position.x + float(_ult_dir) * ULT_PASS_OVERSHOOT
+	dest_x = clampf(dest_x, _ult_left, _ult_right)
+	player._set_facing(_ult_dir)
+	player.ult_dash_by(dest_x - from.x)
+	var to: Vector2 = player.global_position
+	var cut_pt := Vector2.INF
+	var node: Node2D = null
+	if not tg.is_empty():
+		node = tg.node
+		tg.cuts += 1
+		cut_pt = node.global_position + Vector2(0.0, -node.half_h * 0.35)
+		node.flash = 4
+		node.flash_color = Color.WHITE
+	ult_fx.cut(from, to, cut_pt, node, k, count)
+	audio.play_swing(0.45 + 0.4 * float(k) / float(maxi(count - 1, 1)))
+	if node != null:
+		audio.play_blade_hit(0.35)
+	camera.add_shake((2.0 + 2.5 * float(k) / float(maxi(count - 1, 1))) * shake_mul, Vector2(_ult_dir, 0))
+
+
+## 下一个目标：沿当前方向、主角前面最近的那只；前面没有了就掉头。只有一只的话来回穿它。
+func _ult_pick_target(x: float) -> Dictionary:
+	var alive := _ult_targets.filter(func(t): return is_instance_valid(t.node) and t.node.is_alive())
+	if alive.is_empty():
+		return {}
+	for attempt in 2:
+		var best: Dictionary = {}
+		var best_d := INF
+		for t in alive:
+			var d: float = (t.node.global_position.x - x) * float(_ult_dir)
+			if d > 20.0 and d < best_d:
+				best_d = d
+				best = t
+		if not best.is_empty():
+			return best
+		_ult_dir = -_ult_dir
+	return alive[0]
+
+
+## 收刀之后一齐爆开：每只挨过刀的影吃满伤害并被打飞（躲不开、挡不住、霸体也扛不住），伤害数字这时才冒
 func _on_ult_hit() -> void:
 	audio.play_ult_slash()
 	var mv: Resource = player.ult_move()
-	var cx: float = camera.get_screen_center_position().x
-	var half := 640.0 / ZOOM + 60.0
-	var hit: Array = []
-	for s in get_tree().get_nodes_in_group(&"shade"):
-		if not s.is_alive() or s.spawn_frames > 0 or absf(s.global_position.x - cx) > half:
-			continue
-		hit.append(s)
-	# §16.12 一闪：黑屏那一帧主角直接冲过前方最远的影（碰墙就停），镜头跟着切过去
-	var from_x: float = player.global_position.x
-	if player.ult_dash:
-		var far := 0.0
-		for s: Node2D in hit:
-			far = maxf(far, (s.global_position.x - from_x) * float(player.facing))
-		player.ult_dash_by(clampf(far + 170.0, 420.0, 1150.0) * float(player.facing))
-		camera.snap_to_target()
 	var px: float = player.global_position.x
-	hit.sort_custom(func(a, b): return absf(a.global_position.x - px) < absf(b.global_position.x - px))
-	var targets := []
-	_ult_texts.clear()
-	_ult_collect = true
-	var i := 0
-	for s in hit:
-		var dir := 1 if s.global_position.x >= px else -1   # 冲过去之后：往离开主角的方向飞（被甩在身后）
+	var hit: Array = []
+	for t in _ult_targets:
+		var s: Node2D = t.node
+		if not is_instance_valid(s) or not s.is_alive():
+			continue          # 屏幕里的影全都吃这一下（刀数不够没轮到的也算一刀）
+		var dir := 1 if s.global_position.x >= px else -1
 		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
 		s.hitstop_frames = 0
 		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
-		s.hitstop_frames = maxi(s.hitstop_frames, int(ceil(UltFx.pop_delay(i, player.ult_click_frame) * 60.0)) + 1)
-		targets.append({"node": s, "pt": pt})
-		i += 1
-	_ult_collect = false
-	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
-		if is_instance_valid(b):
-			fx.spawn_deflect(b.global_position, Vector2(player.facing, 0))
-			b.queue_free()
-	ult_fx.slash(player.global_position.y - 20.0, player.facing, targets, from_x)
-	camera.add_shake(4.0 * shake_mul, Vector2(player.facing, 0))
-	_ult_pops = 0
-	_ult_text_y = INF
+		s.hitstop_frames = maxi(s.hitstop_frames, 4)
+		hit.append({"node": s, "pt": pt, "cuts": maxi(int(t.cuts), 1)})
+	ult_fx.burst(hit)
+	camera.add_shake((14.0 if hit.size() > 0 else 6.0) * shake_mul, Vector2(player.facing, 0))
+	if hit.size() > 0:
+		audio.play_blade_hit(1.0)
 	style.add_event(&"ult")
+	_ult_release_camera()
 
 
-## 大招余波：一只影爆开 —— 补上伤害数字（一个比一个高一点、左右错开，不叠在一起）、一声斩击、大震屏
-func _on_ult_pop(s: Node2D, point: Vector2) -> void:
-	audio.play_blade_hit(1.0)
-	var n := _ult_pops
-	_ult_pops += 1
-	camera.add_shake((11.0 if n == 0 else 8.0) * shake_mul, Vector2(player.facing, 0))
-	if s != null and _ult_texts.has(s):
-		var e: Array = _ult_texts[s]
-		_ult_texts.erase(s)
-		var at: Vector2 = (e[0] as Vector2).lerp(s.global_position + Vector2(0, -s.half_h), 0.5) if is_instance_valid(s) else point
-		# 第一个数字定个基准高度，后面的一个比一个高一截（不管影站在哪，都不会叠在一起）
-		if n == 0 or not is_finite(_ult_text_y):
-			_ult_text_y = at.y
-		else:
-			at.y = minf(at.y, _ult_text_y - float(n % 4) * 140.0)
-			at.x += 40.0 if n % 2 == 1 else -40.0
-		fx.spawn_text(at, "%.0f" % float(e[1]), float(e[1]))
+func _ult_release_camera() -> void:
+	if camera.follow_target == _ult_anchor:
+		camera.follow_target = player
+	_ult_targets.clear()

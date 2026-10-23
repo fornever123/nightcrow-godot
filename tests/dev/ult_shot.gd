@@ -1,5 +1,5 @@
 extends SceneTree
-## 开发工具：大招截图（第四轮）。四种影站一排 → 能量满 → J+K → 在 摆架势 / 出刀 / 出刀后 各截一张。
+## 开发工具：大招截图。四种影站一排 → 能量满 → J+K → 按「千刃」时间轴在几个关键帧各截一张。
 ## DISPLAY=:99 godot --path . --script res://tests/dev/ult_shot.gd --resolution 1280x720 --fixed-fps 60
 ## 截图目录：环境变量 SHOT_DIR（默认 res://.runtime/shots）
 const Buffer := preload("res://scripts/core/input_buffer.gd")
@@ -66,7 +66,12 @@ func run() -> void:
 	await physics_frame
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
-	var want := {14: "ult_1_charge", 42: "ult_2_cutin", 57: "ult_3_slash", 62: "ult_4_freeze", 95: "ult_5_click", 110: "ult_6_pop"}
+	# 千刃（2026-10-23）：起手 / 第 2 斩 / 中段 / 最后几斩 / 收刀 / 一齐爆开 / 收尾。SHOTS="12,27,..." 可改
+	var want := {12: "ult_1_charge", 27: "ult_2_pass2", 47: "ult_3_pass5", 65: "ult_4_pass9", 84: "ult_5_sheathe", 94: "ult_6_burst", 104: "ult_7_after"}
+	if OS.get_environment("SHOTS") != "":
+		want = {}
+		for v in OS.get_environment("SHOTS").split(","):
+			want[int(v)] = "ult_f%03d" % int(v)
 	for i in 130:
 		await physics_frame
 		var f: int = i + 1

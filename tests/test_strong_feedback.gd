@@ -319,9 +319,10 @@ func run() -> void:
 		enemy._break()
 		check(enemy.hitstop_frames == roundi(16 * multiplier), "guard break hitstop scales at modifier %s" % multiplier)
 
-	# The reflected arrow's real combat path gives its enemy target ten frames,
-	# The storyboard ultimate (HANDOFF §18.6) freezes each victim until its own
-	# pop and never freezes the attacker; a missed ultimate freezes nobody.
+	# The reflected arrow's real combat path gives its enemy target ten frames.
+	# 千刃 (HANDOFF §20): the start freezes every on-screen enemy until the
+	# burst and never freezes the attacker; the burst damages them, and a
+	# burst with nobody on screen freezes nobody.
 	stage.shake_mul = 2.0
 	var reflected_bolt := Node2D.new()
 	reflected_bolt.set_script(Bolt)
@@ -345,14 +346,19 @@ func run() -> void:
 	enemy.hp = enemy.max_hp
 	enemy.global_position = player.global_position + Vector2(100.0, 0.0)
 	player.hitstop_frames = 0
+	stage._on_ult_started()
+	check(player.hitstop_frames == 0 and enemy.hitstop_frames >= player.ult_total_frames,
+			"千刃 start holds on-screen enemies (%d) without freezing the attacker" % enemy.hitstop_frames)
+	var ult_hp_before: float = enemy.hp
 	stage._on_ult_hit()
-	var pop_frames := int(ceil(preload("res://scripts/night/ult_fx.gd").pop_delay(0, player.ult_click_frame) * 60.0))
-	check(player.hitstop_frames == 0 and enemy.hitstop_frames >= pop_frames,
-			"storyboard ultimate holds its victim until the pop (%d >= %d) without freezing the attacker" % [enemy.hitstop_frames, pop_frames])
+	check(player.hitstop_frames == 0 and enemy.hp < ult_hp_before, "千刃 burst damages the held enemy without freezing the attacker")
+	stage.ult_fx.clear()
 	enemy.state = Shade.State.DEAD
 	player.hitstop_frames = 0
+	stage._on_ult_started()
 	stage._on_ult_hit()
 	check(player.hitstop_frames == 0, "missed ultimate does not freeze its attacker")
+	stage.ult_fx.clear()
 	stage.camera.reset_shake()
 	stage._on_shade_died(enemy)
 	check(stage.camera._trauma > 0.0, "enemy kill event produces its dedicated shake")
