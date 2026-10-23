@@ -17,6 +17,8 @@ uniform float desat = 0.25;
 uniform vec3 pivot = vec3(0.20, 0.25, 0.36);
 uniform float flatten = 0.17;
 uniform float dim = 0.12;
+uniform float water_top = 428.0;    // 光影第一版：石桥脚以下的水面压暗（亮的反光保留），角色和地形更跳
+uniform float water_dim = 0.42;
 uniform bool pixelate = true;
 uniform bool quantize = true;
 
@@ -113,6 +115,8 @@ void fragment() {
 	c += (lum - c) * desat * k;
 	c = pivot + (c - pivot) * (1.0 - flatten * k);
 	c *= 1.0 - dim * k;
+	float wk = smoothstep(water_top, water_top + 40.0, cell.y) * water_dim;
+	c *= 1.0 - wk * (1.0 - 0.7 * smoothstep(0.45, 0.85, lum));
 	if (quantize && PAL_N > 1) {
 		c = nearest(c);
 	}

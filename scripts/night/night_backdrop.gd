@@ -7,7 +7,9 @@ extends Node2D
 ##   海面 sea（逐行视差：桥脚 0.42 → 步道后沿 1.0；步道下面 1.0 → 屏幕底 1.25；月光带固定在月亮下方）
 ##   雪山 mountains（0.12）  城堡小镇 castle（0.3）  雾（0.36，程序噪声）  石桥 bridge（0.42）
 ##   近景步道 near（1.0，沿用 v1）
-## 另外全是程序特效：桥和步道在水里的倒影、萤火虫、花瓣、流星、灯笼暖光、桥灯呼吸。
+## 另外全是程序特效：桥和步道在水里的倒影、萤火虫、花瓣、流星、灯笼暖光、桥灯呼吸；
+## 光影第一版加了：水面薄雾、石灯笼的光和水中倒影（都在像素化层之后）、飘浮光点、前景虚化光斑。
+## 整屏后期（辉光、月光光柱、调色、暗角）在 night_light.gd。
 ## 所有东西 z_index 为负，画在角色和敌人后面（花瓣和少量萤火在前面，很淡）。
 ##
 ## 坐标（第三轮节点 15 起）：镜头缩放 zoom = 0.5（世界 2 单位 = 屏幕 1 像素，角色在屏幕上缩小一半）。
@@ -25,6 +27,10 @@ const MARGIN := 48.0
 const LANTERN_REACH := 330.0      ## 灯笼暖光照到角色身上的半径
 const SNAP := 2.0                 ## 滚动对齐的步长（屏幕像素）= 背景像素块大小
 const PIXEL_Z := -75              ## 像素化 + 退后调色这一层：它下面的全部夜景层被处理，上面的（地形、角色）不受影响
+const MIST_H := 120.0             ## 水面薄雾带高度（屏幕像素），底边贴着步道顶面
+const MIST_SCROLL := 0.8
+const MOTES := 28                 ## 飘浮光点数量
+const BOKEH := 6                  ## 前景虚化光斑数量
 const LAYERS := ["sky", "halo", "moon", "clouds", "sea", "mountains", "castle", "bridge", "near"]
 
 static var _cache: Dictionary = {}
@@ -40,11 +46,16 @@ var _spr: Dictionary = {}         ## 图层名 → Sprite2D
 var _bridge_reflect: Sprite2D
 var _fog: Sprite2D
 var _near_reflect: Sprite2D
-var _glow_back: Node2D           ## 加色混合：灯笼光、萤火（在角色后面）
+var _glow_back: Node2D           ## 加色混合：萤火（在角色后面；石灯笼的光在 _glow_water）
 var _front: Node2D               ## 普通混合：花瓣、少量萤火（在角色前面）
 var _meteors: Node2D             ## 流星（在月亮和云后面）
 var _mid_glow: Node2D            ## 桥灯（桥上面）
 var _sea_mat: ShaderMaterial
+var _mist: Sprite2D              ## 光影第一版：步道后面水面上的薄雾（z −74，像素化层之后）
+var _mist_mat: ShaderMaterial
+var _glow_water: Node2D          ## 光影第一版：石灯笼的光 + 步道前水面上的暖色倒影（加色，z −73）
+var _motes: Node2D               ## 光影第一版：飘浮的光点 + 前景虚化光斑（加色，z 14，在角色前面但很淡）
+var _mote_list: Array = []
 var _scr: Node2D                 ## 屏幕容器（见文件头）
 var _pix: Node2D                 ## 像素化 + 退后调色（全屏，读屏幕纹理）
 var pixel_mat: ShaderMaterial
@@ -80,6 +91,13 @@ func lantern_light(p: Vector2) -> Vector3:
 	w = w * w * (3.0 - 2.0 * w) * lantern_flicker(lan.x)
 	var dir := d / maxf(dist, 0.001)
 	return Vector3(w, dir.x, dir.y)
+
+
+## 月亮在屏幕上的位置（设计分辨率像素；月亮贴在屏幕上不动）
+func moon_screen() -> Vector2:
+	if not ok:
+		return Vector2(1064.0, 160.0)
+	return Vector2(float(meta.moon.center[0]), float(meta.moon.center[1]) + _top_y())
 
 
 func near_top() -> float:
@@ -183,6 +201,21 @@ func _ready() -> void:
 	_scr.add_child(_front)
 	for i in 9:
 		_petals.append(_new_petal(true))
+	_mist = _sprite(_make_fog_texture(), -74, true)
+	_mist_mat = _shader_mat(preload("res://assets/shaders/night_mist.gdshader"), {"h": MIST_H})
+	_mist.material = _mist_mat
+	_glow_water = Node2D.new()
+	_glow_water.z_index = -73
+	_glow_water.material = _add_mat()
+	_glow_water.draw.connect(_draw_glow_water)
+	_scr.add_child(_glow_water)
+	_motes = Node2D.new()
+	_motes.z_index = 14
+	_motes.material = _add_mat()
+	_motes.draw.connect(_draw_motes)
+	_scr.add_child(_motes)
+	for i in MOTES + BOKEH:
+		_mote_list.append(_new_mote(i >= MOTES))
 	_pix = Node2D.new()
 	_pix.name = "Pixelate"
 	_pix.z_index = PIXEL_Z
@@ -321,6 +354,14 @@ func _process(delta: float) -> void:
 	_near_reflect.scale = Vector2(z, z)
 	_near_reflect.position = Vector2(cl - MARGIN, ny + (nh - 1.0) * z)
 	_near_reflect.region_rect = Rect2(near.region_rect.position.x, 131.0, w / z, wall_rows)
+	# 水面薄雾：底边贴着步道顶面，0.8 倍视差 + 风飘
+	var floor_sy := roundf(to_v(Vector2(0, floor_y)).y)
+	_mist.position = Vector2(cl - MARGIN, floor_sy - MIST_H)
+	_mist.region_rect = Rect2(fposmod(cl * MIST_SCROLL + _time * 6.0, 768.0), 0, w, MIST_H)
+	_mist_mat.set_shader_parameter("t", _time)
+	_glow_water.queue_redraw()
+	_update_motes(delta)
+	_motes.queue_redraw()
 	_update_meteor(delta)
 	_update_petals(delta)
 	_meteors.queue_redraw()
@@ -384,25 +425,10 @@ func _draw_mid_glow() -> void:
 			_mid_glow.draw_circle(origin + Vector2(sx, y), 4.0, Color(1.0, 0.8, 0.5, 0.22 * fl))
 
 
-## 灯笼光、萤火：位置按世界坐标算，画在容器坐标里（to_v）；灯笼光跟近景一起按 zoom 缩小
+## 萤火（石灯笼的光在光影第一版挪到了 _draw_glow_water）：位置按世界坐标算，画在容器坐标里（to_v）；灯笼光跟近景一起按 zoom 缩小
 func _draw_glow_back() -> void:
 	var cl := screen_left() / z          # 屏幕左边缘的世界 x
 	var span := 1280.0 / z
-	var np := float(meta.near.period)
-	# 灯笼：火光 + 地上的一圈暖光（随火苗轻微跳动）
-	var k0 := floorf((cl - 300.0 - LANTERN_IN_TILE.x) / np)
-	var nt := roundf(to_v(Vector2(0, near_top())).y) / z
-	for t in int(ceilf(span / np)) + 3:
-		var lx := (k0 + float(t)) * np + LANTERN_IN_TILE.x
-		if lx < cl - 400.0 or lx > cl + span + 400.0:
-			continue
-		var c := Vector2((lx - _near_shift) * z, (nt + LANTERN_IN_TILE.y) * z)
-		var fl := lantern_flicker(lx)
-		for i in 6:
-			var r := 18.0 + float(i) * 22.0
-			_glow_back.draw_circle(c, r * fl * z, Color(1.0, 0.62, 0.3, 0.045 * fl))
-		_glow_back.draw_circle(c, 9.0 * z, Color(1.0, 0.85, 0.55, 0.35 * fl))
-		_draw_ground_pool(to_v(Vector2(lx - _near_shift, floor_y - 2.0)), 190.0 * fl * z, 16.0 * z, Color(1.0, 0.6, 0.28, 0.07 * fl))
 	# 萤火虫：按 220 世界单位一格程序生成，同一格每次都一样（往回走不会变）
 	var cell := 220.0
 	var c0 := floorf((cl - 100.0) / cell)
@@ -420,14 +446,91 @@ func _draw_glow_back() -> void:
 		_glow_back.draw_circle(p, 1.6, Color(0.85, 1.0, 0.7, 0.75 * blink))
 
 
-func _draw_ground_pool(c: Vector2, rx: float, ry: float, col: Color) -> void:
+## 石灯笼的光（光影第一版起画在像素化层之后，暖色不再被退后调色吃掉）：
+## 火光 + 一圈暖光 + 地上的暖光圈 + 步道前面水里的倒影（一串忽长忽短的暖色横条，越往下越淡，水波晃动）
+func _draw_glow_water() -> void:
+	var cl := screen_left() / z
+	var span := 1280.0 / z
+	var np := float(meta.near.period)
+	var k0 := floorf((cl - 300.0 - LANTERN_IN_TILE.x) / np)
+	var nt := roundf(to_v(Vector2(0, near_top())).y) / z
+	var wall_bottom := roundf(to_v(Vector2(0, near_top())).y) + float(meta.near.size[1]) * z
+	for t in int(ceilf(span / np)) + 3:
+		var lx := (k0 + float(t)) * np + LANTERN_IN_TILE.x
+		if lx < cl - 400.0 or lx > cl + span + 400.0:
+			continue
+		var sx := (lx - _near_shift) * z
+		var fl := lantern_flicker(lx)
+		var c := Vector2(sx, (nt + LANTERN_IN_TILE.y) * z)
+		for i in 7:
+			var r := 14.0 + float(i) * 26.0
+			_glow_water.draw_circle(c, r * fl * z, Color(1.0, 0.52, 0.18, 0.055 * fl))
+		_glow_water.draw_circle(c, 7.0 * z, Color(1.0, 0.72, 0.38, 0.6 * fl))
+		_glow_water.draw_circle(c, 3.5 * z, Color(1.0, 0.92, 0.7, 0.9 * fl))
+		_draw_pool(_glow_water, to_v(Vector2(lx - _near_shift, floor_y - 2.0)), 230.0 * fl * z, 14.0 * z, Color(1.0, 0.55, 0.2, 0.09 * fl))
+		var y := wall_bottom + 4.0
+		var i := 0
+		while y < 724.0:
+			var f := (y - wall_bottom) / 110.0
+			var a := (0.45 - 0.33 * f) * fl
+			var wob := sin(_time * 2.2 + y * 0.37 + lx) * (2.0 + f * 5.0)
+			var half := (5.0 + f * 9.0) * (0.6 + 0.4 * sin(_time * 3.1 + float(i) * 1.7 + lx))
+			if a > 0.0:
+				_glow_water.draw_rect(Rect2(sx + wob - half, y, half * 2.0, 2.0), Color(1.0, 0.5, 0.16, a))
+			y += 4.0 + f * 3.0
+			i += 1
+
+
+## 光点：屏幕坐标 + 视差（par），慢慢往上飘、左右摆、一闪一闪；光斑：大而淡的虚化圆，视差大于 1（在镜头前）
+func _new_mote(bokeh: bool) -> Dictionary:
+	return {
+		"bokeh": bokeh,
+		"x": _rng.randf_range(0.0, 1320.0), "y": _rng.randf_range(80.0, 700.0),
+		"vy": -_rng.randf_range(4.0, 14.0) * (0.5 if bokeh else 1.0),
+		"ph": _rng.randf_range(0.0, TAU), "sp": _rng.randf_range(0.5, 1.4),
+		"par": _rng.randf_range(1.25, 1.6) if bokeh else _rng.randf_range(0.55, 1.0),
+		"r": _rng.randf_range(16.0, 34.0) if bokeh else _rng.randf_range(1.0, 2.2),
+		"warm": _rng.randf() < (0.35 if bokeh else 0.22),
+	}
+
+
+func _update_motes(delta: float) -> void:
+	for m in _mote_list:
+		m.y += float(m.vy) * delta
+		if m.y < 40.0:
+			m.y = 720.0 + _rng.randf_range(0.0, 60.0)
+			m.x = _rng.randf_range(0.0, 1320.0)
+
+
+func _draw_motes() -> void:
+	var cl := screen_left()
+	var top := _top_y()
+	for m in _mote_list:
+		var ph: float = m.ph
+		var sx: float = fposmod(float(m.x) - cl * float(m.par) + sin(_time * 0.4 * float(m.sp) + ph) * 30.0, 1320.0) - 20.0
+		var c := Vector2(cl + sx, top + float(m.y))
+		var tw := 0.55 + 0.45 * sin(_time * 1.7 * float(m.sp) + ph * 3.0)
+		var col := Color(1.0, 0.72, 0.42) if m.warm else Color(0.72, 0.86, 1.0)
+		var r: float = m.r
+		if m.bokeh:
+			for i in 4:   # 一圈圈叠起来 = 边缘柔和的虚化圆
+				col.a = 0.016 * tw
+				_motes.draw_circle(c, r * (1.0 - float(i) * 0.18), col)
+		else:
+			col.a = 0.10 * tw
+			_motes.draw_circle(c, r * 4.0, col)
+			col.a = 0.75 * tw
+			_motes.draw_circle(c, r, col)
+
+
+func _draw_pool(node: CanvasItem, c: Vector2, rx: float, ry: float, col: Color) -> void:
 	for i in 4:
 		var k := 1.0 - float(i) * 0.22
 		var pts := PackedVector2Array()
 		for j in 24:
 			var a := TAU * float(j) / 24.0
 			pts.append(c + Vector2(cos(a) * rx * k, sin(a) * ry * k))
-		_glow_back.draw_colored_polygon(pts, col)
+		node.draw_colored_polygon(pts, col)
 
 
 func _hash(x: float) -> float:
