@@ -35,3 +35,18 @@ Thumbs.db
 *.keystore
 /export_credentials.cfg
 /.github-auth/
+
+# AI 高清离线参考（2026-10-20 生成，2026-10-21 起停用）：只留在本机，不上传。
+/assets/image/ai-hd-20261020/
+/assets/data/ai-hd-visuals.json
+/scripts/presentation/ai_hd_visuals.gd
+/scripts/presentation/ai_hd_visuals.gd.uid
+/tests/test_ai_hd_visuals.gd
+/tests/test_ai_hd_visuals.gd.uid
+/tools/art/prepare_ai_hd_assets.cjs
+/docs/ai-hd-assets-20261020/
+/docs/ai-hd-visual/
+/docs/AI高清试玩.md
+
+# 一次性合并入口（2026-10-23）
+/APPLY_MERGE_20261023.bat
