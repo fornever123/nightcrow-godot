@@ -224,9 +224,16 @@ var input_source: Object = null
 @export var ult_enabled: bool = false
 @export var ult_max: float = 100.0
 @export var ult_chord_frames: int = 6
-## 整招多少帧 / 第几帧出刀（之前是摆架势 + 全场定住）
-@export var ult_total_frames: int = 58
-@export var ult_hit_frame: int = 24
+## 整招多少帧 / 第几帧出刀。§16.12 动画分镜：0～29 蓄力（架势）→ 30～53 切入特写 → 54 白屏 → 55 黑屏 = 出刀
+## → 出刀后 0～24 帧残心（刀伸在身后）→ 转刀 → 第 ult_click_frame 帧收刀“咔” → 收尾
+@export var ult_total_frames: int = 95
+@export var ult_hit_frame: int = 55
+## 蓄力阶段多少帧（架势动画在这段里摆完，之后定在最后一帧）
+@export var ult_charge_frames: int = 30
+## 出刀后第几帧收刀“咔”（之后被砍中的影一个接一个爆）
+@export var ult_click_frame: int = 38
+## 出刀那一下瞬间冲过敌人（false = 原地斩）
+@export var ult_dash: bool = true
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")
@@ -249,6 +256,10 @@ var guard_clock: float = 0.0
 var action_serial: int = 0
 var ult_energy: float = 0.0
 var ult_frame: int = -1          ## ≥0 = 正在放大招（第几帧）
+## 大招期间角色显示哪段动画、第几帧（character_view 读；空 = 不管）
+var ult_clip: String = ""
+var ult_pose: int = -1
+var ult_from_x: float = NAN      ## 出刀冲刺之前站在哪
 var _ult_move: Resource = null
 var _ult_used_seq: int = -1      ## 已经用掉的那对 J/K 按键（防止同一次按键放两次）
 var _soft_knock := false   ## 这次被击退是轻击（落地直接站稳）
@@ -1918,6 +1929,8 @@ func reset_state(pos: Vector2) -> void:
 	_interrupt_action_flow()
 	ult_frame = -1
 	ult_energy = 0.0
+	ult_clip = ""
+	ult_pose = -1
 	action_idle_frames = 0
 	global_position = pos
 	velocity = Vector2.ZERO
@@ -2504,6 +2517,8 @@ func _start_ult() -> void:
 	move_frame = 0
 	ult_frame = 0
 	ult_energy = 0.0
+	ult_from_x = global_position.x
+	_update_ult_pose()
 	link_open = false
 	last_swing_hit = true
 	_hit_this_swing.clear()
@@ -2519,9 +2534,12 @@ func _process_ult(delta: float) -> void:
 	var mv := current_move
 	if mv == null:
 		ult_frame = -1
+		ult_clip = ""
+		ult_pose = -1
 		state = State.NEUTRAL
 		return
 	ult_frame += 1
+	_update_ult_pose()
 	# 动画对时：出刀前把蓄力斩的前摇拉长成“摆架势”，出刀后正常播完
 	var total: int = maxi(int(mv.total_frames()), 1)
 	var s: int = int(mv.startup_frames)
@@ -2543,5 +2561,41 @@ func _process_ult(delta: float) -> void:
 	move_and_slide()
 	if ult_frame >= ult_total_frames:
 		ult_frame = -1
+		ult_clip = ""
+		ult_pose = -1
 		_end_attack()
 		ult_finished.emit()
+
+
+## 大招的“动画分镜”姿势：出刀前 = 蓄力斩的架势（0～7 帧在 ult_charge_frames 里摆完，切入时定住）；
+## 出刀后 = 收刀动画：先停在残心（第 0 帧），再转刀，第 ult_click_frame 帧正好到第 14 帧（刀横在腰间“咔”），之后慢慢收尾
+func _update_ult_pose() -> void:
+	if ult_frame < 0:
+		ult_clip = ""
+		ult_pose = -1
+		return
+	if ult_frame < ult_hit_frame:
+		ult_clip = "charge_slash"
+		ult_pose = mini(int(float(ult_frame) * 8.0 / float(maxi(ult_charge_frames, 1))), 7)
+		return
+	var s := ult_frame - ult_hit_frame
+	ult_clip = "sheathe"
+	if s < 25:
+		ult_pose = 0
+	elif s < ult_click_frame:
+		ult_pose = 4 + int(float(s - 25) * 10.0 / float(maxi(ult_click_frame - 25, 1)))
+	else:
+		ult_pose = mini(14 + int(float(s - ult_click_frame) / 2.5), 38)
+
+
+## 大招出刀：瞬间横移 dx（先抬一点越过台阶，横着走，碰墙就停，再落回地面）。关卡在 ult_hit 里调用
+func ult_dash_by(dx: float) -> void:
+	ult_from_x = global_position.x
+	if is_zero_approx(dx):
+		return
+	var lift := 40.0
+	var up := move_and_collide(Vector2(0.0, -lift))
+	var rose := lift if up == null else absf(up.get_travel().y)
+	move_and_collide(Vector2(dx, 0.0))
+	move_and_collide(Vector2(0.0, rose + 6.0))
+	velocity = Vector2.ZERO

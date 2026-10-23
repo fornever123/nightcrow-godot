@@ -67,6 +67,11 @@ func _process(delta: float) -> void:
 	_update_shake(delta)
 
 
+## 立刻对准跟随目标（不平滑）。大招出刀冲刺：黑屏那一帧镜头直接切过去
+func snap_to_target() -> void:
+	_update_follow(1.0e4)
+
+
 func _update_follow(delta: float) -> void:
 	if follow_target == null or not is_instance_valid(follow_target):
 		return

@@ -2,10 +2,11 @@
  "version": 2,
  "sky": {
   "size": [
-   1280,
+   2560,
    420
   ],
-  "scroll": 0.01
+  "scroll": 0.01,
+  "src": "sky_v3"
  },
  "halo": {
   "size": [
@@ -26,12 +27,13 @@
  },
  "clouds": {
   "size": [
-   1720,
-   417
+   3440,
+   420
   ],
-  "period": 1720,
+  "period": 3440,
   "scroll": 0.05,
-  "drift": 3.0
+  "drift": 4.0,
+  "src": "sky_v3"
  },
  "sea": {
   "top": 417,
@@ -100,5 +102,15 @@
    1125,
    207
   ]
+ },
+ "clouds_low": {
+  "size": [
+   2580,
+   420
+  ],
+  "period": 2580,
+  "scroll": 0.03,
+  "drift": 2.0,
+  "src": "sky_v3"
  }
 }

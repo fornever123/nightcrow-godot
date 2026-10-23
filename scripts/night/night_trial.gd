@@ -97,6 +97,7 @@ var fallen_frames: int = 0
 var debug_boxes: bool = false
 var shake_mul: float = 1.0
 var _hp_seen: float = 100.0
+var _plunge_frame: int = -100
 var _hints_done: Dictionary = {}
 var _hint_queue: Array = []
 var _round_time: float = 0.0
@@ -105,6 +106,10 @@ var _round_max_combo: int = 0
 var _time: float = 0.0
 var ult_fx: Node2D
 var _ult_hint_shown := false
+var _ult_collect := false         ## 大招出刀那一下：伤害数字先记着，等影爆开再冒
+var _ult_texts := {}
+var _ult_pops := 0                ## 这一招已经爆了几只（伤害数字错开高度）
+var _ult_text_y := INF
 
 
 func _ready() -> void:
@@ -152,12 +157,20 @@ func _ready() -> void:
 	fx.damage_numbers_enabled = bool(config.ui.get("showDamageNumbers", true))
 	fx.z_index = 5
 	fx.text_scale = 1.0 / ZOOM
-	fx.fx_scale = 1.25
+	fx.fx_scale = 1.0
+	fx.floor_at = func(x: float, y: float) -> float: return terrain.support_y(x, y)
 	add_child(fx)
+	fx.track_player(player)
+	fx.track_glow(player.get_node("Visual/ActorSprite"))
 	ult_fx = UltFx.new()
+	ult_fx.fx = fx
+	ult_fx.player = player
 	add_child(ult_fx)
+	ult_fx.popped.connect(_on_ult_pop)
 	style = Style.new()
 	_build_hud()
+	ult_fx.hud = hud
+	ult_fx.sheathed.connect(func(_p: Vector2): audio.play_block())
 	encounter = Encounter.new()
 	encounter.name = "Encounter"
 	add_child(encounter)
@@ -306,13 +319,24 @@ func _connect_player() -> void:
 	# 冲刺斩起步“呼”一声；刀风统一走 swing_cue（判定帧前 3 帧，音画对齐）
 	player.move_started.connect(func(move: Resource, _index: int):
 		if move == player.dash_move or move == player.dash_left_move:
-			audio.play_dash())
+			audio.play_dash()
+			fx.spawn_dash(player.global_position + Vector2(0, player.foot_offset), player.facing)
+			fx.mark_dash_start(player.global_position)
+			fx.start_ghosts(player.get_node("Visual/ActorSprite"), 0.45))
 	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
-	player.jumped.connect(audio.play_jump)
-	player.landed.connect(func(): audio.play_land(player.last_landing_heavy); fx.spawn_dust(player.global_position + Vector2(0, player.foot_offset)))
+	player.jumped.connect(func(is_double: bool):
+		audio.play_jump(is_double)
+		fx.spawn_jump(player.global_position + Vector2(0, player.foot_offset), is_double))
+	player.landed.connect(func():
+		audio.play_land(player.last_landing_heavy)
+		if Engine.get_physics_frames() - _plunge_frame > 2:
+			fx.spawn_land(player.global_position + Vector2(0, player.foot_offset), player.last_landing_heavy))
 	player.charge_started.connect(audio.play_charge_start)
 	player.charge_released.connect(func(_f: int, charged: bool): audio.play_charge_release(charged))
-	player.ranged_fired.connect(func(_p: Node): audio.play_ranged())
+	player.ranged_fired.connect(func(p: Node):
+		audio.play_ranged()
+		if p is Node2D:
+			fx.spawn_muzzle((p as Node2D).global_position, Vector2(player.facing, 0)))
 	player.plunge_landed.connect(_on_plunge_landed)
 	player.wall_slam.connect(_on_player_wall)
 	player.died.connect(_on_player_died)
@@ -475,6 +499,7 @@ func _revive() -> void:
 	player.invuln_frames = 60
 	_hp_seen = player.hp
 	fx.clear()
+	ult_fx.clear()
 	phase = Phase.FIGHT
 
 
@@ -515,7 +540,7 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 		# 一刀把影矢 / 炸弹砍回去
 		camera.add_shake(6.0 * shake_mul, Vector2(player.facing, 0))
 		audio.play_deflect()
-		fx.spawn_parry(point, Vector2(player.facing, 0))
+		fx.spawn_deflect(point, Vector2(player.facing, 0))
 		hud.callout("打回去！", Color("ffe08a"), 34)
 		return
 	if target == player or not target.is_in_group(&"shade"):
@@ -531,10 +556,16 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	if mv.shake_amount > 0.0:
 		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
 	audio.play_impact(mv)
-	fx.spawn_hit(point.lerp(target.global_position, 0.5), Feel.from_move(mv), mv.forces_launch)
+	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move
+	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir, is_dash, mv.id)
+	if is_dash:
+		fx.spawn_dash_hit(point.lerp(target.global_position, 0.5), player.facing)
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
+	if _ult_collect:
+		_ult_texts[s] = [point, amount]
+		return
 	fx.spawn_text(point.lerp(s.global_position + Vector2(0, -s.half_h), 0.5), "%.0f" % amount, amount)
 
 
@@ -547,7 +578,7 @@ func _on_shade_broken(point: Vector2, s: Node2D) -> void:
 		hud.callout("眩晕！", Color("ffe066"), 38)
 	camera.add_shake(12.0 * shake_mul, Vector2.UP)
 	audio.play_stun()
-	fx.spawn_parry(point, Vector2.UP)
+	fx.spawn_break(point)
 	_queue_hint(&"stun", "眩晕中！W + J 把它挑飞（眩晕中挑得更高）", 5.0, true)
 
 
@@ -555,6 +586,7 @@ func _on_shade_launched(point: Vector2) -> void:
 	style.add_event(&"launch")
 	hud.callout("挑飞！", Color("9fd8ff"), 36)
 	audio.play_launch()
+	fx.spawn_launch(point)
 	fx.spawn_dust(Vector2(point.x, terrain.support_y(point.x, point.y)), 0.7)
 	_queue_hint(&"air", "W后按J或J后按W：跳起上挑！空中 J 连斩，命中短暂慢坠 · S+J 下砸 · 前+J 横扫撞墙", 6.0, true)
 
@@ -564,8 +596,7 @@ func _on_slam_impact(point: Vector2, strength: float) -> void:
 	hud.callout("下砸！", Color("ffb054"), 40)
 	camera.add_shake(22.0 * strength * shake_mul, Vector2.DOWN)
 	audio.play_slam(strength)
-	fx.spawn_wall_slam(point, Vector2.DOWN, 1.0)
-	fx.spawn_dust(point, 1.0)
+	fx.spawn_ground_slam(point, clampf(strength, 0.6, 1.4))
 
 
 func _on_shade_wall(speed: float, damage: float, point: Vector2, s: Node2D) -> void:
@@ -593,7 +624,7 @@ func _on_chain_hit(level: int, point: Vector2) -> void:
 func _on_shade_guarded(point: Vector2, s: Node2D) -> void:
 	camera.add_shake(5.0 * shake_mul, s.global_position - player.global_position)
 	audio.play_block()
-	fx.spawn_parry(point, s.global_position - player.global_position)
+	fx.spawn_block(point, s.global_position - player.global_position)
 	fx.spawn_text(point + Vector2(0, -20), "挡")
 	_queue_hint(&"guard", "敌人举刀格挡（身前蓝弧）→ 第三刀 / 按住 J 蓄力 / W+J / Shift+J 能砸开，或者绕到背后", 6.0, true)
 
@@ -603,7 +634,7 @@ func _on_shade_guard_broken(point: Vector2) -> void:
 	style.add_event(&"guard_break")
 	hud.callout("破招！", Color("ffe066"), 34)
 	audio.play_guard_break()
-	fx.spawn_parry(point, Vector2.UP)
+	fx.spawn_break(point)
 
 
 func _on_friendly_hit(point: Vector2) -> void:
@@ -627,8 +658,7 @@ func _on_projectile(node: Node2D) -> void:
 func _on_bomb_exploded(point: Vector2, friendly: bool) -> void:
 	camera.add_shake(18.0 * shake_mul, Vector2.UP)
 	audio.play_bomb(1.0)
-	fx.spawn_wall_slam(point, Vector2.UP, 1.3)
-	fx.spawn_dust(point, 1.2)
+	fx.spawn_explosion(point, 1.0)
 	if friendly:
 		style.add_event(&"reflect")
 		hud.callout("炸回去！", Color("ffb054"), 36)
@@ -642,6 +672,9 @@ func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 func _on_shade_died(s: Node2D) -> void:
 	camera.add_shake(6.0 * shake_mul, s.global_position - player.global_position)
 	audio.play_shade_die()
+	if not _ult_collect:          # 大招砍死的：等它爆开（ult_fx 的余波）再炸，不在这里炸
+		fx.spawn_kill(s.global_position)
+	fx.track_dissolve(s)
 	var airborne: bool = s.position.y < s.ground_y() - 10.0
 	if airborne:
 		style.add_event(&"air_kill")
@@ -673,7 +706,7 @@ func _on_player_hurt(dmg: float, point: Vector2, shake: float = 3.0, dir: Vector
 	if shake > 0.0:
 		camera.add_shake(shake * shake_mul, dir)
 	audio.play_hurt(0.8 if heavy or dmg >= 12.0 else 0.4)
-	fx.spawn_hit(point, 0.6, false)
+	fx.spawn_hurt(point, dir, heavy or dmg >= 12.0)
 	fx.spawn_text(point + Vector2(0, -30), "-%.0f" % dmg, dmg)
 
 
@@ -686,14 +719,16 @@ func _on_parry(attacker: Node, point: Vector2) -> void:
 	fx.spawn_parry(point, dir)
 
 
-func _on_block(_attacker: Node, point: Vector2) -> void:
+func _on_block(attacker: Node, point: Vector2) -> void:
 	camera.add_shake(4.0 * shake_mul, Vector2(player.facing, 0))
 	audio.play_block()
+	fx.spawn_block(point, (attacker as Node2D).global_position - player.global_position if attacker is Node2D else Vector2(player.facing, 0))
 	fx.spawn_text(point, "格挡")
 
 
 func _on_plunge_landed(point: Vector2) -> void:
-	fx.spawn_dust(point, 1.0)
+	_plunge_frame = Engine.get_physics_frames()
+	fx.spawn_ground_slam(point, 0.8)
 	camera.add_shake(14.0 * shake_mul, Vector2.DOWN)
 	# 声音交给紧接着的 landed（重落地）
 
@@ -860,33 +895,67 @@ func _on_ult_started() -> void:
 		b.set_physics_process(false)
 
 
-## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎
+## 出刀：屏幕里所有的影都吃一刀（躲不开、挡不住、霸体也扛不住），飞行物全部斩碎。
+## §16.11：被砍中的影先定住，按远近一个接一个爆开（ult_fx 发 popped），伤害数字等爆开那一下再冒
+## §16.12：不再给主角顿帧（时间轴由 ult_fx 的分镜控制）；震屏留给收刀之后的爆炸
 func _on_ult_hit() -> void:
 	audio.play_ult_slash()
 	var mv: Resource = player.ult_move()
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM + 60.0
-	var ys := []
-	var n := 0
+	var hit: Array = []
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		if not s.is_alive() or s.spawn_frames > 0 or absf(s.global_position.x - cx) > half:
 			continue
-		var dir := 1 if s.global_position.x >= player.global_position.x else -1
+		hit.append(s)
+	# §16.12 一闪：黑屏那一帧主角直接冲过前方最远的影（碰墙就停），镜头跟着切过去
+	var from_x: float = player.global_position.x
+	if player.ult_dash:
+		var far := 0.0
+		for s: Node2D in hit:
+			far = maxf(far, (s.global_position.x - from_x) * float(player.facing))
+		player.ult_dash_by(clampf(far + 170.0, 420.0, 1150.0) * float(player.facing))
+		camera.snap_to_target()
+	var px: float = player.global_position.x
+	hit.sort_custom(func(a, b): return absf(a.global_position.x - px) < absf(b.global_position.x - px))
+	var targets := []
+	_ult_texts.clear()
+	_ult_collect = true
+	var i := 0
+	for s in hit:
+		var dir := 1 if s.global_position.x >= px else -1   # 冲过去之后：往离开主角的方向飞（被甩在身后）
 		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
 		s.hitstop_frames = 0
 		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
-		s.hitstop_frames = maxi(s.hitstop_frames, mv.victim_hitstop_frames)
-		fx.spawn_hit(pt, 1.6, true)
-		ys.append(pt.y)
-		n += 1
+		s.hitstop_frames = maxi(s.hitstop_frames, int(ceil(UltFx.pop_delay(i, player.ult_click_frame) * 60.0)) + 1)
+		targets.append({"node": s, "pt": pt})
+		i += 1
+	_ult_collect = false
 	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
 		if is_instance_valid(b):
-			fx.spawn_parry(b.global_position, Vector2(player.facing, 0))
+			fx.spawn_deflect(b.global_position, Vector2(player.facing, 0))
 			b.queue_free()
-	ult_fx.slash(player.global_position.y - 20.0, player.facing, ys)
-	camera.add_shake(28.0 * shake_mul, Vector2(player.facing, 0))
-	if n > 0:
-		player.hitstop_frames = maxi(player.hitstop_frames, mv.hitstop_frames)
+	ult_fx.slash(player.global_position.y - 20.0, player.facing, targets, from_x)
+	camera.add_shake(4.0 * shake_mul, Vector2(player.facing, 0))
+	_ult_pops = 0
+	_ult_text_y = INF
 	style.add_event(&"ult")
-	if n > 0:
-		hud.callout("月下斩 ×%d" % n, Color("ffe08a"), 44)
+
+
+## 大招余波：一只影爆开 —— 补上伤害数字（一个比一个高一点、左右错开，不叠在一起）、一声斩击、大震屏
+func _on_ult_pop(s: Node2D, point: Vector2) -> void:
+	audio.play_blade_hit(1.0)
+	var n := _ult_pops
+	_ult_pops += 1
+	camera.add_shake((11.0 if n == 0 else 8.0) * shake_mul, Vector2(player.facing, 0))
+	if s != null and _ult_texts.has(s):
+		var e: Array = _ult_texts[s]
+		_ult_texts.erase(s)
+		var at: Vector2 = (e[0] as Vector2).lerp(s.global_position + Vector2(0, -s.half_h), 0.5) if is_instance_valid(s) else point
+		# 第一个数字定个基准高度，后面的一个比一个高一截（不管影站在哪，都不会叠在一起）
+		if n == 0 or not is_finite(_ult_text_y):
+			_ult_text_y = at.y
+		else:
+			at.y = minf(at.y, _ult_text_y - float(n % 4) * 140.0)
+			at.x += 40.0 if n % 2 == 1 else -40.0
+		fx.spawn_text(at, "%.0f" % float(e[1]), float(e[1]))

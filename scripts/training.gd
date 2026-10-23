@@ -217,7 +217,7 @@ func _hit(target: Node2D, move: Resource, point: Vector2) -> void:
 		dir = Vector2.UP
 	camera.add_shake(move.shake_amount*(0.2 if move.is_ranged() else 1.0),dir)
 	audio.play_impact(move)
-	fx.spawn_hit(point.lerp(target.global_position,0.5),Feel.from_move(move),move.forces_launch)
+	fx.spawn_hit(point.lerp(target.global_position,0.5),Feel.from_move(move),move.forces_launch,dir,false,move.id)
 	last_feedback = "命中 · 角色停顿 %d 帧 / 木桩 %d 帧" % [player.hitstop_frames,dummy.hitstop_frames]
 
 func _damage(amount: float, _hp: float, point: Vector2) -> void:

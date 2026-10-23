@@ -66,8 +66,8 @@ func run() -> void:
 	await physics_frame
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
-	var want := {14: "ult_1_pose", 25: "ult_2_slash", 31: "ult_3_after", 50: "ult_4_fly"}
-	for i in 60:
+	var want := {14: "ult_1_charge", 42: "ult_2_cutin", 57: "ult_3_slash", 62: "ult_4_freeze", 95: "ult_5_click", 110: "ult_6_pop"}
+	for i in 130:
 		await physics_frame
 		var f: int = i + 1
 		if i < 3: print("f", f, " ult=", p.ult_frame, " st=", p.state)

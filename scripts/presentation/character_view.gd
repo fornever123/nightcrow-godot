@@ -23,6 +23,7 @@ var idle_clock: float = 0.0
 var stance_drawn: bool = true
 var airborne_seen: bool = false
 var stance_initialized: bool = false
+var _ult_tail: int = -1   ## 大招最后停在收刀动画第几帧（大招结束后从这里接着收刀）
 
 func _ready() -> void:
 	actor = get_parent().get_parent()
@@ -90,13 +91,27 @@ func _physics_process(delta: float) -> void:
 		if absf(actor.velocity.x) > 12.0 and elapsed >= cancel_time:
 			landing = 0.0
 			wanted = "run"
-	wanted = _stance_animation(wanted, delta)
+	# 大招：分镜自己定姿势（player.ult_clip / ult_pose）；结束后从收刀那一帧接着播完收刀
+	var ult_clip := _ult_clip()
+	if not ult_clip.is_empty():
+		wanted = ult_clip
+		_ult_tail = int(actor.ult_pose) if ult_clip == String(setup.get("drawSheathe", {}).get("sheatheAnimation", "sheathe")) else -1
+	else:
+		if _ult_tail >= 0 and wanted == "idle" and bool(setup.get("drawSheathe", {}).get("enabled", false)):
+			var sk := String(setup.drawSheathe.get("sheatheAnimation", "sheathe"))
+			var sc: Dictionary = setup.get("animations", {}).get(sk, {})
+			stance_clip = sk
+			stance_clock = Timeline.ticks_before(sc.get("frames", []), clampi(_ult_tail, 0, sc.get("frames", []).size())) / maxf(float(sc.get("fps", 24)), 0.001)
+			stance_drawn = false
+			idle_clock = 0.0
+		_ult_tail = -1
+		wanted = _stance_animation(wanted, delta)
 	if wanted != clip_name:
 		clip_name = wanted
 		clock = 0.0
 	_draw_frame()
 	if is_instance_valid(trail):
-		if actor.state == 1 and actor.current_move != null and actor.current_move.effect != "":
+		if actor.state == 1 and actor.current_move != null and actor.current_move.effect != "" and ult_clip.is_empty():
 			trail.sync_pose(frame_index, actor.global_position + Vector2(0, actor.foot_offset), actor.facing, float(setup.animations[clip_name].get("fps",36)))
 		trail.tick(delta, actor.is_in_hitstop())
 
@@ -128,6 +143,10 @@ func _draw_frame() -> void:
 		frame_index = int(setup.get("chargeFrame", 2))
 	elif actor.is_in_parry() and not bool(clip.get("playDuringParry", false)):
 		frame_index = 0
+	var ult_pose := int(actor.get("ult_pose")) if actor.get("ult_pose") != null else -1
+	if ult_pose >= 0 and clip_name == _ult_clip():
+		frame_index = ult_pose
+		time = Timeline.ticks_before(frames, clampi(ult_pose, 0, frames.size())) / maxf(fps, 0.001)
 	frame_index = clampi(frame_index, 0, frames.size() - 1)
 	var original: Dictionary = frames[frame_index]
 	var replacement := HD.select_frame(clip_name, frame_index) if hd_allowed and not bool(original.get("blank", false)) and not bool(original.get("disabled", false)) else {}
@@ -233,6 +252,10 @@ func _clear_trail() -> void:
 func set_identity_color(_c: Color) -> void:
 	pass
 
+func _ult_clip() -> String:
+	var c: Variant = actor.get("ult_clip")
+	return String(c) if c != null else ""
+
 func reset_presentation() -> void:
 	_clear_trail()
 	clock = 0.0
@@ -243,6 +266,7 @@ func reset_presentation() -> void:
 	stance_drawn = true
 	stance_initialized = false
 	airborne_seen = false
+	_ult_tail = -1
 
 func _clip_duration(clip: Dictionary) -> float:
 	return Timeline.ticks_before(clip.get("frames", []), clip.get("frames", []).size()) / maxf(float(clip.get("fps", 24)), 0.001)

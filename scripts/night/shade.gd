@@ -1001,7 +1001,8 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		if mv.id in GUARD_BREAKERS or charge_t > 0.3:
 			state = State.IDLE
 			guard_frames = 0
-			_add_poise(25.0)
+			if not is_ult:          # §16.12：大招不让人晕（只打飞）
+				_add_poise(25.0)
 			guard_broken.emit(point)
 		else:
 			_guard_block(mv, from_facing, point, attacker)

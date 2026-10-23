@@ -577,3 +577,82 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 截图工具 `scene_shot.gd`：`NOPOST=1` 关后期对比；`POSTP="rays_amt=0.3,contrast=1.2"` / `PIXP="water_dim=0.2"` 临时调参。
 - 测试：全套 646 项 0 失败（18 个套件，含 main 上新加的上挑跳 / 空中朝向测试）。
 - 下一步候选：敌人（影卒）加月光边缘光；命中/刀光更亮的辉光；前景剪影层（要 GPT 图）。像素化还是奥日那样的手绘风，等用户定。
+
+## 18. 特效与大招分镜（2026-10-21～22，分支 `trial-wip4`，2026-10-23 已合入 main）
+
+> 本节原编号 16.7–16.12，与上面同编号的手感节点冲突，合并时改为 18.1–18.6。
+
+### 18.1 角色特效 v1（程序特效，2026-10-21）
+- **为什么用程序做**：GPT 画不出逐帧连贯的特效动画；命中/尘土/残影这类全部用代码画，风格统一可调。
+- **像素画布** `scripts/presentation/pixel_fx.gd`：所有特效先画进半分辨率的小画布（1 格 = 2 屏幕像素，和背景像素块一样大），最近邻放大贴回世界 → 硬边像素风；淡出用拜耳抖动（`assets/shaders/fx_dither.gdshader`），碎成像素点而不是半透明。每帧按主镜头对齐（含震屏）。零件：STAR / BURST（爆闪，长短不一的尖刺）/ STREAK（斩线）/ RING（冲击环，粗→细，后半段碎成弧段，避免像准星）/ DISC / SPARK / CHUNK / PUFF / LINES（放射线，b<a 时往里收）/ CRACK。
+- **配方** `scripts/presentation/impact_fx.gd`（接口兼容旧版）：`spawn_hit`（力度 `ImpactFX.power_of(mv)` 按伤害算；同一帧打中多只时只有第一只给全套）、`spawn_hurt`（橙红）、`spawn_parry`（白爆闪 + 横向长“镲”光 + 弹跳金属火星）、`spawn_block`、`spawn_break`、`spawn_deflect`、`spawn_wall_slam`、`spawn_ground_slam`（扁环 + 石屑 + 地裂）、`spawn_explosion`、`spawn_launch`、`spawn_kill`、`spawn_muzzle`、`spawn_dust/land/jump/dash/step`；`start_ghosts`（冲刺残影，前半段实心剪影）；`track_player`（蓄力往里收的光刺、可放时叮一下、跑步扬灰）；`track_dissolve`（影死后化黑烟火星）。调色板常量在文件顶部（尘土已调暗成夜色灰蓝）。
+- **接入**：`night_trial.gd` 各战斗事件 → 对应 spawn；`fx.floor_at` 用地形高度让火星/石屑落地弹跳。训练场沿用旧调用（兼容）。
+- **样片工具** `tests/dev/fx_reel.gd`：几只不动的影站主角前，按固定输入出招逐帧截图。`REEL=light,charge,launch,dash,ranged,jump,fx`（`fx` 段直接触发弹刀/格挡/挨打/破防/下砸/炸弹/撞墙/击杀），`SHOT_DIR`、`EVERY`。运行：`DISPLAY=:99 SHOT_DIR=/data/reel timeout 290 godot --path . --script res://tests/dev/fx_reel.gd --resolution 1280x720 --fixed-fps 60`。
+- 地面攻击烘焙在帧里的白刀光已改成主角紫，见 18.2。
+
+### 18.2 地面攻击刀光改紫（`tools/art/recolor_slash.py`，2026-10-21）
+- **为什么不用分层素材**：`selected-original/*/effects` 和 desktop 帧不是同一拍，对不上位置；改成直接在现有帧里按“颜色 + 连通块”认出刀光再重新上色。
+- **范围**：动画 attack_1/2/3、attack_2_start、attack_2_recovery、strong_attack、attack_up、charge_slash（共 138 张图，67 张有刀光/尘土）。空中攻击（air_attack_1/2/3、air_slash）的源图刀光本来就是紫色，不用改（冲刺斩见 18.3）。
+- **认法**：低饱和且亮的像素做连通块 → 大块、边缘多挨透明、够粗 = 刀光（附近小碎块并进来）；贴地、不细长 = 尘土；孤立小杂点抹掉；衣服白边、刀身高光不动。
+- **上色**：凸包认外缘（刀尖划过的路径），按到外缘/内缘的距离比上色：外缘固定宽白芯（略偏蓝 `efeaff`）→ 淡紫 → 紫 → 深紫并往里淡出，外缘加不规则刷痕，外侧一圈半透明紫晕（垫在角色下面）。尘土改浅灰蓝半透明。色阶和程序特效的紫一套。
+- **存法**：新帧存 `assets/image/fixed-fx/<原路径>.webp.b64`（GitHub 推送只能传文本），battle.json `assetOverride` 指过去；`assetFxBase` 记原底图（重跑从这重来），`assetFxPad`=四周加的透明边（20px，给紫晕留地方），引用这些帧的 width/height/pivot 已同步换算，位置不变。
+- **夜景描边**：`char_light.gdshader` 的深色描边原来只跳过“亮、偏蓝白”的像素，现在也跳过亮紫（b≥0.68、比 g 高 0.2、比 r 高 0.08），所以紫刀光、紫晕、尘土外面都不会描黑边。
+- **重跑**：`python3 tools/art/recolor_slash.py preview [名字过滤]` 出预览到 /data/fxwork/recolor/；`write` 写帧并改 battle.json（可直接重跑）。
+
+### 18.3 冲刺斩特效 v2（2026-10-21）
+- **刀光改紫**：`recolor_slash.py` 加了 dash_right / dash_left（「冲刺攻击」44 张有特效）。冲刺帧的白色速度条压在身上，认法另起：纯白种子（亮且几乎不带色、够大够粗）往外长 5px；贴地且不细长 → 尘土，其他 → 刀光。压在身上的那部分刀光保持不透明（底下没有身体像素，变透明会露洞）。贴地那一截（`WAKE_TOP`/`WAKE_W`）渐变成浅灰蓝尘土，紫晕跟着淡。
+- **残影**：新着色器 `assets/shaders/fx_ghost.gdshader`——只取身体轮廓（帧里的白芯 / 亮紫刀光 / 浅灰蓝尘土不画，头发的紫蓝不会被误认），平滑半透明（不再抖动成点），外轮廓一圈亮边、里面更深更透。`impact_fx.start_ghosts(src, 0.45, 16)`：按**走过的距离**每 16 屏幕像素留一个（一帧走太远就在路上补），不按时间——起步没动时不会叠成一坨；浅紫 → 深紫，0.32 秒淡完，越晚留的越淡。
+- **一闪**：冲刺斩命中时 `impact_fx.spawn_dash_hit()`：从冲刺起点（`mark_dash_start`）到命中点前方 70px，一道细长亮线（`pixel_fx` 新零件 `K.SLIT`：白芯 / 浅紫 / 紫三层实色），整条停约 2 帧，再从尾端往刀尖收细消失；上下各一根细速度线往前滑，线上崩几粒紫碎光。一次冲刺打中好几个：同一条线往前接长、重新亮一下。
+- **起步尘土**：帧里已烘焙尘土，`spawn_dash` 只留一小团贴地的（原来 3 团抖动点糊成一片），速度线 5 → 4 根。
+- **样片**：`REEL=dash`（`tests/dev/fx_reel.gd`）。
+
+### 18.4 顶级特效：辉光 + 重击冲击帧 + 命中收小（2026-10-22）
+- **为什么自己做辉光**：渲染器是 gl_compatibility，WorldEnvironment 的 2D glow 靠不住，所以全用着色器 + SubViewport 自己做，两套：
+  - **像素特效辉光**（`pixel_fx.gd` + `assets/shaders/fx_bloom.gdshader`）：像素特效小画布（1 格 = 2 屏幕像素）→ 再缩一半的 `bloom_vp` 里用 fx_bloom 取“亮的（亮度 ≥ 0.55 起）/ 亮紫的”像素做三圈模糊（半径 6 格、gain 2.0）→ `bloom` 精灵相加混合，**垫在像素特效下面**（特效本身保持硬边，柔光只露在外面）。白芯、金火花、紫斩线外面有一层柔光；尘土、墨点暗，不发光。`pfx.bloom_enabled` 可关。
+  - **刀光辉光**（`impact_fx.track_glow(sprite)` + `assets/shaders/fx_glow_sprite.gdshader`）：给主角 ActorSprite 挂一个子精灵 `BladeGlow`，每帧同步贴图 / 翻转 / offset，region 四周多留 pad 给光晕；只取帧里**亮紫**的像素（头发的紫蓝偏暗、白衣服都不算），半径约 7 屏幕像素，相加混合。平时 `glow_base` 0.55 淡淡一层；打中时 `glow_hit(p)` 亮到 +0.45～0.9 再衰减（每秒 −3.2）。只在试玩关（`night_trial.gd`）挂。
+- **重击冲击帧**（`impact_fx.impact_frame(p)`）：力度 `power_of(mv)` ≥ 0.6 的命中（第三刀、冲刺斩、蓄力斩、撞墙等）背景压暗：z −1 绝对（地形 −70 之上、角色 0 之下，和大招压暗同一层），角色、敌人、特效不压。普通重击 0.4 停 0.06s 再 0.16s 淡回；≥ 0.9（蓄力斩）0.52 停 0.09s 再 0.22s。顿帧（hitstop）数值没动。`impact_frames_enabled` 可关。
+- **命中收小**：`spawn_hit(..., slim)`：冲刺斩传 slim=true——不画冲击环和放射线，爆闪 / 白点小 30%（“一闪”亮线顶替）。所有命中：金色爆闪 26+18p → 22+13p，同帧非第一只 0.75 → 0.65；冲击环 34+34p → 28+26p、变细；放射线变短；蓄力斩额外的白圈改浅紫、变小。`last_hit_plan` 记录不变（测试要 ≥ 5 层）。
+- **空中攻击**：源图刀光本来就是紫的，不用改（16.8 已更正）。
+- **样片**：`REEL=charge`（冲击帧最明显）、`light`、`dash`。
+
+### 18.5 大招三段 + 普通攻击不规整化（2026-10-22）
+**大招**（`scripts/presentation/ult_fx.gd`，J+K 同按；起手约 24 帧 → 全屏斩 → 逐个爆）
+- **① 起手**：刀身点亮、绕身旋转的光丝（`pixel_fx` 新零件 `K.WISP`）、贴地风压、刀尖十字星；去掉了大招文字。
+- **② 全屏一斩**：一道横贯全屏的笔刷月牙（`K.CRESCENT`，常量 `MAIN_R 3000 / MAIN_B 54 / MAIN_TILT 0.1 / MAIN_HALF 0.33 / MAIN_LIFE 0.5`），画在**角色身后**（`_back` 独立 PixelFx，z −1）；再补两道交叉的 X（交点 = 被打敌人的平均位置，延迟 0.05 / 0.09s）。出刀瞬间：**黑白两帧**（`BW_FRAMES 2`，`assets/shaders/fx_ult_ink.gdshader`：读屏幕，接近纸色的变纸、其余变墨）→ 全屏辉光闪（ult_fx 自身 ADD 材质）→ 背景压暗 → **画面沿刀痕错开**（`assets/shaders/fx_ult_split.gdshader`：圆内外两侧沿切线反向偏 `SPLIT_PX 10` 屏幕像素，中间一条亮缝），0.16–0.29s 合回。刀头带火星 + 星，尾巴碎成光点。
+- **③ 逐个爆**：每只敌人身上先留一道细月牙刀痕，刀光扫过后按离主角远近依次爆（`pop_delay(i) = 0.16 + 0.1i`，且不早于刀光经过 + 0.08s）：白芯 + 爆闪 + 断环 + 紫白碎片 + 墨点 + 火花 + 两道亮线，敌人白闪。ult_fx 发 `popped(target, point)` → `night_trial._on_ult_pop`：刀声、震屏 5、这时才冒伤害数字（`_ult_collect` 期间伤害数字先存 `_ult_texts`，击杀特效不叠）。每只的顿帧 = 爆的那一刻。
+- **月牙零件**：`impact_fx._crescent(center, r, b, c, d, life, delay, cols, s0, s1, edge, hairs, rough)`；刀头 0→s0 冲到头、s1 以后从尾巴擦掉；刃口小抖 + 内缘毛边 + 尾段刷毛；`crescent_span / crescent_point` 给外部算刀头位置。
+
+**普通攻击不规整化**（`impact_fx.gd` / `pixel_fx.gd`）
+- `spawn_hit(point, strength, up, dir, slim, style)`：新增 `style` = 招式 id（`night_trial` / `training` 都传 `mv.id`）。斩线从直条 `_streak` 换成小月牙 `_arc_cut`（穿过命中点，弧心在主角身后那侧，曲率每次小抖；长 (110+80p)、宽 (12+7p) 屏幕像素）。每招一种形状 × 每次随机 3 种变体（`last_hit_variant`；`debug_variant` ≥ 0 可强制）：
+
+| 招式 | 斩痕 | 变体 |
+|---|---|---|
+| light_1 | 往下斜 | 单弧 / 加一道细平行弧 / 加一道分叉 |
+| light_2 | 往上斜 | 同上 |
+| light_3、air_light_3 | 大弧 | 大弧 + 分叉 / 小 X / 三道爪痕 |
+| charge_1 | 特大弧 | + 平行弧 / + 交叉成 X / + 长分叉 + 两层断环 |
+| up_strike、air_up | 竖直往上 | 单弧 / V 字 / 弧 + 分叉（保留往上飘的细线） |
+| dash_slash(_left) | 细 | 细交叉 / 只一闪 / 两个小勾 |
+| ranged_1 | 小 | 小星 + 火花 / 小爆闪 + 短弧 / 火花 + 小弧 |
+| air_light_1/2 | 陡斜 | 两种往下陡 / 一种往上陡 |
+
+- **消失方式**（`Fx.mode`，每个零件随机）：月牙 0 从尾巴擦 / 1 两头往中间收 / 2 原地变细碎掉；火花 0 淡出 / 1 闪着灭 / 2 缩成点（各 50 / 25 / 25%）。
+- **冲击环 → 断环**：`_ring` 自动切 2–4 段，长短、缺口、粗细、消失快慢都不同。
+- **爆闪不对称**：刺数 ±1，打击方向那半边长、背后短，总有一根特别长的往前戳，偶尔一根很短。
+- **火花**大小不一（0.6 / 1 / 1.5 / 2.2 倍）、拖尾长短不一。**放射线**只往打击方向一片随机撒，长短不一（`_lines(..., fwd, spread)`）。
+- `last_hit_plan` 名字不变（flash / cut / spark / ink / ring / lines），测试仍要 ≥ 5 层。
+- **样片**：`REEL=hits`（不走输入，8 招 × 3 变体依次在主角前方打出来，每个 16 帧）、`REEL=ult`、`light`、`charge`。
+
+### 18.6 大招重做成“动画分镜”（2026-10-22）
+`scripts/night/ult_fx.gd` 整体重写（约 2 秒，时间轴跟着 `player.ult_frame`，60 帧/秒）。主角 `ult_total_frames 58→95`、`ult_hit_frame 24→55`，新增 `ult_charge_frames 30`、`ult_click_frame 38`、`ult_dash true`。
+- **① 蓄力 0–29**：时间停住（全场影 / 飞行物定住）；背景褪色压暗（新 `fx_ult_grade.gdshader`）；四周集中线往主角收、每 2 帧换一组；刀身从柄到尖亮；脚下风压圈一圈圈往外推；镜头临时推近 `CAM_PUSH 0.1`（0 = 关，白屏那帧弹回）。主角摆蓄力斩架势 0–7 帧，之后定住。
+- **② 切入 30–53**：屏幕中间斜着闪进一条带子（`CUT_H 170 / CUT_TILT 0.11 / CUT_Y 0.4`）：主角这一帧的原画放大 `SIL_SCALE 2.3` 对准眼睛（`EYE_7`），`fx_ult_sil.gdshader` 硬边 + 颜色分档（`paint 0` = 纯剪影）+ 眼里一道光 + 速度线。**这是占位**：有了眼睛特写图换掉 `_draw_ui_sil` 就行。
+- **③ 白屏 1 帧（54）→ 黑屏 1 帧（55 = 出刀）**：`night_trial._on_ult_hit` 让主角瞬间冲过前方最远的影（`player.ult_dash_by`：先抬 40 → 横移 → 落回，碰墙就停；距离 `clamp(最远 + 170, 420, 1150)`），镜头 `camera.snap_to_target()` 直接切过去。不再给主角顿帧。
+- **④ 一闪**：身后一道巨大的赛璐璐刀光（白 / 浅紫 / 紫 / 深紫硬分层，圆弧，两头尖），一拍二换形：尖细 → 最宽 → 三张抖动变体轮流；光晕只垫外圈，最多 2 根细残影线，没有 X；冲刺路上一串身体残影（`impact_fx.ghost_line`）。
+- **⑤ 定格**：黑白 / 反色 / 彩色交替闪 3 次（`NEG`，`fx_ult_ink` 新增 `invert`）；画面沿刀痕错开（`fx_ult_split`），刀痕两边碎片悬空；第 `S_SHATTER 25` 帧刀光碎成几段往下掉 → 碎屑飘落。
+- **⑥ 收刀**：主角背对敌人，播收刀动画（残心第 0 帧停 25 帧 → 转刀 → 出刀后第 38 帧到第 14 帧“咔”，`sheathed` 信号 → 格挡声）→ 被砍中的影由近到远每隔 `POP_GAP 5` 帧爆一只：尖角星形爆炸一拍二变形 → 紫烟团（`BOOM_SCALE 0.6`）；`popped` → 伤害数字（第一只定基准高度，后面一个比一个高 140、左右错开）、震屏 11 / 8。大招结束后 `character_view` 从收刀那一帧接着播完（`_ult_tail`）。
+- **⑦ 收尾**：颜色从出刀后第 44 帧开始恢复，HUD 第 42 帧后淡回来。
+- **清理**：大招期间 HUD 藏起来、`hud.muted` 不弹提示字；大招不加失衡（`shade.take_hit` 对 `is_ult` 跳过 `_add_poise`，砸开格挡也不加）；火星减到原来 1/3；去掉地面扬尘。被打的影往离开主角的方向飞（被甩在身后）。
+- **图层**：`_lo` z −2（风压圈 / 刀光 / 碎块，在角色后面）、`_hi` z 18（斩痕 / 爆炸 / 碎屑）、CanvasLayer 11（集中线 / 切入带 / 白黑屏）。
+- **开关**：`CAM_PUSH`（推近镜头）、`player.ult_dash`（冲过敌人）、`HIDE_HUD`、`BOOM_SCALE`、`SIL_SCALE`。
+- **样片**：`REEL=ult`（150 帧）；`tests/dev/ult_shot.gd` 按新时间轴截 6 张。
