@@ -2,6 +2,9 @@ extends Sprite2D
 const Art := preload("res://scripts/presentation/art_cache.gd")
 const Trail := preload("res://scripts/presentation/trail_view.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
+const HD := preload("res://scripts/presentation/ai_hd_visuals.gd")
+var hd_active := false
+var hd_allowed := false
 var actor: CharacterBody2D
 var setup: Dictionary = {}
 var clip_name: String = "idle"
@@ -29,6 +32,12 @@ func _ready() -> void:
 	actor.jumped.connect(_on_jumped)
 	actor.landed.connect(_on_landed)
 	actor.tree_exiting.connect(_clear_trail)
+	# 正式游戏使用完整原版序列帧；AI高清关键姿势仅作为离线参考。
+	hd_allowed = false
+	if hd_allowed:
+		var hd_controls := CanvasLayer.new()
+		hd_controls.set_script(HD)
+		add_child(hd_controls)
 	if bool(setup.get("drawSheathe", {}).get("enabled", false)):
 		stance_clip = String(setup.drawSheathe.get("drawAnimation", "draw"))
 	_draw_frame.call_deferred()
@@ -120,19 +129,25 @@ func _draw_frame() -> void:
 	elif actor.is_in_parry() and not bool(clip.get("playDuringParry", false)):
 		frame_index = 0
 	frame_index = clampi(frame_index, 0, frames.size() - 1)
-	Art.apply(self, frames[frame_index], float(setup.get("displayScale", 1.0)))
+	var original: Dictionary = frames[frame_index]
+	var replacement := HD.select_frame(clip_name, frame_index) if hd_allowed and not bool(original.get("blank", false)) and not bool(original.get("disabled", false)) else {}
+	hd_active = not replacement.is_empty()
+	Art.apply(self, replacement.get("frame", frames[frame_index]), float(setup.get("displayScale", 1.0)))
+	if hd_active:
+		_clear_trail()
 	# Turn clips already turn the body in their pixels. Cancel the parent flip.
 	if bool(clip.get("authoredTurn", false)):
 		scale.x *= float(actor.facing)
 	else:
-		scale.x *= float(clip.get("sourceFacing", 1))
+		scale.x *= float(replacement.get("sourceFacing", clip.get("sourceFacing", 1)))
 	var overlay_time := Timeline.ticks_before(frames, frame_index) / fps if actor.is_charging() else time
 	if not actor.is_charging() and actor.state != actor.State.DEAD and bool(clip.get("loop", false)):
 		var total := Timeline.ticks_before(frames, frames.size())
 		var before := Timeline.ticks_before(frames, clampi(int(clip.get("loopFrame", 0)), 0, frames.size() - 1))
 		if time * fps >= total:
 			overlay_time = (before + fposmod(time * fps - before, total - before)) / fps
-	_draw_overlay(clip, overlay_time, fps)
+	if not hd_active:
+		_draw_overlay(clip, overlay_time, fps)
 	if actor.is_in_parry():
 		var pose := Vector2(1.08,0.93) if actor.is_parrying() else Vector2(0.93,1.07)
 		scale *= Vector2.ONE + (pose - Vector2.ONE) * actor.squash_strength

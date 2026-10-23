@@ -2,7 +2,7 @@ extends Node2D
 ## 试玩版敌人「影」：程序绘制的影子剑士（不需要新美术）。
 ##
 ## 战斗主题“眩晕连段”的另一半就在这里（设计见 docs/HANDOFF-试玩版.md §7）：
-##   打满失衡条 → 眩晕（站着发晕、受伤 +25%）→ 挑飞（眩晕中挑得更高）
+##   连续命中 → 基础击退逐段增强 → 重招/上挑进入浮空
 ##   → 浮空连段（每一下把它托住，但越连托得越低、掉得越快 = 衰减）
 ##   → 方向终结（S+J 下砸：落地反弹 + 冲击波；前+第三刀：横斩撞墙）
 ##   → 连锁击飞（高速飞出去的影撞到别的影，把它们一起撞飞）
@@ -16,7 +16,7 @@ extends Node2D
 ## 第四轮（照《疯狂小人战斗》，见交接文档 §16）：
 ##   · 四种影：影卒（快攻，会举刀格挡 / 翻滚）、甲影（重甲霸体，常格挡）、
 ##     影弓（拉开距离射影矢）、影爆（抛炸弹）。参数全在 KINDS 表里。
-##   · 击退百分比 pct：挨的伤害越多（血条旁的 %），每一下打得越远，挑飞越高。
+##   · 连击击退：第一下就有明确推力，连续命中按 combo_taken 逐步增强；落地后清零。
 ##   · 连段伤害递增：同一套连段里越往后越疼，落地站起清零。
 ##   · 会误伤：影卒 / 甲影的刀、影矢、炸弹都会打到挡在路上的同伴。
 
@@ -77,8 +77,9 @@ const WALL_DAMAGE_SCALE := 0.045
 const POISE_REGEN_DELAY := 90
 const POISE_REGEN := 0.55          ## 每帧
 const PARRY_CUE := 10              ## 出刀前多少帧亮"刀尖白星"（配合试玩场景 12 帧弹刀窗口）
-const PCT_KNOCK := 0.006           ## 每 1% 击退百分比 → 击退 +0.6%（100% ≈ 飞远 1.6 倍）
-const KNOCK_MUL_MAX := 2.4
+const BASE_KNOCKBACK_SCALE := 1.35 ## 格斗游戏式基础推力：第一下也能读出位移
+const COMBO_KNOCK_STEP := 0.24     ## 每次连续命中额外 +24% 推力
+const COMBO_KNOCK_MAX := 2.5
 const COMBO_DMG_STEP := 0.05       ## 同一套连段每多挨一下，伤害 +5%（最多 +50%）
 const ROLL_FRAMES := 18
 const ROLL_IFRAMES := 14
@@ -86,11 +87,6 @@ const ROLL_SPEED := 620.0
 const FRIENDLY_DAMAGE := 0.5       ## 误伤同伴打几折
 ## 这些招式能砸开举刀格挡（其余的会被挡住）
 const GUARD_BREAKERS := [&"light_3", &"charge_1", &"up_strike", &"dash_slash", &"dash_slash_left", &"ult"]
-
-## 每招的失衡值 = 伤害 × 系数（终结类更容易打出失衡）
-const POISE_MUL := {&"light_1": 1.3, &"light_2": 1.4, &"light_3": 2.0, &"charge_1": 2.4, &"up_strike": 1.5,
-	&"dash_slash": 1.8, &"dash_slash_left": 1.8, &"ranged_1": 0.8, &"air_light_1": 1.0, &"air_light_2": 1.0,
-	&"air_light_3": 1.4, &"air_up": 1.0}
 
 var kind: int = Kind.GRUNT
 var spec: Dictionary
@@ -269,9 +265,10 @@ func is_ranged_kind() -> bool:
 	return bool(spec.get("ranged", false))
 
 
-## 现在挨打会飞多远（疯狂小人：Power 随伤害% 增长，体重越大越难打飞）
+## 现在挨打会飞多远：基础推力 × 体重 × 连续命中倍率。
 func knock_mul() -> float:
-	return clampf(float(spec.get("weight", 1.0)) * (1.0 + pct * PCT_KNOCK), 0.3, KNOCK_MUL_MAX)
+	var combo_step := clampi(combo_taken - 1, 0, 6)
+	return clampf(float(spec.get("weight", 1.0)) * (1.0 + COMBO_KNOCK_STEP * float(combo_step)), 0.3, COMBO_KNOCK_MAX)
 
 
 ## 翻滚的无敌帧
@@ -1027,16 +1024,10 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	flash = 3
 	flash_color = Color.WHITE
 	squash = Vector2(mv.squash.x, mv.squash.y).lerp(Vector2.ONE, 0.45)
-	if not stunned:
-		_add_poise(mv.damage * float(POISE_MUL.get(mv.id, 1.2)) * (1.0 + charge_t))
 	damaged.emit(dealt, hp, point)
 	if hp <= 0.0:
 		_die(from_facing)
 		_death_fling(mv, from_facing, from_up, intent)
-		return false
-	if state == State.STUNNED and not stunned:
-		# 这一下刚好打满失衡：先让它定在原地发晕（别被同一下打飞，眩晕要读得出来）
-		velocity.x = float(from_facing) * 60.0
 		return false
 	facing = -from_facing
 	var launches := mv.forces_launch or from_up
@@ -1064,11 +1055,11 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	if launches:
 		_launch(mv, from_facing, from_up, stunned, charge_t)
 	elif stunned:
-		# 眩晕中挨普通攻击：不解除眩晕，只被推一点
-		velocity.x = float(from_facing) * minf(mv.knockback * 0.25, 90.0)
+		# 兼容显式硬直状态；普通连击仍按连续命中推力移动。
+		velocity.x = float(from_facing) * minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, 760.0)
 	else:
-		# 疯狂小人：每一下都把人打退一截（带一点上跳），挨得越多（pct 越高）退得越远、僵得越久
-		_flinch(from_facing, 14 + mv.victim_hitstop_frames + mini(int(pct * 0.1), 12), minf(mv.knockback * 1.1 * km, 640.0))
+		# 格斗游戏式击退：第一下就明显，连续命中逐步增加，挥空不触发。
+		_flinch(from_facing, 14 + mv.victim_hitstop_frames, minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, 760.0))
 		if on_ground():
 			velocity.y = -minf(120.0 * km, 260.0)
 	return false
@@ -1095,13 +1086,8 @@ func _apply_damage(dmg: float) -> void:
 
 
 func _add_poise(amount: float) -> void:
-	if state == State.STUNNED or state == State.DEAD:
-		return
-	poise_idle = 0
-	poise += amount * (0.45 if break_resist > 0 else 1.0)
-	if poise >= max_poise:
-		poise = max_poise
-		_break()
+	# 旧失衡条字段保留以兼容存档/编辑器，但不再参与战斗状态。
+	poise = 0.0
 
 
 func _break() -> void:
@@ -1145,7 +1131,7 @@ func _flinch(from_facing: int, frames: int, push: float) -> void:
 func _launch(mv: MoveDefinition, from_facing: int, from_up: bool, stunned: bool, charge_t: float) -> void:
 	var kb_mul := 1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t
 	var v := mv.knockback_velocity(from_facing) * kb_mul
-	# 伤害% 主要让人横着飞得更远；竖直只加一点（挑飞高度要稳定，空中连段才接得上）
+	# 连续命中倍率主要让人横着飞得更远；竖直只加一点（挑飞高度要稳定，空中连段才接得上）
 	var km := knock_mul()
 	v.x *= km
 	if not from_up:
@@ -1201,7 +1187,7 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 		velocity = Vector2(float(from_facing) * 420.0, -maxf(hover, 360.0))
 		chain_armed = true
 		return
-	velocity = Vector2(float(from_facing) * (60.0 + mv.knockback * 0.12), -hover)
+	velocity = Vector2(float(from_facing) * (60.0 + mv.knockback * 0.12 * knock_mul()), -hover)
 
 
 func on_parried(cause: Node = null) -> void:
@@ -1662,24 +1648,10 @@ func _draw_bars(fade: float) -> void:
 	var x := -w / 2.0
 	draw_rect(Rect2(x - 1, y - 1, w + 2, 5), Color(0, 0, 0, 0.6 * fade))
 	draw_rect(Rect2(x, y, w * clampf(hp / max_hp, 0.0, 1.0), 3), Color(0.92, 0.93, 0.96, fade))
-	# 失衡条：金色，满了闪
-	var py := y + 5.0
-	draw_rect(Rect2(x - 1, py - 1, w + 2, 5), Color(0, 0, 0, 0.6 * fade))
-	var col := GOLD
-	if state == State.STUNNED:
-		col = GOLD.lerp(Color.WHITE, 0.5 + 0.5 * sin(anim_t * 18.0))
-	elif break_resist > 0:
-		col = Color(0.7, 0.62, 0.4)
-	col.a = fade
-	draw_rect(Rect2(x, py, w * clampf(poise / max_poise, 0.0, 1.0), 3), col)
-	if kind == Kind.BRUTE:
-		draw_string(_font, Vector2(x, y - 4), "霸体" if state != State.STUNNED else "破防", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.75, 0.45, 0.85 * fade))
-	# 击退百分比：挨得越多数字越红，飞得越远
-	if pct >= 1.0:
-		var pc := Color(0.92, 0.93, 0.96).lerp(Color(1.0, 0.62, 0.3), clampf(pct / 60.0, 0.0, 1.0))
-		pc = pc.lerp(Color(1.0, 0.3, 0.25), clampf((pct - 60.0) / 60.0, 0.0, 1.0))
-		pc.a = 0.95 * fade
-		draw_string(_font, Vector2(x + w + 5.0, y + 8.0), "%d%%" % int(pct), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, pc)
+	# 不再显示失衡条/百分比；用连续命中数表达击退递增。
+	if combo_taken > 1:
+		var combo_col := Color(1.0, 0.78, 0.38, 0.95 * fade)
+		draw_string(_font, Vector2(x + w + 5.0, y + 8.0), "连击×%d" % combo_taken, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, combo_col)
 
 
 func debug_state_name() -> String:

@@ -338,7 +338,7 @@ func _physics_process(delta: float) -> void:
 		if s.state == Shade.State.LAUNCHED or s.state == Shade.State.STUNNED:
 			juggling = true
 		if s.state == Shade.State.WINDUP and not _hints_done.has(&"parry"):
-			_queue_hint(&"parry", "敌人亮橙光 = 马上出刀 → 看准按 L 弹刀（大量失衡）", 5.0)
+			_queue_hint(&"parry", "敌人亮橙光 = 马上出刀 → 看准按 L 弹刀（命中后会停住）", 5.0)
 	style.tick(delta, juggling)
 	_round_max_combo = maxi(_round_max_combo, style.combo)
 	_round_rank = maxi(_round_rank, style.rank_index())
@@ -402,8 +402,8 @@ func _on_wave_started(idx: int, count: int, label: String) -> void:
 	if round_index > 0:
 		sub += " · 第 %d 轮" % (round_index + 1)
 	hud.banner(label, sub, 2.0)
-	if not _hints_done.has(&"poise"):
-		_queue_hint(&"poise", "连续命中会填满敌人头顶的金色【失衡条】→ 打满就眩晕", 5.5)
+	if not _hints_done.has(&"knockback"):
+		_queue_hint(&"knockback", "连续命中会逐步增强击退；落地后重新计算", 5.5)
 
 
 func _on_wave_cleared(idx: int, count: int) -> void:
