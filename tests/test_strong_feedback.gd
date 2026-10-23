@@ -320,7 +320,8 @@ func run() -> void:
 		check(enemy.hitstop_frames == roundi(16 * multiplier), "guard break hitstop scales at modifier %s" % multiplier)
 
 	# The reflected arrow's real combat path gives its enemy target ten frames,
-	# while a missed ultimate produces no hitstop and a real hit uses 18/26.
+	# The storyboard ultimate (HANDOFF §18.6) freezes each victim until its own
+	# pop and never freezes the attacker; a missed ultimate freezes nobody.
 	stage.shake_mul = 2.0
 	var reflected_bolt := Node2D.new()
 	reflected_bolt.set_script(Bolt)
@@ -345,7 +346,9 @@ func run() -> void:
 	enemy.global_position = player.global_position + Vector2(100.0, 0.0)
 	player.hitstop_frames = 0
 	stage._on_ult_hit()
-	check(player.hitstop_frames == 36 and enemy.hitstop_frames >= 52, "successful ultimate applies 18/26-frame hitstop tiers at multiplier 2")
+	var pop_frames := int(ceil(preload("res://scripts/night/ult_fx.gd").pop_delay(0, player.ult_click_frame) * 60.0))
+	check(player.hitstop_frames == 0 and enemy.hitstop_frames >= pop_frames,
+			"storyboard ultimate holds its victim until the pop (%d >= %d) without freezing the attacker" % [enemy.hitstop_frames, pop_frames])
 	enemy.state = Shade.State.DEAD
 	player.hitstop_frames = 0
 	stage._on_ult_hit()

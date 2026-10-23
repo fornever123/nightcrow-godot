@@ -1144,6 +1144,8 @@ func _launch(mv: MoveDefinition, from_facing: int, from_up: bool, stunned: bool,
 		v.y = minf(v.y * 1.25, -900.0)
 	if stunned:
 		v.y *= 1.12
+	if (from_up and state != State.LAUNCHED) or stunned:
+		# 挑飞（上挑类招式把它打上天）：评价、提示、音效都挂在这个信号上
 		launched_high.emit(global_position + Vector2(0.0, -half_h))
 	_cancel_stun_into_launch()
 	state = State.LAUNCHED

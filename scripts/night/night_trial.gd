@@ -6,7 +6,7 @@ extends Node2D
 ##   night_trial.gd（本文件）  世界、封印墙、镜头、玩家死亡重开、把战斗事件接到特效/音效/评价
 ##   encounter.gd              一处封印里的波次与刷怪
 ##   terrain.gd                多层地形（单向平台 + 实心石台），每处封印一段布局
-##   shade.gd                  敌人（影卒 / 甲影），失衡→眩晕→挑飞→浮空→方向终结→撞墙/连锁
+##   shade.gd                  敌人（影卒 / 甲影 / 影弓 / 影爆），连续击退→挑飞→浮空→方向终结→撞墙/连锁（2026-10-21 起无失衡/眩晕）
 ##   style_meter.gd            连击数 + D/C/B/A/S 评价（纯逻辑）
 ##   combat_hud.gd             HUD（纯显示）
 ##   player_factory.gd         按 battle.json 搭玩家（与训练场同一套参数）
@@ -472,7 +472,7 @@ func _show_round_result() -> void:
 		"lines": [
 			["用时", "%d:%02d" % [mins, secs]],
 			["最高连击", str(_round_max_combo)],
-			["眩晕 / 挑飞", "%d / %d" % [st.stun, st.launch]],
+			["挑飞", "%d" % st.launch],
 			["下砸 / 撞墙 / 连锁", "%d / %d / %d" % [st.slam, st.wall, st.chain]],
 			["弹刀", str(st.parry)],
 			["受击", "%d 次（%d 伤害）" % [st.times_hit, int(st.damage_taken)]],

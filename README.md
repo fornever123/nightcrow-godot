@@ -4,6 +4,8 @@ GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever1
 
 **当前游戏素材（2026-10-18）**：[24组桌面手调原版帧独立归档](art/game-ready-sequences/desktop-actions-20261018/README.md)，共734张完整PNG与22份原动作说明，非3px版本。原图按原文件名单独保存，SHA256清单可核对；游戏运行副本另放在`assets/image/desktop-actions/`。已接入跑跳、双向转身、地面与空中三连、左右冲刺、格挡弹刀、拔收刀和死亡。[本次操作与接入说明](docs/桌面动作接入说明.md)。此前880帧素材作为历史归档保留。
 
+**2026-10-23**：三条开发线（手感/光影、特效与大招分镜、本机连续击退）已合并到 main，详见 [试玩版总交接](docs/HANDOFF-试玩版.md) §19。
+
 这是现在要使用的正式工程。当前默认打开夜景试玩版，F3 可切换木桩训练场。最新试玩进度见 [试玩版总交接](docs/HANDOFF-试玩版.md)。
 
 **选后视频音频**：[六段原始音频独立归档](art/selected-video-audio/README.md)，与源视频同名，直接提取、未重新压缩，已核对声音数据一致。

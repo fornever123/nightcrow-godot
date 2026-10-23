@@ -1,6 +1,6 @@
 extends SceneTree
 ## 试玩关卡「月下堤岸」战斗回归测试（设计见 docs/HANDOFF-试玩版.md §7）。
-## 覆盖：主场景设置、眩晕连段主线（失衡→眩晕→挑飞→浮空→下砸 / 横扫撞墙）、
+## 覆盖：主场景设置、连段主线（连续击退→挑飞→浮空→下砸 / 横扫撞墙；2026-10-21 起不再有失衡/眩晕）、
 ## 连锁击飞、12 帧弹刀窗口、评价系统、封印波次流程。
 ## 运行：godot --headless --fixed-fps 60 --path . --script res://tests/test_night_combat.gd
 const Buffer := preload("res://scripts/core/input_buffer.gd")
@@ -79,13 +79,12 @@ func fresh_player(x := 600.0) -> void:
 	await hold(4, fr())
 
 
-## 地面连打 J 直到眩晕；返回用了几下
-func pound_until_stun(ev: Dictionary) -> int:
-	var taps := 0
-	while ev.broken == 0 and taps < 12:
-		await tap([&"attack_light"], Vector2.ZERO, 3, 13)
-		taps += 1
-	return taps
+## 地面先砍两刀开连段（连续击退：第一下就有推力）；返回实际命中次数
+func open_combo(s: Node2D, ev: Dictionary) -> int:
+	var hp0: float = s.hp
+	await tap([&"attack_light"], Vector2.ZERO, 3, 13)
+	await tap([&"attack_light"], Vector2.ZERO, 3, 13)
+	return s.combo_taken if s.hp < hp0 else 0
 
 
 ## 挑飞 → 起跳 → 空中两刀，返回挑飞瞬间记录到的最高上升速度。
@@ -98,7 +97,7 @@ func launch_and_juggle(s: Node2D, ev: Dictionary) -> float:
 	await hold(10, fr(), probe)
 	await tap([&"aim_up", &"jump", &"attack_light"], Vector2(0, -1), 4, 0, probe)
 	var t0 := 0
-	while ev.launched_high == 0 and t0 < 60:
+	while not (is_instance_valid(s) and s.state == Shade.State.LAUNCHED) and t0 < 60:
 		await hold(1, fr(), probe)
 		t0 += 1
 	await hold(10, fr(), probe)
@@ -167,18 +166,16 @@ func test_slam_route() -> void:
 	var s := make_shade(Shade.Kind.GRUNT, 700.0)
 	var ev := record(s)
 	await hold(4, fr())
-	var taps := await pound_until_stun(ev)
-	check(ev.broken == 1 and taps <= 8, "影卒 8 下以内打满失衡（实际 %d 下）" % taps)
-	check(s.state == Shade.State.STUNNED, "失衡后进入眩晕")
+	var hits := await open_combo(s, ev)
+	check(hits >= 2 and ev.broken == 0 and s.state != Shade.State.STUNNED, "地面两刀都打中，不再进入眩晕（连击 %d）" % hits)
 	var vmin := await launch_and_juggle(s, ev)
-	check(ev.launched_high >= 1, "眩晕中 W+J 挑飞成功")
-	check(vmin <= -1008.0, "眩晕挑飞够高（vy=%d）" % int(vmin))
+	check(vmin <= -900.0, "W+J 挑飞够高（vy=%d）" % int(vmin))
 	check(s.juggle_count >= 2, "空中连斩接上了（托起 %d 次）" % s.juggle_count)
 	await tap([&"attack_light", &"move_down"], Vector2(0, 1), 3, 40)
 	await hold(50, fr())
 	check(ev.slam_impact >= 1, "S+J 下砸砸地")
 	var st: Dictionary = stage.style.stats
-	check(st.stun >= 1 and st.launch >= 1 and st.slam >= 1, "评价系统记到 眩晕/挑飞/下砸")
+	check(st.launch >= 1 and st.slam >= 1, "评价系统记到 挑飞/下砸")
 	check(stage.style.max_combo >= 6, "整套连段连击数 ≥ 6（实际 %d）" % stage.style.max_combo)
 	check(stage.style.rank_index() >= 2, "一套下砸连段至少到 B（实际 %s）" % stage.style.rank_letter())
 
@@ -190,7 +187,7 @@ func test_drive_route() -> void:
 	s.hp = 400.0   # 连段伤害递增后影卒会在半路被打死；这里要测的是活着撞墙
 	var ev := record(s)
 	await hold(4, fr())
-	await pound_until_stun(ev)
+	await open_combo(s, ev)
 	await launch_and_juggle(s, ev)
 	var vmax := [0.0]
 	await tap([&"attack_light", &"move_right"], Vector2(1, 0), 3, 40, func():

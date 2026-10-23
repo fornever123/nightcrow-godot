@@ -1,6 +1,6 @@
 extends SceneTree
 ## 第四轮敌人回归测试（设计见 docs/HANDOFF-试玩版.md §16）。
-## 覆盖：伤害% 让击退变远、举刀格挡 / 重招破防、翻滚无敌、误伤同伴、
+## 覆盖：连续命中让击退变远、举刀格挡 / 重招破防、翻滚无敌、误伤同伴、
 ## 影弓的箭能打回去、影爆的炸弹会炸到同伴、远程影保持距离。
 ## 运行：godot --headless --fixed-fps 60 --path . --script res://tests/test_shades_v4.gd
 const Buffer := preload("res://scripts/core/input_buffer.gd")
@@ -98,16 +98,19 @@ func run() -> void:
 
 
 func test_percent_knock() -> void:
+	# 连续击退（2026-10-21 起取代失衡/伤害%）：第一下就有基础推力，同一套连段每多挨一下推得更远
 	await fresh(300.0)
 	var a := make_shade(Shade.Kind.GRUNT, 700.0)
 	var b := make_shade(Shade.Kind.GRUNT, 1300.0)
-	b.pct = 100.0
-	check(is_equal_approx(a.knock_mul(), 1.0) and b.knock_mul() > 1.55, "伤害%% 越高越容易飞（0%%=%.2f，100%%=%.2f）" % [a.knock_mul(), b.knock_mul()])
+	b.combo_taken = 5
+	check(is_equal_approx(a.knock_mul(), 1.0) and b.knock_mul() > 1.9, "连续命中越多越容易飞（第1下=%.2f，第5下=%.2f）" % [a.knock_mul(), b.knock_mul()])
+	b.combo_taken = 4
 	var mv: Resource = p.light_combo[0]
 	a.take_hit(mv, 1, a.global_position, 0.0, false, 1.0, p)
 	b.take_hit(mv, 1, b.global_position, 0.0, false, 1.0, p)
-	check(b.velocity.x > a.velocity.x * 1.4 and a.velocity.x > 0.0, "同一刀：100%% 的影被推得更远（%d vs %d）" % [int(b.velocity.x), int(a.velocity.x)])
-	check(a.pct > 0.0, "挨打后伤害%% 增加（%.0f%%）" % a.pct)
+	check(b.velocity.x > a.velocity.x * 1.4 and a.velocity.x > 0.0, "同一刀：连段第5下比第1下推得更远（%d vs %d）" % [int(b.velocity.x), int(a.velocity.x)])
+	check(a.combo_taken == 1 and b.combo_taken == 5, "挨打后连续命中数增加（%d / %d）" % [a.combo_taken, b.combo_taken])
+	check(a.poise == 0.0 and a.state != Shade.State.STUNNED, "不再积累失衡、不会眩晕")
 	var heavy := make_shade(Shade.Kind.BRUTE, 1000.0)
 	check(heavy.knock_mul() < a.knock_mul(), "甲影更重、更难打飞")
 
