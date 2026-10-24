@@ -24,6 +24,8 @@ extends Camera2D
 ## 镜头停在半像素上时格子边缘会忽宽忽窄；对齐 1 屏幕像素就稳了。内部仍然用没对齐的位置平滑。
 @export var position_snap: float = 0.0
 var _follow_pos: Vector2 = Vector2(NAN, NAN)
+## 外部（大招演出）给的固定镜头偏移，震屏叠加在它上面
+var base_offset: Vector2 = Vector2.ZERO
 
 ## 跟随目标（由 main.gd 注入）
 @export var follow_target: Node2D
@@ -124,8 +126,8 @@ func _update_follow(delta: float) -> void:
 
 func _update_shake(delta: float) -> void:
 	if _trauma <= 0.01:
-		if offset != Vector2.ZERO:
-			offset = Vector2.ZERO
+		if offset != base_offset:
+			offset = base_offset
 		rotation = 0.0
 		return
 
@@ -141,6 +143,7 @@ func _update_shake(delta: float) -> void:
 	offset = result * shake_world_scale
 	if pixel_snap > 0.0:
 		offset = offset.snapped(Vector2.ONE * pixel_snap / maxf(zoom.x, 0.01))
+	offset += base_offset
 	# 极轻的滚转让重击更像镜头被撞了一下，不会影响可读性。
 	rotation = result.x * 0.00075
 

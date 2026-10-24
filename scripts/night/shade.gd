@@ -130,6 +130,7 @@ var total_damage_taken: float = 0.0
 var dead_frames: int = 0
 var spawn_frames: int = 0
 var pct: float = 0.0                ## 击退百分比（= 累计挨的伤害，显示在血条旁）
+var bars_hidden: bool = false        ## 大招演出期间关卡把血条藏起来
 var combo_taken: int = 0            ## 这一套连段挨了几下（站起来清零）
 var guard_frames: int = 0
 var roll_frames: int = 0
@@ -1644,7 +1645,7 @@ func _draw_star(c: Vector2, r: float, col: Color) -> void:
 
 
 func _draw_bars(fade: float) -> void:
-	if state == State.DEAD:
+	if state == State.DEAD or bars_hidden:
 		return
 	var w := 88.0 if kind == Kind.BRUTE else (60.0 if kind == Kind.ARCHER else 64.0)
 	var y := -16.0 - (16.0 if kind == Kind.BRUTE else (14.0 if kind == Kind.ARCHER else 0.0))   # 相对头顶（调用前已平移到 -half_h 并按 ui_scale 缩放）

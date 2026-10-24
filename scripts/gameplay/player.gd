@@ -232,16 +232,16 @@ var input_source: Object = null
 ##   ult_pass_start 起：按 ult_pass_gaps 的间隔瞬移连斩（越砍越快），每次发 ult_pass(i, N)，关卡决定瞬移到哪
 ##   最后一斩后：背对敌人残心 → 转刀 → 第 ult_click_frame 帧收刀“咔”（之前几帧全场静默压暗）
 ##   第 ult_hit_frame 帧：全屏巨斩 + 所有挨过刀的影一齐爆开（ult_hit，关卡结算伤害）→ 收尾
-@export var ult_total_frames: int = 150
-@export var ult_hit_frame: int = 112
+@export var ult_total_frames: int = 214
+@export var ult_hit_frame: int = 150
 ## 起势多少帧
-@export var ult_charge_frames: int = 22
+@export var ult_charge_frames: int = 36
 ## 第一斩在第几帧（起势之后到这里是切入）
-@export var ult_pass_start: int = 38
+@export var ult_pass_start: int = 72
 ## 每两斩之间隔几帧（个数 + 1 = 斩几刀）。前慢后快：读得清第一刀，后面连成一片
 @export var ult_pass_gaps: PackedInt32Array = PackedInt32Array([7, 6, 6, 5, 5, 4, 4, 3, 3])
 ## 收刀“咔”在第几帧（绝对帧）；之后 ult_hit_frame 全屏巨斩
-@export var ult_click_frame: int = 106
+@export var ult_click_frame: int = 134
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")

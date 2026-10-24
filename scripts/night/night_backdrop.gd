@@ -45,6 +45,7 @@ var tex: Dictionary = {}          ## 图层名 → Texture2D
 var near_tex: Texture2D
 var _spr: Dictionary = {}         ## 图层名 → Sprite2D
 var _bridge_reflect: Sprite2D
+var _castle_reflect: Sprite2D      ## 第七轮：湖对岸中景倒映在湖面（layers.json castle.reflect）
 var _fog: Sprite2D
 var _near_reflect: Sprite2D
 var _glow_back: Node2D           ## 加色混合：萤火（在角色后面；石灯笼的光在 _glow_water）
@@ -177,6 +178,11 @@ func _ready() -> void:
 	_bridge_reflect.flip_v = true
 	_bridge_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
 			{"strength": 0.36, "ripple": 2.2, "tint": Color(0.2, 0.32, 0.6)})
+	if bool(meta.castle.get("reflect", false)):
+		_castle_reflect = _sprite(tex.castle, -94, true)
+		_castle_reflect.flip_v = true
+		_castle_reflect.material = _shader_mat(preload("res://assets/shaders/night_reflect.gdshader"),
+				{"strength": 0.42, "ripple": 2.6, "tint": Color(0.12, 0.2, 0.38), "tint_amt": 0.3})
 	_spr.mountains = _sprite(tex.mountains, -93, true)
 	_spr.castle = _sprite(tex.castle, -92, true)
 	_fog = _sprite(_make_fog_texture(), -91, true)
@@ -333,7 +339,14 @@ func _process(delta: float) -> void:
 	# 雪山 / 城堡小镇 / 石桥
 	_place_strip(_spr.mountains, "mountains", _scroll("mountains", 0.12), 0.0, top_y + float(meta.mountains.top))
 	_place_strip(_spr.castle, "castle", _scroll("castle", 0.3), 0.0, top_y + float(meta.castle.top))
+	if _castle_reflect != null:
+		var castle: Sprite2D = _spr.castle
+		_castle_reflect.position = Vector2(castle.position.x, castle.position.y + float(meta.castle.size[1]) - 3.0)
+		_castle_reflect.region_rect = castle.region_rect
 	var bridge: Sprite2D = _spr.bridge
+	var bridge_on := not bool(meta.bridge.get("hidden", false))
+	bridge.visible = bridge_on
+	_bridge_reflect.visible = bridge_on
 	_place_strip(bridge, "bridge", _scroll("bridge", 0.42), 0.0, top_y + float(meta.bridge.top))
 	# 桥的倒影：整座桥翻到水里
 	var bh := float(meta.bridge.size[1])
@@ -410,6 +423,8 @@ func _draw_meteors() -> void:
 
 
 func _draw_mid_glow() -> void:
+	if bool(meta.bridge.get("hidden", false)):
+		return
 	# 桥灯（跟桥一起 0.42 倍视差）微微呼吸
 	var origin := Vector2(screen_left(), _top_y())
 	var bm: Dictionary = meta.bridge

@@ -10,6 +10,9 @@ uniform float wave_r = -1.0;       // 冲击波半径（屏幕高度为 1；<0 =
 uniform float wave_w = 0.06;
 uniform float wave_amp = 0.0;      // 冲击波折射强度（屏幕 UV）
 uniform float aspect = 1.7778;
+uniform float invert = 0.0;        // 双色定格（0～1）：按亮度阈值 → 黑底白剪影（不反相，避免紫色反成黄绿）
+uniform float contrast = 1.0;      // 对比（1 = 原样）
+uniform vec3 tint = vec3(1.0);     // 乘色
 
 void fragment() {
 	vec2 uv = SCREEN_UV;
@@ -31,5 +34,10 @@ void fragment() {
 		acc.g += texture(screen_tex, o).g;
 		acc.b += texture(screen_tex, o - n * ca).b;
 	}
-	COLOR = vec4(acc / 6.0, 1.0);
+	vec3 c = acc / 6.0;
+	float lum = dot(c, vec3(0.299, 0.587, 0.114));
+	vec3 duo = lum > 0.42 ? vec3(0.97, 0.95, 1.0) : vec3(0.0);
+	c = mix(c, duo, invert);
+	c = clamp((c - 0.5) * contrast + 0.5, 0.0, 1.0);
+	COLOR = vec4(c * tint, 1.0);
 }

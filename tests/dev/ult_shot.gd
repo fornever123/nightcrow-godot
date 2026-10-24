@@ -67,15 +67,22 @@ func run() -> void:
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
 	# 千刃（2026-10-23）：起手 / 第 2 斩 / 中段 / 最后几斩 / 收刀 / 一齐爆开 / 收尾。SHOTS="12,27,..." 可改
-	var want := {12: "ult_01_charge", 30: "ult_02_cutin", 40: "ult_03_pass1", 58: "ult_04_pass4", 79: "ult_05_pass9", 98: "ult_06_still", 108: "ult_07_ink", 113: "ult_08_burst", 117: "ult_09_split", 132: "ult_10_after"}
+	var want := {20: "ult_01_charge", 50: "ult_02_cutin", 58: "ult_03_seal", 74: "ult_04_pass1", 95: "ult_05_pass5", 116: "ult_06_pass10", 130: "ult_07_still", 142: "ult_08_slit", 148: "ult_09_slit2", 151: "ult_10_white", 153: "ult_11_duotone", 157: "ult_12_hold", 162: "ult_13_pop", 180: "ult_14_afterglow", 208: "ult_15_end"}
 	if OS.get_environment("SHOTS") != "":
 		want = {}
 		for v in OS.get_environment("SHOTS").split(","):
 			want[int(v)] = "ult_f%03d" % int(v)
-	for i in 160:
+	# 按主角的 ult_frame 截（截图本身会多走物理帧，不能按循环次数算）
+	var done := {}
+	for i in 400:
 		await physics_frame
-		var f: int = i + 1
-		if i < 3: print("f", f, " ult=", p.ult_frame, " st=", p.state)
-		if want.has(f):
+		var f: int = p.ult_frame
+		if f < 0 and i > 10:
+			break
+		if want.has(f) and not done.has(f):
+			done[f] = true
+			if OS.get_environment("STATES") == "1":
+				for sh in stage.get_tree().get_nodes_in_group(&"shade"):
+					print("f", f, " shade ", sh.kind, " state=", sh.state, " hs=", sh.hitstop_frames, " pos=", sh.global_position.round(), " hp=", sh.hp)
 			await shot(dir, want[f])
 	quit()

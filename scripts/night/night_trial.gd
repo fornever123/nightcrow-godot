@@ -106,13 +106,17 @@ var _round_max_combo: int = 0
 var _time: float = 0.0
 var ult_fx: Node2D
 var _ult_hint_shown := false
-var _ult_collect := false         ## 旧分镜大招用；千刃直接冒伤害数字，恒为 false（大招砍死的影照常放击杀特效）
+var _ult_collect := false         ## 千刃巨斩结算那一下为 true：伤害数字先记着，等 ult_fx 爆开（popped）再冒；砍死的影也等爆开再放击杀特效
+var _ult_texts := {}
 var _ult_targets: Array = []      ## 千刃：起手时屏幕里的影 {node, cuts}
 var _ult_dir: int = 1             ## 千刃：当前往哪边斩
 var _ult_left: float = 0.0
 var _ult_right: float = 0.0
 var _ult_anchor: Node2D           ## 千刃期间镜头钉在这里
 const ULT_PASS_OVERSHOOT := 130.0 ## 千刃：瞬移到目标另一侧多远
+const ULT_BURST_HOLD := 10        ## 千刃：巨斩后敌人定格几帧再飞出去（ult_fx.BURST_HOLD 要一致）
+const ULT_BASE_DMG := 30.0        ## 千刃：每只影的伤害 = 30 + 每挨一刀 15
+const ULT_DMG_PER_CUT := 15.0
 
 
 func _ready() -> void:
@@ -177,6 +181,7 @@ func _ready() -> void:
 	_ult_anchor.name = "UltCameraAnchor"
 	add_child(_ult_anchor)
 	ult_fx.anchor = _ult_anchor
+	ult_fx.popped.connect(_on_ult_pop)
 	encounter = Encounter.new()
 	encounter.name = "Encounter"
 	add_child(encounter)
@@ -572,7 +577,11 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
-	fx.spawn_text(point.lerp(s.global_position + Vector2(0, -s.half_h), 0.5), "%.0f" % amount, amount)
+	if _ult_collect:
+		_ult_texts[s] = amount
+		return
+	# 伤害数字放在血条上方（不和血条叠在一起）
+	fx.spawn_text(Vector2(lerpf(point.x, s.global_position.x, 0.5), s.global_position.y - s.half_h - 64.0), "%.0f" % amount, amount)
 
 
 func _on_shade_broken(point: Vector2, s: Node2D) -> void:
@@ -895,11 +904,13 @@ func _on_ult_started() -> void:
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM - 40.0
 	_ult_targets.clear()
+	_ult_texts.clear()
 	var freeze: int = player.ult_total_frames + 2
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		if not s.is_alive():
 			continue
 		s.hitstop_frames = maxi(s.hitstop_frames, freeze)
+		s.bars_hidden = true
 		if s.spawn_frames <= 0 and absf(s.global_position.x - cx) <= half + 100.0:
 			_ult_targets.append({"node": s, "cuts": 0})
 	_ult_targets.sort_custom(func(a, b): return a.node.global_position.x < b.node.global_position.x)
@@ -984,19 +995,38 @@ func _on_ult_hit() -> void:
 		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
 		s.hitstop_frames = 0
 		var hp0: float = s.hp
-		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
-		s.hitstop_frames = maxi(s.hitstop_frames, 4)
-		hit.append({"node": s, "pt": pt, "cuts": maxi(int(t.cuts), 1), "dmg": maxf(hp0 - maxf(s.hp, 0.0), 0.0)})
+		# 伤害随挨的刀数涨：50 → 每刀 +15 的比例（两刀左右就能斩杀影卒）；数字等爆开那一下再冒
+		var cuts := maxi(int(t.cuts), 1)
+		_ult_collect = true
+		s.take_hit(mv, dir, pt, 0.0, false, (ULT_BASE_DMG + ULT_DMG_PER_CUT * float(cuts)) / maxf(mv.damage, 1.0), player)
+		_ult_collect = false
+		s.hitstop_frames = ULT_BURST_HOLD     # 巨斩成形后全场定格一下（白剪影），再一齐被打飞
+		s.flash = ULT_BURST_HOLD
+		s.flash_color = Color.WHITE
+		hit.append({"node": s, "pt": pt, "cuts": cuts, "dmg": maxf(hp0 - maxf(s.hp, 0.0), 0.0)})
 	ult_fx.burst(hit)
 	camera.add_shake((18.0 if hit.size() > 0 else 8.0) * shake_mul, Vector2(player.facing, 0))
 	audio.play_slam(1.4)
 	if hit.size() > 0:
 		audio.play_blade_hit(1.0)
 	style.add_event(&"ult")
-	_ult_release_camera()
 
 
 func _ult_release_camera() -> void:
 	if camera.follow_target == _ult_anchor:
 		camera.follow_target = player
 	_ult_targets.clear()
+	for s in get_tree().get_nodes_in_group(&"shade"):
+		s.bars_hidden = false
+
+
+## 千刃：定格结束、某只影爆开 —— 这时才冒它的伤害数字（大号）；砍死的放击杀特效
+func _on_ult_pop(s: Node2D) -> void:
+	if not is_instance_valid(s):
+		return
+	if _ult_texts.has(s):
+		var amount: float = _ult_texts[s]
+		_ult_texts.erase(s)
+		fx.spawn_text(s.global_position + Vector2(0, -s.half_h - 80.0), "%.0f" % amount, amount * 1.6)
+	if not s.is_alive():
+		fx.spawn_kill(s.global_position)

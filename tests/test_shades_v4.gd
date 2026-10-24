@@ -338,15 +338,17 @@ func test_ult() -> void:
 	var php: float = p.hp
 	var ok_inv: bool = p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g) == false and is_equal_approx(p.hp, php)
 	check(ok_inv, "大招中无敌")
+	var brute_flew := false
 	for i in p.ult_total_frames + p.ult_move().hitstop_frames + 10:
 		await hold(1)
+		brute_flew = brute_flew or b.state == Shade.State.LAUNCHED or b.state == Shade.State.DEAD
 	await hold(2)
 	check(hits.hit == 1, "出刀一次")
 	check(g.hp < hp.g and b.hp < hp.b, "屏幕里的影卒和甲影都被砍中（霸体扛不住）")
 	check(r.hp < hp.r, "翻滚中的影也躲不开大招")
 	check(is_equal_approx(far.hp, hp.far), "屏幕外的影不受影响（镜头 x=%d，far hp %.0f→%.0f）" % [int(stage.camera.get_screen_center_position().x), hp.far, far.hp])
 	check(bolt_left >= 1 and get_nodes_in_group(&"shade_projectile").is_empty(), "飞行中的影矢被斩碎")
-	check(b.state == Shade.State.LAUNCHED or b.state == Shade.State.DOWN or b.state == Shade.State.DEAD, "甲影也被打飞")
+	check(brute_flew, "甲影也被打飞（巨斩后进入过浮空）")
 	check(not p.is_ult() and p.state == Player.State.NEUTRAL, "大招结束恢复")
 	check(stage.style.stats.get("ult", 0) >= 1, "评价系统记到大招")
 	# 先 K 后 J 也行；不会多冒出一发远射 / 一刀

@@ -71,17 +71,24 @@
    366.87,
    428.94
   ],
-  "lampY": 390
+  "lampY": 390,
+  "hidden": true
  },
  "castle": {
-  "top": 192,
+  "top": 149,
   "size": [
-   1159,
-   219
+   2904,
+   270
   ],
-  "period": 1159,
+  "period": 2904,
   "scroll": 0.3,
-  "match": 0.2342
+  "src": "lake_mid_v1",
+  "seamCost": [
+   0.167,
+   0.027,
+   0.106
+  ],
+  "reflect": true
  },
  "mountains": {
   "top": 196,

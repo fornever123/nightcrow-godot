@@ -1,7 +1,7 @@
 """生成大招「千刃」的题字图（assets/image/ult/title.png）。
 字体：Ma Shan Zheng（马善政毛笔楷书，SIL OFL 1.1，许可证见 assets/image/ult/OFL-MaShanZheng.txt）。
 字体文件本身不进仓库（只用来生成这张图）：python3 tools/art/make_ult_title.py 字体.ttf
-构成：墨色飞白笔刷带（程序生成）+ 白字 + 紫色描边 + 右下角一枚小印章。"""
+构成：墨色飞白笔刷带（程序生成）+ 白字 + 紫色描边；印章单独一张 seal.png（游戏里晚几帧盖下去）。"""
 import sys, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -61,14 +61,15 @@ img = Image.alpha_composite(img, edge)
 img = Image.alpha_composite(img, fill)
 
 # ---- 印章：右下角朱红小方印（唯一的暖色点缀）
-seal = Image.new("RGBA", (96, 96), (0, 0, 0, 0))
+seal = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
 sd = ImageDraw.Draw(seal)
-sd.rounded_rectangle((4, 4, 92, 92), 8, fill=(200, 52, 44, 235))
-sf = ImageFont.truetype(FONT, 62)
-sd.text((48, 50), "影", font=sf, anchor="mm", fill=(255, 236, 220, 255))
+sd.rounded_rectangle((5, 5, 123, 123), 10, fill=(200, 52, 44, 240))
+sf = ImageFont.truetype(FONT, 84)
+sd.text((64, 67), "影", font=sf, anchor="mm", fill=(255, 236, 220, 255))
 na = np.array(seal).astype(np.float32)
 na[..., 3] *= (rng.random(na.shape[:2]) > 0.06)
 seal = Image.fromarray(na.astype(np.uint8), "RGBA").rotate(-6, resample=Image.BICUBIC, expand=True)
-img.alpha_composite(seal, (int(W * 0.80), int(H * 0.66)))
 img.save(OUT)
-print("saved", OUT, img.size)
+seal_out = OUT.replace("title.png", "seal.png")
+seal.save(seal_out)
+print("saved", OUT, img.size, seal_out, seal.size)
