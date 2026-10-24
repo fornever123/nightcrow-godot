@@ -11,16 +11,24 @@ uniform vec2 band_a = vec2(0.0);
 uniform vec2 band_b = vec2(1.0, 0.0);
 uniform float band_h = 0.0;
 uniform vec2 screen_size = vec2(1280.0, 720.0);
+uniform float raw = 0.0;       // 1 = 正式立绘：原色、软边，不分档
+uniform float pop_top = 0.0;   // 1 = 立绘可以从带子上沿“冒出去”（只裁下沿）
+uniform float pop_all = 0.0;   // 1 = 立绘整个冒出带子，只在图片自身的左边 / 下边柔和淡出
 
 void fragment() {
 	vec4 t = texture(TEXTURE, UV);
-	float a = step(0.62, t.a) * fade;
-	if (band_h > 0.0) {
+	float a = (raw > 0.5 ? t.a : step(0.62, t.a)) * fade;
+	if (pop_all > 0.5) {
+		a *= smoothstep(0.0, 0.14, UV.x) * (1.0 - smoothstep(0.80, 0.97, UV.y));
+	} else if (band_h > 0.0) {
 		vec2 sp = SCREEN_UV * screen_size;
 		float k = (sp.x - band_a.x) / max(band_b.x - band_a.x, 1.0);
 		float top = mix(band_a.y, band_b.y, k);
-		a *= step(top + 3.0, sp.y) * step(sp.y, top + band_h - 3.0);
+		a *= (pop_top > 0.5 ? 1.0 : step(top + 3.0, sp.y)) * step(sp.y, top + band_h - 3.0);
 	}
+	if (raw > 0.5) {
+		COLOR = vec4(t.rgb, a);
+	} else {
 	vec3 c = t.rgb;
 	// 对比拉大一点，再分档
 	c = clamp((c - 0.5) * 1.25 + 0.52, 0.0, 1.0);
@@ -28,4 +36,5 @@ void fragment() {
 	float l = dot(c, vec3(0.299, 0.587, 0.114));
 	c = mix(ink.rgb, c, smoothstep(0.08, 0.3, l));
 	COLOR = vec4(mix(ink.rgb, c, paint), a);
+	}
 }

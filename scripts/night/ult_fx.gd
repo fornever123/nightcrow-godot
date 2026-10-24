@@ -51,6 +51,9 @@ const SLIT_FRAMES := 10.0    ## 巨斩前全黑刀缝多少帧
 const TITLE_SCALE := 0.44
 const CUT_H := 230.0         ## 切入带高度（屏幕像素）
 const CUT_TILT := 0.12
+const CUTIN_HEIGHT := 1.0                  ## 正式立绘显示高度（屏幕高度的倍数）
+const CUTIN_FOCUS := Vector2(1000.0, 395.0) ## 立绘里的焦点（眼睛，原图像素）：对准带子中线
+const CUTIN_FOCUS_X := 0.66               ## 焦点放在屏幕横向的哪里
 
 var fx: Node2D               ## ImpactFX
 var player: Node2D
@@ -904,11 +907,19 @@ func _draw_ui_sil() -> void:
 	mat.set_shader_parameter("levels", 64.0)
 	var along := (poly[1] - poly[0]).normalized() * (band.z)
 	if _cutin_tex != null:
+		# 正式立绘：原色；以眼睛为焦点放在带子中线偏右；头发可以从带子上沿冒出去
+		mat.set_shader_parameter("raw", 1.0)
+		mat.set_shader_parameter("pop_all", 1.0)
 		var tw := _cutin_tex.get_size()
-		var sc := h * 1.25 / tw.y
-		var dst := Rect2(Vector2(vs.x * 0.6 - tw.x * sc * 0.5, top - h * 0.12) + along, tw * sc)
+		var sc := vs.y * CUTIN_HEIGHT / tw.y
+		var fx_ := vs.x * CUTIN_FOCUS_X
+		var line_y := lerpf(poly[0].y, poly[1].y, (fx_ - poly[0].x) / maxf(poly[1].x - poly[0].x, 1.0)) + (poly[3].y - poly[0].y) * 0.5
+		var focus := Vector2(fx_, line_y) + along * 0.0
+		var dst := Rect2(focus - CUTIN_FOCUS * sc, tw * sc)
 		_ui_sil.draw_texture_rect(_cutin_tex, dst, false, Color(1, 1, 1, band.x))
 	elif _cut_tex != null:
+		mat.set_shader_parameter("raw", 0.0)
+		mat.set_shader_parameter("pop_all", 0.0)
 		var reg := _cut_region
 		var sc := minf((poly[3].y - poly[0].y) * 0.92 / maxf(reg.size.y, 1.0), vs.x * 0.5 / maxf(reg.size.x, 1.0))
 		var size := reg.size * sc
@@ -941,7 +952,7 @@ func _draw_ui_top() -> void:
 				var ks := clampf((t - 12.0) / 4.0, 0.0, 1.0)
 				var ss := lerpf(1.6, 1.0, 1.0 - pow(1.0 - ks, 3.0)) * 130.0 / _seal_tex.get_width()
 				var jit := Vector2(rng.randf_range(-4, 4), rng.randf_range(-4, 4)) if t >= 15.0 and t < 19.0 else Vector2.ZERO
-				var sp := center + Vector2(size.x * 0.5, size.y * 0.3) + jit
+				var sp := center + Vector2(size.x * 0.36, size.y * 0.42) + jit
 				var sz := _seal_tex.get_size() * ss
 				_ui_top.draw_texture_rect(_seal_tex, Rect2(sp - sz * 0.5, sz), false, Color(1, 1, 1, ks * band.x))
 	# 黑边
