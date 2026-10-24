@@ -67,12 +67,12 @@ func run() -> void:
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
 	# 千刃（2026-10-23）：起手 / 第 2 斩 / 中段 / 最后几斩 / 收刀 / 一齐爆开 / 收尾。SHOTS="12,27,..." 可改
-	var want := {12: "ult_1_charge", 27: "ult_2_pass2", 47: "ult_3_pass5", 65: "ult_4_pass9", 84: "ult_5_sheathe", 94: "ult_6_burst", 104: "ult_7_after"}
+	var want := {12: "ult_01_charge", 30: "ult_02_cutin", 40: "ult_03_pass1", 58: "ult_04_pass4", 79: "ult_05_pass9", 98: "ult_06_still", 108: "ult_07_ink", 113: "ult_08_burst", 117: "ult_09_split", 132: "ult_10_after"}
 	if OS.get_environment("SHOTS") != "":
 		want = {}
 		for v in OS.get_environment("SHOTS").split(","):
 			want[int(v)] = "ult_f%03d" % int(v)
-	for i in 130:
+	for i in 160:
 		await physics_frame
 		var f: int = i + 1
 		if i < 3: print("f", f, " ult=", p.ult_frame, " st=", p.state)

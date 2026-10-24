@@ -176,6 +176,7 @@ func _ready() -> void:
 	_ult_anchor = Node2D.new()
 	_ult_anchor.name = "UltCameraAnchor"
 	add_child(_ult_anchor)
+	ult_fx.anchor = _ult_anchor
 	encounter = Encounter.new()
 	encounter.name = "Encounter"
 	add_child(encounter)
@@ -890,7 +891,6 @@ func _draw_seals() -> void:
 ## 起手：时间停住——屏幕里活着的影和飞行物全部定住；镜头钉在当前位置（连斩瞬移时画面不乱晃）
 func _on_ult_started() -> void:
 	audio.play_ult_start()
-	ult_fx.begin()
 	camera.add_shake(3.0 * shake_mul, Vector2.UP)
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM - 40.0
@@ -910,6 +910,7 @@ func _on_ult_started() -> void:
 	_ult_right = cx + half
 	_ult_anchor.global_position = camera.get_screen_center_position()
 	camera.follow_target = _ult_anchor
+	ult_fx.begin()
 
 
 ## 第 k 斩：瞬移穿过下一个目标（来回折返），沿路留残影和一道斩线，目标身上多一道刀痕
@@ -982,11 +983,13 @@ func _on_ult_hit() -> void:
 		var dir := 1 if s.global_position.x >= px else -1
 		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
 		s.hitstop_frames = 0
+		var hp0: float = s.hp
 		s.take_hit(mv, dir, pt, 0.0, false, 1.0, player)
 		s.hitstop_frames = maxi(s.hitstop_frames, 4)
-		hit.append({"node": s, "pt": pt, "cuts": maxi(int(t.cuts), 1)})
+		hit.append({"node": s, "pt": pt, "cuts": maxi(int(t.cuts), 1), "dmg": maxf(hp0 - maxf(s.hp, 0.0), 0.0)})
 	ult_fx.burst(hit)
-	camera.add_shake((14.0 if hit.size() > 0 else 6.0) * shake_mul, Vector2(player.facing, 0))
+	camera.add_shake((18.0 if hit.size() > 0 else 8.0) * shake_mul, Vector2(player.facing, 0))
+	audio.play_slam(1.4)
 	if hit.size() > 0:
 		audio.play_blade_hit(1.0)
 	style.add_event(&"ult")

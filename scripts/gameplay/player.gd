@@ -226,19 +226,22 @@ var input_source: Object = null
 @export var ult_enabled: bool = false
 @export var ult_max: float = 100.0
 @export var ult_chord_frames: int = 6
-## 「千刃」（2026-10-23 重做，取代 §16.12 分镜版）。时间轴（60 帧 / 秒）：
-##   0～ult_charge_frames-1：起手——时间停住，拔刀架势（蓄力斩 0～7 帧）
-##   ult_charge_frames 起：按 ult_pass_gaps 的间隔瞬移连斩 N 次（越砍越快），每次发 ult_pass(i, N)，关卡决定瞬移到哪
-##   最后一斩后：背对敌人残心 → 转刀 → 第 ult_click_frame 帧收刀“咔”
-##   第 ult_hit_frame 帧：所有挨过刀的影一齐爆开（ult_hit，关卡结算伤害）→ 收尾
-@export var ult_total_frames: int = 112
-@export var ult_hit_frame: int = 92
-## 起手（拔刀架势）多少帧
-@export var ult_charge_frames: int = 16
-## 每两斩之间隔几帧（个数 = 斩几刀）。前慢后快：读得清第一刀，后面连成一片
-@export var ult_pass_gaps: PackedInt32Array = PackedInt32Array([9, 8, 7, 6, 5, 5, 4, 4, 4])
-## 收刀“咔”在第几帧（绝对帧）；之后 ult_hit_frame 一齐爆
-@export var ult_click_frame: int = 89
+## 「千刃」（2026-10-23 重做，商业级版）。时间轴（60 帧 / 秒）：
+##   0～ult_charge_frames：起势——时间停住、黑边、镜头推近、拔刀架势（蓄力斩 0～7 帧）
+##   ult_charge_frames～ult_pass_start：切入——立绘带 + 招式名题字（姿势定住）
+##   ult_pass_start 起：按 ult_pass_gaps 的间隔瞬移连斩（越砍越快），每次发 ult_pass(i, N)，关卡决定瞬移到哪
+##   最后一斩后：背对敌人残心 → 转刀 → 第 ult_click_frame 帧收刀“咔”（之前几帧全场静默压暗）
+##   第 ult_hit_frame 帧：全屏巨斩 + 所有挨过刀的影一齐爆开（ult_hit，关卡结算伤害）→ 收尾
+@export var ult_total_frames: int = 150
+@export var ult_hit_frame: int = 112
+## 起势多少帧
+@export var ult_charge_frames: int = 22
+## 第一斩在第几帧（起势之后到这里是切入）
+@export var ult_pass_start: int = 38
+## 每两斩之间隔几帧（个数 + 1 = 斩几刀）。前慢后快：读得清第一刀，后面连成一片
+@export var ult_pass_gaps: PackedInt32Array = PackedInt32Array([7, 6, 6, 5, 5, 4, 4, 3, 3])
+## 收刀“咔”在第几帧（绝对帧）；之后 ult_hit_frame 全屏巨斩
+@export var ult_click_frame: int = 106
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")
@@ -2574,7 +2577,7 @@ func _process_ult(delta: float) -> void:
 ## 每一斩发生在第几帧（绝对帧）
 func ult_pass_frames() -> PackedInt32Array:
 	var out := PackedInt32Array()
-	var f := ult_charge_frames
+	var f := ult_pass_start
 	for i in ult_pass_gaps.size() + 1:
 		out.append(f)
 		if i < ult_pass_gaps.size():
@@ -2589,7 +2592,7 @@ func _update_ult_pose() -> void:
 		ult_clip = ""
 		ult_pose = -1
 		return
-	if ult_frame < ult_charge_frames:
+	if ult_frame < ult_pass_start:
 		ult_clip = "charge_slash"
 		ult_pose = mini(int(float(ult_frame) * 8.0 / float(maxi(ult_charge_frames, 1))), 7)
 		return
