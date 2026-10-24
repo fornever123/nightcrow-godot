@@ -6,6 +6,8 @@ GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever1
 
 **2026-10-23**：三条开发线（手感/光影、特效与大招分镜、本机连续击退）已合并到 main，详见 [试玩版总交接](docs/HANDOFF-试玩版.md) §19。
 
+**换 AI 接手请先读 [docs/交接-给下一个AI.md](docs/交接-给下一个AI.md)。**
+
 这是现在要使用的正式工程。当前默认打开夜景试玩版，F3 可切换木桩训练场。最新试玩进度见 [试玩版总交接](docs/HANDOFF-试玩版.md)。
 
 **选后视频音频**：[六段原始音频独立归档](art/selected-video-audio/README.md)，与源视频同名，直接提取、未重新压缩，已核对声音数据一致。
