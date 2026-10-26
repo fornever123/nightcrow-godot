@@ -14,6 +14,11 @@ const MONO_SHADER := preload("res://assets/shaders/fx_ult_mono.gdshader")
 const FLAT_SHADER := preload("res://assets/shaders/fx_ult_flat.gdshader")
 const VIOLET_SHADER := preload("res://assets/shaders/fx_ult_violet.gdshader")
 const MOVIE_PATH := "res://assets/video/ult_cinematic.ogv"
+## 大招音效（tools/audio/make_ult_sfx.py 用真实录音拼的）：在第几帧开始放（带小数时按小数部分从中间放），
+## 放在 assets/audio/ult/<名字>.ogg。时间轴见那个脚本的说明
+const SFX := {&"ult_start": 0.0, &"ult_eye": 44.0, &"ult_push": 90.6, &"ult_rise": 108.7,
+	&"ult_impact": 124.0, &"ult_sheathe": 142.8, &"ult_burst": 174.0}
+const SFX_BUS := &"SFX_Impact"
 ## 三张定格图在同一张画布上对齐（前脚脚尖 = ANCHOR），贴图 1 像素 = 世界 0.5 单位
 const BODY_PATHS := {&"iai": "res://assets/image/ult/feather/iai.png",
 	&"zanshin": "res://assets/image/ult/feather/zanshin.png",
@@ -68,6 +73,9 @@ var _ui_front: Node2D        ## 刀线、腰间白光、上下黑边
 var _movie_layer: CanvasLayer
 var _movie: VideoStreamPlayer
 var _tex := {}
+var _sfx := {}               ## 名字 → AudioStream
+var _sfx_done := {}
+var _voices: Array[AudioStreamPlayer] = []
 
 var _ambient: Array = []     ## {pos, ang, poly, top, depth, vx, spin}
 var _cut: Array = []         ## {halves: [poly, poly], cut: [[a, b], [a, b]], spin}
@@ -143,6 +151,15 @@ func _ready() -> void:
 	if ResourceLoader.exists(MOVIE_PATH):
 		_movie.stream = load(MOVIE_PATH)
 	_movie_layer.add_child(_movie)
+	for k in SFX:
+		var st := _load_audio("res://assets/audio/ult/%s.ogg" % k)
+		if st != null:
+			_sfx[k] = st
+	for i in 4:
+		var v := AudioStreamPlayer.new()
+		v.bus = SFX_BUS if AudioServer.get_bus_index(SFX_BUS) >= 0 else &"Master"
+		add_child(v)
+		_voices.append(v)
 	_set_layers(false)
 
 
@@ -182,6 +199,15 @@ static func _load_png(path: String) -> Texture2D:
 	return null
 
 
+static func _load_audio(path: String) -> AudioStream:
+	var absolute := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(absolute):
+		return AudioStreamOggVorbis.load_from_file(absolute)
+	if ResourceLoader.exists(path):
+		return load(path) as AudioStream
+	return null
+
+
 # ---------------------------------------------------------------- 对外（night_trial 调）
 
 ## 发动。data：final（刀线 {p, d}）、stand（站定位置）、side、shades、k（世界 / 屏幕像素）
@@ -198,6 +224,7 @@ func begin(data: Dictionary) -> void:
 	_face0 = int(player.get("facing")) if _ok() else 1
 	_view = _find_view(player) if _ok() else null
 	_set_layers(true)
+	_sfx_done.clear()
 	_build_feathers()
 	_build_shards()
 	_build_debris()
@@ -307,6 +334,7 @@ func _process(_delta: float) -> void:
 	_mono_mat.set_shader_parameter("reveal_r", reveal)
 	_mono_mat.set_shader_parameter("reveal_y", _line_screen().y / maxf(get_viewport().get_visible_rect().size.y, 1.0))
 	_update_movie()
+	_update_sfx()
 	_update_impact()
 	_update_body(reveal)
 	_update_shadow(g)
@@ -315,6 +343,30 @@ func _process(_delta: float) -> void:
 	_white.queue_redraw()
 	_feathers.queue_redraw()
 	_ui_front.queue_redraw()
+
+
+## 到点就放；跳帧（测试直接改帧号）时按落后的时间从中间放，太晚就不放了
+func _update_sfx() -> void:
+	if not (_ok() and player.is_ult()):
+		return
+	for k in SFX:
+		if _sfx_done.has(k) or not _sfx.has(k):
+			continue
+		var t0: float = SFX[k]
+		if _f < ceilf(t0):
+			continue
+		_sfx_done[k] = true
+		var st: AudioStream = _sfx[k]
+		var from := (_f - t0) / 60.0
+		if from >= st.get_length() - 0.02:
+			continue
+		var v := _voices[0]
+		for c in _voices:
+			if not c.playing:
+				v = c
+				break
+		v.stream = st
+		v.play(maxf(from, 0.0))
 
 
 func _impact_kind() -> int:

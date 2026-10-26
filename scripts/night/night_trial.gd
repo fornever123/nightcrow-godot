@@ -910,7 +910,6 @@ func _draw_seals() -> void:
 ## 发动：时间停住——屏幕里活着的影和飞行物全部定住；按敌群算好站定位置（敌群背后）和刀线（敌群胸口高度），
 ## 交给主角（位置）和 ult_fx（画面）。夜景前景和光影后期大招期间关掉（黑白层要盖住整个世界）
 func _on_ult_started() -> void:
-	audio.play_ult_start()
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM - 40.0
 	_ult_targets.clear()
@@ -992,10 +991,7 @@ func _on_ult_strike(i: int, _count: int) -> void:
 		_ult_dealt += s.ult_cut(ULT_CUT_DMG, s.global_position)
 	_ult_collect = false
 	ult_fx.strike(i)
-	if i == 0:      # 三刀挤在冲击帧里，只出一声
-		audio.play_swing(0.8)
-		if not _ult_targets.is_empty():
-			audio.play_blade_hit(0.8)
+	if i == 0:      # 三刀挤在冲击帧里（声音由 ult_fx 按帧放）
 		camera.add_shake(4.0 * shake_mul, Vector2(player.facing, 0))
 
 
@@ -1011,7 +1007,6 @@ func _on_ult_reveal() -> void:
 		if is_instance_valid(s) and s.is_alive():
 			total += minf(s.hp, ULT_FINAL_DMG)
 	ult_fx.reveal(total)
-	audio.play_ult_slash()
 	camera.add_shake(5.0 * shake_mul, Vector2.DOWN)
 	style.add_event(&"ult")
 	if not player.is_ult():
@@ -1037,7 +1032,6 @@ func _ult_execute() -> void:
 		return
 	_ult_done = true
 	var px: float = player.global_position.x
-	var any := false
 	_ult_collect = true
 	for t in _ult_targets:
 		var s = t.node
@@ -1045,12 +1039,8 @@ func _ult_execute() -> void:
 			continue
 		var side := 1 if s.global_position.x >= px else -1
 		s.ult_split_kill(Vector2(s.global_position.x, _ult_final.p.y), _ult_final.d, ULT_FINAL_DMG, -side)
-		any = true
 	_ult_collect = false
 	_ult_texts.clear()
-	if any:
-		audio.play_slam(0.8)
-		audio.play_shade_die()
 
 
 func _ult_mute(on: bool) -> void:
