@@ -118,12 +118,19 @@ func refresh_clips() -> void:
 
 func _load_clip(path: String) -> AudioStream:
 	var absolute := ProjectSettings.globalize_path(path)
-	if not FileAccess.file_exists(absolute):
-		return null
-	match absolute.get_extension().to_lower():
-		"wav": return AudioStreamWAV.load_from_file(absolute)
-		"ogg": return AudioStreamOggVorbis.load_from_file(absolute)
-		"mp3": return AudioStreamMP3.load_from_file(absolute)
+	if FileAccess.file_exists(absolute):
+		match absolute.get_extension().to_lower():
+			"wav":
+				return AudioStreamWAV.load_from_file(absolute)
+			"ogg":
+				return AudioStreamOggVorbis.load_from_file(absolute)
+			"mp3":
+				return AudioStreamMP3.load_from_file(absolute)
+	# Exported builds keep the imported AudioStream, not a disk WAV path.
+	if ResourceLoader.exists(path):
+		var loaded := ResourceLoader.load(path)
+		if loaded is AudioStream:
+			return loaded
 	return null
 
 
@@ -150,6 +157,10 @@ func _load_bank() -> void:
 				stream = AudioStreamOggVorbis.load_from_buffer(raw)
 			else:
 				stream = _load_clip(path)
+				if stream == null and ResourceLoader.exists(path):
+					var loaded := ResourceLoader.load(path)
+					if loaded is AudioStream:
+						stream = loaded
 			if stream != null:
 				streams.append(stream)
 		if streams.is_empty():

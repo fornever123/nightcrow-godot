@@ -19,3 +19,12 @@ environment/defaults/default_clear_color=Color(0.125,0.129,0.173,1)
 
 [physics]
 common/physics_ticks_per_second=60
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+
+[debug]
+file_logging/enable_file_logging=true
+file_logging/enable_file_logging.pc=true
+

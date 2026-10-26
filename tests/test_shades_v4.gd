@@ -323,9 +323,15 @@ func test_ult() -> void:
 	archer.facing = -1
 	archer._update_aim()
 	archer._fire_bolt()
-	var hits := {"start": 0, "hit": 0}
+	var hits := {"start": 0, "reveal": 0, "arrive": 0, "strike": 0}
 	p.ult_started.connect(func(): hits.start += 1)
-	p.ult_hit.connect(func(): hits.hit += 1)
+	p.ult_reveal.connect(func(): hits.reveal += 1)
+	p.ult_arrive.connect(func(): hits.arrive += 1)
+	p.ult_strike.connect(func(_k, _n): hits.strike += 1)
+	var g_dmg := {"n": 0.0}
+	g.damaged.connect(func(a, _t, _pt): g_dmg.n += a)
+	var r_dmg := {"n": 0.0}
+	r.damaged.connect(func(a, _t, _pt): r_dmg.n += a)
 	p.ult_energy = p.ult_max
 	check(p.ult_ready(), "能量满了")
 	r._begin_roll()
@@ -339,16 +345,28 @@ func test_ult() -> void:
 	var ok_inv: bool = p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g) == false and is_equal_approx(p.hp, php)
 	check(ok_inv, "大招中无敌")
 	var brute_flew := false
-	for i in p.ult_total_frames + p.ult_move().hitstop_frames + 10:
+	var hidden_seen := false
+	var g_alive_at_reveal := true
+	var freeze_held := true
+	for i in p.ult_total_frames + 10:
 		await hold(1)
-		brute_flew = brute_flew or b.state == Shade.State.LAUNCHED or b.state == Shade.State.DEAD
+		hidden_seen = hidden_seen or bool(p.ult_hidden)
+		if p.is_ult() and p.ult_frame == p.ult_final_frame + 2:
+			g_alive_at_reveal = is_instance_valid(g) and g.is_alive()
+		if p.is_ult() and p.ult_frame > p.ult_final_frame + 8 and p.ult_frame < p.ult_final_frame + p.ult_freeze_frames - 1:
+			freeze_held = freeze_held and (not is_instance_valid(b) or b.state != Shade.State.LAUNCHED)
+		brute_flew = brute_flew or (is_instance_valid(b) and b.state == Shade.State.LAUNCHED)
 	await hold(2)
-	check(hits.hit == 1, "出刀一次")
-	check(g.hp < hp.g and b.hp < hp.b, "屏幕里的影卒和甲影都被砍中（霸体扛不住）")
-	check(r.hp < hp.r, "翻滚中的影也躲不开大招")
+	check(hits.strike == 3 and hits.arrive == 1, "三刀 + 站定（strike %d / arrive %d）" % [hits.strike, hits.arrive])
+	check(hits.reveal == 1, "终结横断一次")
+	check(hidden_seen, "三刀之间她会消失（瞬身）")
+	check(g_alive_at_reveal and freeze_held, "终结那一刀后先定格，影还没断开、甲影还没被震飞")
+	check(g_dmg.n >= 80.0 and b.hp < hp.b, "屏幕里的影卒和甲影都被砍中（霸体扛不住；影卒 %.0f）" % g_dmg.n)
+	check(not is_instance_valid(g) or not g.is_alive(), "影卒被斩开")
+	check(is_instance_valid(b) and b.is_alive() and brute_flew, "甲影扛住终结，被震飞")
+	check(r_dmg.n > 0.0, "翻滚中的影也躲不开大招")
 	check(is_equal_approx(far.hp, hp.far), "屏幕外的影不受影响（镜头 x=%d，far hp %.0f→%.0f）" % [int(stage.camera.get_screen_center_position().x), hp.far, far.hp])
 	check(bolt_left >= 1 and get_nodes_in_group(&"shade_projectile").is_empty(), "飞行中的影矢被斩碎")
-	check(brute_flew, "甲影也被打飞（巨斩后进入过浮空）")
 	check(not p.is_ult() and p.state == Player.State.NEUTRAL, "大招结束恢复")
 	check(stage.style.stats.get("ult", 0) >= 1, "评价系统记到大招")
 	# 先 K 后 J 也行；不会多冒出一发远射 / 一刀

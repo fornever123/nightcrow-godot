@@ -7,8 +7,10 @@ const Config := preload("res://scripts/core/configuration.gd")
 const SOURCE_KEYS := [
 	"swing_l1", "swing_l2", "swing_l3", "swing_up", "swing_charge",
 	"swing_air1", "swing_air2", "swing_air3", "swing_air_up", "swing_dash",
-	"swing_dash_left", "block", "parry", "die", "draw", "sheathe",
+	"swing_dash_left", "block", "die", "draw", "sheathe",
 ]
+## 2026-10-26: parry plays the chosen layered A2 instead of its video cut.
+const PARRY_FILE := "../parry/parry_a2.wav"
 const BANK_KEYS := ["step", "jump", "hit_light", "clear", "shade_swing", "launch"]
 
 var checks := 0
@@ -36,8 +38,12 @@ func run() -> void:
 		if String(source_video).is_empty() or not path.ends_with(".wav") \
 				or not path.begins_with("../selected-video/"):
 			bad_manifest.append(key)
-	check(SOURCE_KEYS.size() == 16 and bad_manifest.is_empty(),
-		"all 16 replaced events identify a direct archived WAV and source video: %s" % [bad_manifest])
+	check(SOURCE_KEYS.size() == 15 and bad_manifest.is_empty(),
+		"all 15 replaced events identify a direct archived WAV and source video: %s" % [bad_manifest])
+	var parry_entry: Dictionary = clips.get("parry", {})
+	check(parry_entry.get("files", []) == [PARRY_FILE] and not parry_entry.has("sourceVideo")
+			and parry_entry.get("bus", "") == "impact",
+		"parry routes to the chosen A2 WAV on the impact bus: %s" % [parry_entry])
 
 	var config: Dictionary = Config.read()
 	var stage: Node2D = NightStage.instantiate()
@@ -58,6 +64,19 @@ func run() -> void:
 			bad_loaded.append(key + " (format)")
 	check(bad_loaded.is_empty(),
 		"source WAVs retain metadata, load once, stay stereo 32 kHz, and have no jitter: %s" % [bad_loaded])
+	var parry_bank: Dictionary = audio._bank.get("parry", {})
+	var parry_streams: Array = parry_bank.get("streams", [])
+	var parry_ok: bool = parry_streams.size() == 1 and parry_streams[0] is AudioStreamWAV \
+			and parry_streams[0].stereo and parry_streams[0].mix_rate == 48000 \
+			and absf(parry_streams[0].get_length() - 2.0) < 0.05 \
+			and not parry_bank.has("source_video") and float(parry_bank.get("jitter", -1.0)) == 0.0
+	check(parry_ok, "parry A2 loads once as stereo 48 kHz, 2.0 s, no jitter")
+	audio.stop_all()
+	audio.play_parry()
+	check(audio.last_event == "parry" and audio._voices.size() == 1
+			and audio._voices[0].stream == (parry_streams[0] if parry_ok else null),
+		"play_parry plays the A2 stream")
+	audio.stop_all()
 	var bad_unmatched: Array[String] = []
 	for key in BANK_KEYS:
 		var files: Array = clips.get(key, {}).get("files", [])

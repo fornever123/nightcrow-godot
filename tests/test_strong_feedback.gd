@@ -83,8 +83,10 @@ func run() -> void:
 		"light_1": [6, 7, 5.5], "light_2": [6, 8, 6.5], "light_3": [11, 15, 12.0],
 		"charge_1": [13, 16, 15.0], "up_strike": [9, 11, 10.0], "air_up": [6, 7, 6.0],
 		"air_light_1": [6, 7, 5.5], "air_light_2": [6, 8, 6.5], "air_light_3": [10, 13, 11.0],
-		"dash_slash": [11, 14, 12.0], "ranged_1": [3, 5, 3.5],
+		"dash_slash": [6, 14, 12.0], "ranged_1": [3, 5, 3.5],
 	}
+	# 冲刺斩穿过一串敌人：自己只在第一下顿 6 帧，后面路上的命中不再停（hitstopFirstOnly）
+	check(moves.dash_slash.hitstop_first_only and moves.dash_slash_left.hitstop_first_only, "dash_slash only pauses the attacker on its first hit")
 	const REFERENCE_SHAKE_MULTIPLIER := 1.55
 	for id in expected:
 		var m: Resource = moves.get(id)
@@ -245,8 +247,10 @@ func run() -> void:
 	await physics_frame
 	check(player.invuln_frames == 4, "invulnerability timer resumes after hitstop")
 	player.reset_state(Vector2(600.0, stage.floor_y - player.foot_offset))
-	player._start_move(stage.moves.charge_1, false)
-	player.move_frame = stage.moves.charge_1.startup_frames
+	# Use the normal finisher's short link window: the new full source charge
+	# intentionally has a long recovery that exceeds the normal input buffer.
+	player._start_move(stage.moves.light_3, false)
+	player.move_frame = stage.moves.light_3.startup_frames
 	player.hitstop_frames = 19
 	player.set_injected_frame(input_frame())
 	for i in 3:
@@ -264,7 +268,7 @@ func run() -> void:
 			buffered_followup = true
 			break
 	var current_name: StringName = StringName("none") if player.current_move == null else player.current_move.id
-	check(buffered_followup, "early follow-up pressed during 19-frame charge active hitstop is buffered (move=%s frame=%d stop=%d age=%d)" %
+	check(buffered_followup, "early follow-up pressed during 19-frame finisher hitstop is buffered (move=%s frame=%d stop=%d age=%d)" %
 			[String(current_name), player.move_frame, player.hitstop_frames, player.input_buffer.logic_age_at(0)])
 
 	# Drive the real enemy-side events directly. Each event must scale local
@@ -320,9 +324,9 @@ func run() -> void:
 		check(enemy.hitstop_frames == roundi(16 * multiplier), "guard break hitstop scales at modifier %s" % multiplier)
 
 	# The reflected arrow's real combat path gives its enemy target ten frames.
-	# 千刃 (HANDOFF §20): the start freezes every on-screen enemy until the
-	# burst and never freezes the attacker; the burst damages them, and a
-	# burst with nobody on screen freezes nobody.
+	# 绝影 (HANDOFF §22): the start freezes every on-screen enemy until the
+	# finishing blow and never freezes the attacker; the finish damages them, and a
+	# finish with nobody on screen freezes nobody.
 	stage.shake_mul = 2.0
 	var reflected_bolt := Node2D.new()
 	reflected_bolt.set_script(Bolt)
@@ -348,15 +352,15 @@ func run() -> void:
 	player.hitstop_frames = 0
 	stage._on_ult_started()
 	check(player.hitstop_frames == 0 and enemy.hitstop_frames >= player.ult_total_frames,
-			"千刃 start holds on-screen enemies (%d) without freezing the attacker" % enemy.hitstop_frames)
+			"ult start holds on-screen enemies (%d) without freezing the attacker" % enemy.hitstop_frames)
 	var ult_hp_before: float = enemy.hp
-	stage._on_ult_hit()
-	check(player.hitstop_frames == 0 and enemy.hp < ult_hp_before, "千刃 burst damages the held enemy without freezing the attacker")
+	stage._on_ult_reveal()
+	check(player.hitstop_frames == 0 and enemy.hp < ult_hp_before, "ult finish damages the held enemy without freezing the attacker")
 	stage.ult_fx.clear()
 	enemy.state = Shade.State.DEAD
 	player.hitstop_frames = 0
 	stage._on_ult_started()
-	stage._on_ult_hit()
+	stage._on_ult_reveal()
 	check(player.hitstop_frames == 0, "missed ultimate does not freeze its attacker")
 	stage.ult_fx.clear()
 	stage.camera.reset_shake()

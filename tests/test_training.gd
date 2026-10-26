@@ -1,6 +1,7 @@
 extends SceneTree
 const Config := preload("res://scripts/core/configuration.gd")
 const Buffer := preload("res://scripts/core/input_buffer.gd")
+const Timeline := preload("res://scripts/core/animation_timeline.gd")
 var stage: Node2D
 var p: CharacterBody2D
 var d: CharacterBody2D
@@ -57,8 +58,12 @@ func run() -> void:
 	for id in ["light_1","light_2","light_3","charge_1"]:
 		var m: Resource = stage.moves[id]
 		var clip: Dictionary = raw.characters[0].sprite.animations[m.animation]
-		check(absf(m.anim_seconds(float(m.total_frames()))-float(clip.frames.size())/m.animation_fps)<=1.0/60+0.00001,id+" 按完整动作时长出招（分段变速后动画仍播满）")
-		check(m.phase_timed and float(m.total_frames())/60.0 < float(clip.frames.size())/m.animation_fps,id+" 前后摇加速后整招更短")
+		var clip_seconds: float = Timeline.ticks_before(clip.frames, clip.frames.size()) / m.animation_fps
+		check(absf(m.anim_seconds(float(m.total_frames()))-clip_seconds)<=1.0/60+0.00001,id+" 按完整动作时长出招（支持原片长短帧）")
+		if id == "charge_1":
+			check(not m.phase_timed and absf(float(m.total_frames())/60.0-clip_seconds)<0.02,id+" 新蓄力下劈保持原片动作时长")
+		else:
+			check(m.phase_timed and float(m.total_frames())/60.0 < clip_seconds,id+" 前后摇加速后整招更短")
 	var faster: Dictionary = raw.duplicate(true)
 	for k in ["startupSpeed","activeSpeed","recoverySpeed","tailSpeed"]:
 		faster.moves[0].erase(k)
@@ -76,7 +81,7 @@ func run() -> void:
 	await step(1,frame([&"jump"],[&"jump"]))
 	await step(3)
 	check(p.velocity.y<0 and p.position.y<496,"第一跳")
-	# The inherited C-drive coyote interval treats a very early second press as a ground jump.
+	# A second press always spends the double jump, including during coyote time.
 	await step(p.coyote_frames)
 	await step(1,frame([&"jump"],[&"jump"]))
 	await step(2)

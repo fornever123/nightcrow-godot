@@ -180,6 +180,9 @@ def main():
                  activeEnd=before(m['activeFrameEnd']+1),chainOpen=before(m['chainFrame']))
     config['metadata']['description']='桌面手调24组动作：转向跑跳、地面三连、空中三连、双向冲刺、格挡弹刀与拔收刀。'
     config['metadata']['activeArtCollection']='desktop-actions-20261018'
+    # Keep the separately imported authored charge when rebuilding desktop bindings.
+    from import_charge_actions import apply_saved_binding
+    apply_saved_binding(config)
     save(CONFIG,config)
     save(ROOT/'docs/desktop-actions-bindings.json',{'collection':'desktop-actions-20261018','sourcePngs':734,
         'sourceDirectories':24,'animations':len(clips),'runtimeCalibration':calibration,

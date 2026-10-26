@@ -303,6 +303,9 @@ func _physics_process(delta: float) -> void:
 	if armor_flash > 0:
 		armor_flash -= 1
 	squash = squash.lerp(Vector2.ONE, 0.2)
+	if _split_on:
+		_split_t += 1.0
+		_update_split()
 	if state == State.DEAD:
 		_process_dead(delta)
 		queue_redraw()
@@ -1194,6 +1197,170 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 	velocity = Vector2(float(from_facing) * (60.0 + mv.knockback * 0.12 * knock_mul()), -hover)
 
 
+# ---------------------------------------------------------------- 大招「绝影」
+# 关卡把影挑上天、在空中排成一排：期间 hitstop 冻住 AI 和物理，位置由关卡直接写（ult_hold 每帧续上冻结）。
+# 空中每一刀只扣血不致死（ult_cut），终结那一刀才结算死活并按方向放开（ult_release），交给现有物理：
+# 下砸 → _floor_impact（冲击波、弹起）；横斩 → _wall_check / _chain_check（撞墙、连锁）。
+
+func ult_hold(frames: int) -> void:
+	if state == State.DEAD:
+		return
+	if state != State.LAUNCHED:
+		_cancel_stun_into_launch()
+		guard_frames = 0
+		roll_frames = 0
+		state = State.LAUNCHED
+		juggle_count = maxi(juggle_count, 1)
+		bounces = 0
+		slammed = false
+		driven_frames = 0
+		chain_armed = false
+	velocity = Vector2.ZERO
+	hitstop_frames = maxi(hitstop_frames, frames)
+
+
+func ult_cut(dmg: float, point: Vector2) -> float:
+	if state == State.DEAD:
+		return 0.0
+	var dealt := minf(dmg, maxf(hp - 1.0, 0.0))
+	_apply_damage(dealt)
+	last_hit_damage = dealt
+	combo_taken += 1
+	flash = 3
+	flash_color = Color.WHITE
+	squash = Vector2(1.18, 0.86)
+	damaged.emit(dealt, hp, point)
+	return dealt
+
+
+## dir：0 = 下砸，±1 = 往左 / 右横斩。side = 这只影在主角哪一边（下砸时往外偏一点）
+func ult_release(dir: int, side: int, dmg: float, point: Vector2) -> void:
+	if state == State.DEAD:
+		return
+	hitstop_frames = 0
+	_apply_damage(dmg)
+	last_hit_damage = dmg
+	flash = 5
+	flash_color = Color.WHITE
+	damaged.emit(dmg, hp, point)
+	if hp <= 0.0:
+		_die(side if dir == 0 else dir)
+	else:
+		state = State.LAUNCHED
+		bounces = 0
+	chain_level = 0
+	_chained.clear()
+	if dir == 0:
+		velocity = Vector2(float(side) * 90.0, 1500.0)
+		slammed = true
+		driven_frames = 0
+		chain_armed = false
+	else:
+		velocity = Vector2(float(dir) * 1150.0 * maxf(1.0, knock_mul()), -150.0)
+		slammed = false
+		driven_frames = 18
+		chain_armed = true
+
+
+## 绝影收刀“咔”的那一下才结算的终结伤害：被砍死的直接死（表现层把它画成化作巨鸦），没死的被震飞一下
+func ult_execute(dmg: float, side: int, point: Vector2) -> void:
+	if state == State.DEAD:
+		return
+	hitstop_frames = 0
+	_apply_damage(dmg)
+	last_hit_damage = dmg
+	flash = 5
+	flash_color = Color.WHITE
+	damaged.emit(dmg, hp, point)
+	if hp <= 0.0:
+		_die(side)
+		return
+	state = State.LAUNCHED
+	bounces = 0
+	slammed = false
+	driven_frames = 0
+	chain_armed = false
+	velocity = Vector2(float(side) * 260.0 * maxf(1.0, knock_mul()), -760.0)
+
+
+## 绝影冷峻版冲击帧：整只画成一种纯色剪影（col.a = 0 = 恢复原样）
+func ult_flat(col: Color) -> void:
+	if col.a <= 0.0:
+		material = null
+		return
+	var key := col.to_html()
+	if not _flat_mats.has(key):
+		var m := ShaderMaterial.new()
+		m.shader = FLAT_SHADER
+		m.set_shader_parameter("tint", col)
+		_flat_mats[key] = m
+	material = _flat_mats[key]
+
+
+## 绝影冷峻版终结：结算终结伤害。砍死的沿刃口（p 点、d 方向，全局坐标）斩成上下两半——下半留在原地，
+## 上半往 side 一侧飞起、落下，然后跟着死亡淡出；没死的被震飞
+func ult_split_kill(p: Vector2, d: Vector2, dmg: float, side: int) -> void:
+	if state == State.DEAD:
+		return
+	hitstop_frames = 0
+	material = null
+	_apply_damage(dmg)
+	last_hit_damage = dmg
+	damaged.emit(dmg, hp, p)
+	if hp > 0.0:
+		state = State.LAUNCHED
+		bounces = 0
+		slammed = false
+		driven_frames = 0
+		chain_armed = false
+		velocity = Vector2(float(side) * 300.0 * maxf(1.0, knock_mul()), -820.0)
+		return
+	_die(side)
+	velocity = Vector2.ZERO
+	_split_on = true
+	_split_p = p
+	_split_d = d.normalized()
+	_split_t = 0.0
+	_split_side = side
+	for half in [1, -1]:
+		var n := _SplitHalf.new()
+		n.shade = self
+		n.half = half
+		var m := ShaderMaterial.new()
+		m.shader = HALF_SHADER
+		n.material = m
+		add_child(n)
+		_split_nodes.append(n)
+	_update_split()
+	queue_redraw()
+
+
+## 上半：前 6 帧刚分开，之后往 side 一侧飞起、落下（世界坐标偏移）；两半都按刃口在屏幕上的位置裁掉另一侧
+func _update_split() -> void:
+	var t := _split_t
+	var up := Vector2(float(_split_side) * 3.2 * t, -9.0 * t + 0.26 * t * t) if t > 0.0 else Vector2.ZERO   # 约 17 帧飞到最高（约 78）再落下
+	var xf := get_viewport().get_canvas_transform()
+	for n in _split_nodes:
+		if not is_instance_valid(n):
+			continue
+		var off: Vector2 = up if n.half > 0 else Vector2.ZERO
+		n.position = off
+		var mat := n.material as ShaderMaterial
+		mat.set_shader_parameter("p0", xf * (_split_p + off))
+		mat.set_shader_parameter("dir", xf.basis_xform(_split_d).normalized())
+		mat.set_shader_parameter("side", float(n.half))
+		mat.set_shader_parameter("screen_size", get_viewport().get_visible_rect().size)
+		n.queue_redraw()
+
+
+class _SplitHalf extends Node2D:
+	var shade: Node2D
+	var half: int = 1      ## 1 = 刃口上面那半，-1 = 下面那半
+
+	func _draw() -> void:
+		shade._paint(self)
+
+
 func on_parried(cause: Node = null) -> void:
 	if state == State.DEAD:
 		return
@@ -1300,6 +1467,16 @@ func _process_dead(delta: float) -> void:
 
 # ---------------------------------------------------------------- 绘制（程序画的影子剑士）
 
+const FLAT_SHADER := preload("res://assets/shaders/fx_ult_flat.gdshader")
+const HALF_SHADER := preload("res://assets/shaders/fx_ult_half.gdshader")
+static var _flat_mats := {}
+var _split_on := false        ## 绝影冷峻版：被斩成两半了
+var _split_p := Vector2.ZERO
+var _split_d := Vector2.RIGHT
+var _split_t := 0.0
+var _split_side := 1
+var _split_nodes: Array = []
+
 const INK := Color(0.035, 0.043, 0.082)
 const INK_SOFT := Color(0.075, 0.09, 0.16)
 const RIM := Color(0.48, 0.6, 0.9)
@@ -1312,7 +1489,15 @@ const LAMP := Color(1.0, 0.66, 0.34)
 var ui_scale: float = 1.0
 
 
+## 绝影冷峻版：被斩开后自己不画，由上下两个半身子节点各画一遍（各自用 shader 只留刃口一侧）
 func _draw() -> void:
+	if _split_on:
+		return
+	_paint(self)
+
+
+## 画整只影（cv = 画在谁身上：平时是自己；被斩开后是两个半身子节点）
+func _paint(cv: CanvasItem) -> void:
 	var fade := 1.0
 	if state == State.DEAD:
 		fade = clampf(1.0 - float(dead_frames - 20) / 50.0, 0.0, 1.0)
@@ -1328,11 +1513,11 @@ func _draw() -> void:
 	var bomber := kind == Kind.BOMBER
 	# 接地影子（随离地高度变淡变小）
 	var air := clampf((ground_y() - position.y) / 300.0, 0.0, 1.0)
-	_draw_ellipse(Vector2(0, h + 2), Vector2(w * 1.5 * (1.0 - air * 0.5), 6.0), Color(0, 0, 0, 0.45 * fade * (1.0 - air * 0.7)))
+	_draw_ellipse(cv, Vector2(0, h + 2), Vector2(w * 1.5 * (1.0 - air * 0.5), 6.0), Color(0, 0, 0, 0.45 * fade * (1.0 - air * 0.7)))
 	if lamp.x > 0.03:   # 灯笼投影：背向灯笼拉长
 		var away := -1.0 if lamp.y > 0.0 else 1.0
-		_draw_ellipse(Vector2(away * (w + 22.0 * lamp.x), h + 2), Vector2(w * 1.4 + 30.0 * lamp.x, 4.0), Color(0, 0, 0, 0.25 * lamp.x * fade * (1.0 - air)))
-	draw_set_transform(Vector2(0, h), 0.0, s)
+		_draw_ellipse(cv, Vector2(away * (w + 22.0 * lamp.x), h + 2), Vector2(w * 1.4 + 30.0 * lamp.x, 4.0), Color(0, 0, 0, 0.25 * lamp.x * fade * (1.0 - air)))
+	cv.draw_set_transform(Vector2(0, h), 0.0, s)
 	var lean := 0.0
 	var tele := telegraph()
 	match state:
@@ -1386,29 +1571,29 @@ func _draw() -> void:
 	if flash > 0:
 		cloak = INK.lerp(Color.WHITE, 0.85) if flash_color == Color.WHITE else INK.lerp(flash_color, 0.7)
 	cloak.a = fade
-	draw_colored_polygon(pts, cloak)
+	cv.draw_colored_polygon(pts, cloak)
 	var wash := LAMP
 	wash.a = 0.16 * lamp.x * fade
 	if wash.a > 0.004:
-		draw_colored_polygon(pts, wash)   # 灯笼边：斗篷整体透一点暖色
+		cv.draw_colored_polygon(pts, wash)   # 灯笼边：斗篷整体透一点暖色
 	# 衣褶：两道略亮的竖纹，让斗篷不像一整块剪影
 	var fold := INK_SOFT
 	fold.a = 0.9 * fade
 	for k in 2:
 		var fx := w * (0.15 - 0.45 * float(k))
-		draw_line(_fp(fx, sh_y + body_h * 0.12, f, lean, body_h), _fp(fx - w * 0.2 - trail * 0.2 * float(k), -12.0, f, lean, body_h), fold, 3.0)
+		cv.draw_line(_fp(fx, sh_y + body_h * 0.12, f, lean, body_h), _fp(fx - w * 0.2 - trail * 0.2 * float(k), -12.0, f, lean, body_h), fold, 3.0)
 	# 甲影：肩甲 + 胸甲
 	if brute:
 		var plate := INK_SOFT.lerp(RIM, 0.25)
 		if armor_flash > 0 or is_armored():
 			plate = plate.lerp(WARN, 0.35 + 0.35 * sin(t * 30.0))
 		plate.a = fade
-		draw_colored_polygon(PackedVector2Array([_fp(-w * 0.95, top + body_h * 0.2, f, lean, body_h),
+		cv.draw_colored_polygon(PackedVector2Array([_fp(-w * 0.95, top + body_h * 0.2, f, lean, body_h),
 			_fp(w * 0.98, top + body_h * 0.2, f, lean, body_h), _fp(w * 0.78, top + body_h * 0.48, f, lean, body_h),
 			_fp(-w * 0.72, top + body_h * 0.48, f, lean, body_h)]), plate)
 		var seam := INK
 		seam.a = fade
-		draw_line(_fp(-w * 0.8, top + body_h * 0.34, f, lean, body_h), _fp(w * 0.85, top + body_h * 0.34, f, lean, body_h), seam, 2.0)
+		cv.draw_line(_fp(-w * 0.8, top + body_h * 0.34, f, lean, body_h), _fp(w * 0.85, top + body_h * 0.34, f, lean, body_h), seam, 2.0)
 	# 头 / 兜帽：尖顶向后拖，前面一块更黑的脸洞
 	var head := _lean(Vector2(0, top + body_h * 0.12), lean, body_h)
 	var r := w * (0.66 if brute else 0.62)
@@ -1418,33 +1603,33 @@ func _draw() -> void:
 		hood_pts.append(head + Vector2(cos(a) * r * f, sin(a) * r))
 	hood_pts.append(head + Vector2(-f * r * 1.15, -r * 0.25))
 	var hood := cloak
-	draw_colored_polygon(hood_pts, hood)
+	cv.draw_colored_polygon(hood_pts, hood)
 	var void_col := Color(0.0, 0.0, 0.01, fade)
-	_draw_ellipse(head + Vector2(f * r * 0.32, r * 0.08), Vector2(r * 0.55, r * 0.62), void_col)
+	_draw_ellipse(cv, head + Vector2(f * r * 0.32, r * 0.08), Vector2(r * 0.55, r * 0.62), void_col)
 	if archer:
 		# 影弓：高高的尖兜帽
-		draw_colored_polygon(PackedVector2Array([head + Vector2(-f * r * 0.7, -r * 0.6), head + Vector2(-f * r * 1.5, -r * 2.3), head + Vector2(f * r * 0.25, -r * 0.85)]), hood)
+		cv.draw_colored_polygon(PackedVector2Array([head + Vector2(-f * r * 0.7, -r * 0.6), head + Vector2(-f * r * 1.5, -r * 2.3), head + Vector2(f * r * 0.25, -r * 0.85)]), hood)
 	if bomber:
 		# 影爆：宽檐斗笠
-		draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 1.65), head + Vector2(r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 0.8)]), hood)
+		cv.draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 1.65), head + Vector2(r * 1.9, -r * 0.55), head + Vector2(0.0, -r * 0.8)]), hood)
 		var brim := RIM
 		brim.a = 0.45 * fade
-		draw_line(head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(r * 1.9, -r * 0.55), brim, 1.5)
+		cv.draw_line(head + Vector2(-r * 1.9, -r * 0.55), head + Vector2(r * 1.9, -r * 0.55), brim, 1.5)
 	if brute:
 		# 角
-		draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 0.45, -r * 0.5), head + Vector2(-r * 0.95, -r * 1.55), head + Vector2(-r * 0.05, -r * 0.8)]), hood)
-		draw_colored_polygon(PackedVector2Array([head + Vector2(r * 0.45, -r * 0.5), head + Vector2(r * 0.95, -r * 1.55), head + Vector2(r * 0.05, -r * 0.8)]), hood)
+		cv.draw_colored_polygon(PackedVector2Array([head + Vector2(-r * 0.45, -r * 0.5), head + Vector2(-r * 0.95, -r * 1.55), head + Vector2(-r * 0.05, -r * 0.8)]), hood)
+		cv.draw_colored_polygon(PackedVector2Array([head + Vector2(r * 0.45, -r * 0.5), head + Vector2(r * 0.95, -r * 1.55), head + Vector2(r * 0.05, -r * 0.8)]), hood)
 	# 月光轮廓：月亮在右上方，所以只描屏幕右侧的边
 	var rim := RIM
 	rim.a = 0.7 * fade
 	var rim_edge := front if f > 0 else back
 	var lw := maxf(1.0, ui_scale * 0.8)
-	draw_polyline(rim_edge, rim, 2.0 * lw)
+	cv.draw_polyline(rim_edge, rim, 2.0 * lw)
 	var hood_rim := PackedVector2Array()
 	for i in 13:
 		var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
 		hood_rim.append(head + Vector2(cos(a) * (r + 0.5), sin(a) * (r + 0.5)))
-	draw_polyline(hood_rim, rim, 1.5 * lw)
+	cv.draw_polyline(hood_rim, rim, 1.5 * lw)
 	# 灯笼暖光：朝灯笼那一侧再描一道暖边
 	if lamp.x > 0.02:
 		var wc := LAMP
@@ -1453,20 +1638,20 @@ func _draw() -> void:
 		var warm_edge := front if side * f > 0.0 else back
 		var glow := LAMP
 		glow.a = 0.28 * lamp.x * fade
-		draw_polyline(warm_edge, glow, 7.0 * lw)
-		draw_polyline(warm_edge, wc, 3.0 * lw)
+		cv.draw_polyline(warm_edge, glow, 7.0 * lw)
+		cv.draw_polyline(warm_edge, wc, 3.0 * lw)
 		var warm_rim := PackedVector2Array()
 		for i in 13:
 			var a := deg_to_rad(lerpf(-75.0, 40.0, float(i) / 12.0))
 			warm_rim.append(head + Vector2(cos(a) * side * (r + 0.5), sin(a) * (r + 0.5)))
-		draw_polyline(warm_rim, wc, 1.5 * lw)
+		cv.draw_polyline(warm_rim, wc, 1.5 * lw)
 	# 下摆的影雾：几团慢慢上飘的半透明黑烟
 	for i in 4:
 		var ph := fmod(t * 0.6 + float(i) * 0.27, 1.0)
 		var sx := lerpf(hw * 0.7, -hw - trail, fmod(float(i) * 0.37 + 0.1, 1.0))
 		var puff := INK_SOFT
 		puff.a = 0.42 * (1.0 - ph) * fade
-		draw_circle(_fp(sx - ph * 10.0, -4.0 - ph * 26.0, f, 0.0, body_h), 4.0 + ph * 7.0, puff)
+		cv.draw_circle(_fp(sx - ph * 10.0, -4.0 - ph * 26.0, f, 0.0, body_h), 4.0 + ph * 7.0, puff)
 	# 眼睛：前摇时变成警示橙并变大
 	var eye := EYE.lerp(WARN, tele)
 	var eye_r := 2.6 + tele * 2.4
@@ -1475,12 +1660,12 @@ func _draw() -> void:
 		eye_r = 2.0
 	eye.a = fade
 	var e0 := head + Vector2(f * r * 0.22, -1.0)
-	draw_circle(e0, eye_r, eye)
-	draw_circle(e0 + Vector2(f * r * 0.42, 0.5), eye_r * 0.85, eye)
+	cv.draw_circle(e0, eye_r, eye)
+	cv.draw_circle(e0 + Vector2(f * r * 0.42, 0.5), eye_r * 0.85, eye)
 	if tele > 0.0:
 		var glow := WARN
 		glow.a = 0.28 * tele * fade
-		draw_circle(e0 + Vector2(f * r * 0.2, 0), 10.0 + tele * 10.0, glow)
+		cv.draw_circle(e0 + Vector2(f * r * 0.2, 0), 10.0 + tele * 10.0, glow)
 	# 手臂（从前肩到握刀手）
 	var shoulder := _fp(w * 0.5, sh_y + 4.0, f, lean, body_h)
 	var hand := _lean(Vector2(f * w * 0.75, top + body_h * 0.45), lean, body_h)
@@ -1489,16 +1674,16 @@ func _draw() -> void:
 	elif archer and (state == State.WINDUP or state == State.STRIKE):
 		hand = _lean(Vector2(f * w * 1.05, top + body_h * 0.3), lean, body_h)        # 举弓平端
 	var arm := cloak
-	draw_line(shoulder, hand, arm, 8.0 if brute else 6.0)
+	cv.draw_line(shoulder, hand, arm, 8.0 if brute else 6.0)
 	var aim_from := Vector2(0, h) + hand * s     # 解除变形后的手的位置（画瞄准线用）
 	if archer:
-		_draw_bow(hand, f, tele, fade, lw)
+		_draw_bow(cv, hand, f, tele, fade, lw)
 	elif bomber:
-		_draw_held_bomb(hand, tele, fade)
+		_draw_held_bomb(cv, hand, tele, fade)
 		# 腰上还挂着两颗
 		for k in 2:
 			var bp := _fp(-w * 0.15 + float(k) * w * 0.4, top + body_h * 0.62, f, lean, body_h)
-			draw_circle(bp, 6.0, INK_SOFT.lerp(RIM, 0.15) * Color(1, 1, 1, fade))
+			cv.draw_circle(bp, 6.0, INK_SOFT.lerp(RIM, 0.15) * Color(1, 1, 1, fade))
 	else:
 		var ang := 0.35
 		match state:
@@ -1518,12 +1703,12 @@ func _draw() -> void:
 			dir = Vector2(-cos(ang), sin(ang))
 		var blade := Color(0.16, 0.18, 0.28).lerp(WARN, tele * 0.6)
 		blade.a = fade
-		draw_line(hand, hand + dir * blade_len, blade, 6.0 if brute else 4.0)
+		cv.draw_line(hand, hand + dir * blade_len, blade, 6.0 if brute else 4.0)
 		var edge := RIM.lerp(WARN, tele)
 		edge.a = 0.8 * fade
-		draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5 * lw)
+		cv.draw_line(hand + dir * 8.0, hand + dir * blade_len, edge, 1.5 * lw)
 		var guard := Vector2(-dir.y, dir.x) * (9.0 if brute else 7.0)
-		draw_line(hand + dir * 6.0 - guard, hand + dir * 6.0 + guard, blade, 3.0)
+		cv.draw_line(hand + dir * 6.0 - guard, hand + dir * 6.0 + guard, blade, 3.0)
 		# 弹刀时机提示：出刀前 PARRY_CUE 帧，刀尖亮起一颗白星（这时按 L 正好弹开）
 		if state == State.WINDUP:
 			var remain := int(spec.windup) - state_frames
@@ -1531,14 +1716,14 @@ func _draw() -> void:
 				var k := 1.0 - float(remain) / float(PARRY_CUE)
 				var tip := hand + dir * blade_len
 				var star := Color(1, 1, 1, fade * (0.55 + 0.45 * k))
-				_draw_star(tip, 6.0 + 12.0 * k, star)
-				draw_circle(tip, 10.0 + 16.0 * k, Color(1.0, 0.95, 0.8, 0.22 * fade))
+				_draw_star(cv, tip, 6.0 + 12.0 * k, star)
+				cv.draw_circle(tip, 10.0 + 16.0 * k, Color(1.0, 0.95, 0.8, 0.22 * fade))
 		# 举刀格挡：身前一道淡蓝的弧（看到它 = 普通刀会被挡，换重招 / 绕背）
 		if state == State.GUARD:
 			var gc := Color(0.75, 0.85, 1.0, 0.55 * fade)
 			var gcen := _fp(w * 0.9, top + body_h * 0.45, f, lean, body_h)
 			var a0 := -1.1 if f > 0 else PI - 1.1
-			draw_arc(gcen, body_h * 0.42, a0, a0 + 2.2, 14, gc, 3.0)
+			cv.draw_arc(gcen, body_h * 0.42, a0, a0 + 2.2, 14, gc, 3.0)
 		# 出刀弧光
 		if state == State.STRIKE:
 			var arc := WARN
@@ -1546,14 +1731,14 @@ func _draw() -> void:
 			var c := hand
 			var a0 := -1.6 if f > 0 else PI + 1.6
 			var a1 := 1.1 if f > 0 else PI - 1.1
-			draw_arc(c, blade_len * 0.95, minf(a0, a1), maxf(a0, a1), 18, arc, 6.0)
+			cv.draw_arc(c, blade_len * 0.95, minf(a0, a1), maxf(a0, a1), 18, arc, 6.0)
 	# 翻滚：身后拖一道影雾
 	if state == State.ROLL:
 		for i in 4:
 			var puff := INK_SOFT
 			puff.a = 0.5 * fade * (1.0 - float(i) / 4.0)
-			draw_circle(Vector2(-float(roll_dir) * (14.0 + 16.0 * float(i)), -h * 0.6), 12.0 - float(i) * 2.0, puff)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			cv.draw_circle(Vector2(-float(roll_dir) * (14.0 + 16.0 * float(i)), -h * 0.6), 12.0 - float(i) * 2.0, puff)
+	cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# 影弓瞄准线：前摇时从弓指向玩家，最后 8 帧锁定、变亮变粗 = 马上放箭
 	if archer and state == State.WINDUP:
 		var locked := int(spec.windup) - state_frames <= 8
@@ -1562,58 +1747,59 @@ func _draw() -> void:
 		var seg := 26.0
 		for i in 22:
 			var p0 := aim_from + aim * (float(i) * seg * 1.6)
-			draw_line(p0, p0 + aim * seg, lc, (3.5 if locked else 1.5) * lw)
+			cv.draw_line(p0, p0 + aim * seg, lc, (3.5 if locked else 1.5) * lw)
 	# 前摇预警：脚下橙色弧 + 头顶“!”
 	if tele > 0.0 and state == State.WINDUP:
 		var ring := WARN
 		ring.a = (0.35 + 0.5 * tele) * fade
 		if not is_ranged_kind():
-			draw_arc(Vector2(f * float(spec.range) * 0.5, h), float(spec.range) * 0.55, PI + 0.25, TAU - 0.25, 20, ring, 2.0 + tele * 2.0)
+			cv.draw_arc(Vector2(f * float(spec.range) * 0.5, h), float(spec.range) * 0.55, PI + 0.25, TAU - 0.25, 20, ring, 2.0 + tele * 2.0)
 		if tele > 0.55:
-			draw_set_transform(Vector2(0, -h - 34.0), 0.0, Vector2(ui_scale, ui_scale))
-			draw_string(_font, Vector2(-5, 0), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			cv.draw_set_transform(Vector2(0, -h - 34.0), 0.0, Vector2(ui_scale, ui_scale))
+			cv.draw_string(_font, Vector2(-5, 0), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
+			cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# 眩晕：头顶转圈的星
 	if state == State.STUNNED:
 		for i in 3:
 			var a := t * 4.0 + float(i) * TAU / 3.0
 			var p := Vector2(cos(a) * 20.0 * ui_scale, -h - 22.0 * ui_scale + sin(a) * 6.0 * ui_scale)
-			_draw_star(p, 5.0 * ui_scale, GOLD)
-	draw_set_transform(Vector2(0, -half_h), 0.0, Vector2(ui_scale, ui_scale))
-	_draw_bars(fade)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			_draw_star(cv, p, 5.0 * ui_scale, GOLD)
+	cv.draw_set_transform(Vector2(0, -half_h), 0.0, Vector2(ui_scale, ui_scale))
+	if cv == self:
+		_draw_bars(fade)
+	cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## 影弓的弓：竖着的一道弧 + 弦；拉弓时弦往后拉、搭着一支发光的箭
-func _draw_bow(hand: Vector2, f: float, tele: float, fade: float, lw: float) -> void:
+func _draw_bow(cv: CanvasItem, hand: Vector2, f: float, tele: float, fade: float, lw: float) -> void:
 	var wood := Color(0.16, 0.18, 0.28).lerp(WARN, tele * 0.4)
 	wood.a = fade
 	var r := 34.0
 	var c := hand + Vector2(-f * 14.0, 0.0)
 	var a0 := -1.15 if f > 0 else PI - 1.15
-	draw_arc(c, r, a0, a0 + 2.3, 14, wood, 4.0)
+	cv.draw_arc(c, r, a0, a0 + 2.3, 14, wood, 4.0)
 	var top := c + Vector2(cos(a0), sin(a0)) * r
 	var bot := c + Vector2(cos(a0 + 2.3), sin(a0 + 2.3)) * r
 	var pull := hand + Vector2(-f * (8.0 + 18.0 * tele), 0.0)
 	var string_col := RIM
 	string_col.a = 0.7 * fade
-	draw_line(top, pull, string_col, 1.2 * lw)
-	draw_line(bot, pull, string_col, 1.2 * lw)
+	cv.draw_line(top, pull, string_col, 1.2 * lw)
+	cv.draw_line(bot, pull, string_col, 1.2 * lw)
 	if state == State.WINDUP:
 		var arrow := WARN
 		arrow.a = (0.5 + 0.5 * tele) * fade
-		draw_line(pull, pull + Vector2(f * 54.0, 0.0), arrow, 3.0)
-		draw_circle(pull + Vector2(f * 54.0, 0.0), 4.0 + 4.0 * tele, arrow)
+		cv.draw_line(pull, pull + Vector2(f * 54.0, 0.0), arrow, 3.0)
+		cv.draw_circle(pull + Vector2(f * 54.0, 0.0), 4.0 + 4.0 * tele, arrow)
 
 
 ## 影爆手里的炸弹（前摇时举过头顶、引信火星越来越亮）
-func _draw_held_bomb(hand: Vector2, tele: float, fade: float) -> void:
+func _draw_held_bomb(cv: CanvasItem, hand: Vector2, tele: float, fade: float) -> void:
 	var body := INK.lerp(WARN, 0.2 * tele)
 	body.a = fade
-	draw_circle(hand + Vector2(0, -8.0), 12.0, body)
+	cv.draw_circle(hand + Vector2(0, -8.0), 12.0, body)
 	var spark := Color(1.0, 0.95, 0.75, fade * (0.5 + 0.5 * tele))
-	draw_line(hand + Vector2(3, -18), hand + Vector2(7, -26), INK * Color(1, 1, 1, fade), 2.5)
-	draw_circle(hand + Vector2(7, -26), 2.5 + 3.0 * tele, spark)
+	cv.draw_line(hand + Vector2(3, -18), hand + Vector2(7, -26), INK * Color(1, 1, 1, fade), 2.5)
+	cv.draw_circle(hand + Vector2(7, -26), 2.5 + 3.0 * tele, spark)
 
 
 func _fp(x: float, y: float, f: float, lean: float, body_h: float) -> Vector2:
@@ -1627,21 +1813,21 @@ func _lean(p: Vector2, lean: float, body_h: float) -> Vector2:
 	return Vector2(p.x + lean * body_h * k * 0.6, p.y)
 
 
-func _draw_ellipse(c: Vector2, r: Vector2, col: Color) -> void:
+func _draw_ellipse(cv: CanvasItem, c: Vector2, r: Vector2, col: Color) -> void:
 	var pts := PackedVector2Array()
 	for i in 20:
 		var a := TAU * float(i) / 20.0
 		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y))
-	draw_colored_polygon(pts, col)
+	cv.draw_colored_polygon(pts, col)
 
 
-func _draw_star(c: Vector2, r: float, col: Color) -> void:
+func _draw_star(cv: CanvasItem, c: Vector2, r: float, col: Color) -> void:
 	var pts := PackedVector2Array()
 	for i in 10:
 		var a := -PI / 2.0 + TAU * float(i) / 10.0
 		var rr := r if i % 2 == 0 else r * 0.45
 		pts.append(c + Vector2(cos(a) * rr, sin(a) * rr))
-	draw_colored_polygon(pts, col)
+	cv.draw_colored_polygon(pts, col)
 
 
 func _draw_bars(fade: float) -> void:

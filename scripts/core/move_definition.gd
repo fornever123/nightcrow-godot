@@ -133,11 +133,16 @@ func knockback_velocity(facing: int) -> Vector2:
 ## distances are cumulative pixels; physics applies each delta through collision.
 @export var dash_distance: float = 0.0
 @export var movement_timeline: Array = []
+## 穿过多个敌人的招式（冲刺斩）：只有本招第一次命中让攻击方顿帧，后面路上再打中的不停，一路冲过去。
+@export var hitstop_first_only: bool = false
 @export var air_gravity_scale: float = 1.0
 @export var air_suspend_frames: int = 0
 ## 根位移：动画每一帧的累计横向位移（世界像素，朝前为正），由 tools/art/align_sequences.py
 ## 从画面里提取。运行时角色真的跟着身体走，招式结束不会被"拉回"原地。
 @export var root_motion_x: Array = []
+## Optional authored vertical path for a charge released from the floor.
+## Airborne releases keep the current jump instead of replaying this hop.
+@export var root_motion_y: Array = []
 @export var root_motion_scale: float = 1.0
 
 func distance_at(progress: float) -> float:

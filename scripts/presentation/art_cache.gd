@@ -21,6 +21,7 @@ static func hq_material() -> ShaderMaterial:
 
 static func reset(sprite: Dictionary) -> void:
 	pending.clear()
+	direct_textures.clear()
 	var new_cleanup: Dictionary = sprite.get("assetCleanup", {})
 	if new_cleanup.hash() != cleanup.hash():
 		for path in new_cleanup:
@@ -58,6 +59,9 @@ static func reset(sprite: Dictionary) -> void:
 		if not used.has(path):
 			textures.erase(path)
 
+## Paths whose Texture2D came straight from ResourceLoader (no CPU Image / premultiply).
+static var direct_textures: Dictionary = {}
+
 static func get_texture(path: String) -> Texture2D:
 	if path.is_empty() or path.contains("..") or path.is_absolute_path():
 		return null
@@ -67,10 +71,16 @@ static func get_texture(path: String) -> Texture2D:
 	var image := _load_override(String(overrides.get(path, "")))
 	var rects: Array = []
 	if image == null:
-		image = Image.new()
-		var bytes := FileAccess.get_file_as_bytes("res://assets/" + path)
-		var error := image.load_png_from_buffer(bytes) if path.get_extension().to_lower() == "png" else image.load_jpg_from_buffer(bytes)
-		if error != OK or image.is_empty():
+		image = _load_source_image(path)
+		if image == null or image.is_empty():
+			# Export often ships only .ctex. get_image() can be empty for VRAM textures,
+			# so fall back to the remapped Texture2D itself (skip cleanup / premultiply).
+			var direct := _load_direct_texture(path)
+			if direct != null:
+				textures[path] = direct
+				direct_textures[path] = true
+				return direct
+			push_error("ART_CACHE_MISS " + path + " bytes=" + str(FileAccess.get_file_as_bytes("res://assets/" + path).size()) + " exists=" + str(ResourceLoader.exists("res://assets/" + path)) + " import=" + str(FileAccess.file_exists("res://assets/" + path + ".import")))
 			textures[path] = null
 			return null
 		rects = cleanup.get(path, [])
@@ -82,7 +92,63 @@ static func get_texture(path: String) -> Texture2D:
 		image.premultiply_alpha()
 	var texture := ImageTexture.create_from_image(image)
 	textures[path] = texture
+	direct_textures.erase(path)
 	return texture
+
+static func _load_source_image(path: String) -> Image:
+	var res_path := "res://assets/" + path
+	var bytes := FileAccess.get_file_as_bytes(res_path)
+	if not bytes.is_empty():
+		var image := Image.new()
+		var error := image.load_png_from_buffer(bytes) if path.get_extension().to_lower() == "png" else image.load_jpg_from_buffer(bytes)
+		if error == OK and not image.is_empty():
+			return image
+	# Exported builds keep the imported .ctex. Chinese source paths may not remap, so
+	# read the .import sidecar and load that ASCII dest path instead.
+	var from_import := _load_imported_texture(res_path)
+	if from_import != null:
+		return from_import
+	var tex := ResourceLoader.load(res_path) as Texture2D
+	if tex != null:
+		var from_tex := tex.get_image()
+		if from_tex != null and not from_tex.is_empty():
+			return from_tex.duplicate()
+	return null
+
+static func _load_direct_texture(path: String) -> Texture2D:
+	var res_path := "res://assets/" + path
+	if ResourceLoader.exists(res_path):
+		var tex := ResourceLoader.load(res_path) as Texture2D
+		if tex != null:
+			return tex
+	var import_path := res_path + ".import"
+	if not FileAccess.file_exists(import_path):
+		return null
+	var cfg := ConfigFile.new()
+	if cfg.load(import_path) != OK:
+		return null
+	var ctex_path := String(cfg.get_value("remap", "path", ""))
+	if ctex_path.is_empty():
+		return null
+	return ResourceLoader.load(ctex_path) as Texture2D
+
+static func _load_imported_texture(res_path: String) -> Image:
+	var import_path := res_path + ".import"
+	if not FileAccess.file_exists(import_path):
+		return null
+	var cfg := ConfigFile.new()
+	if cfg.load(import_path) != OK:
+		return null
+	var ctex_path := String(cfg.get_value("remap", "path", ""))
+	if ctex_path.is_empty():
+		return null
+	var tex := ResourceLoader.load(ctex_path) as Texture2D
+	if tex == null:
+		return null
+	var image := tex.get_image()
+	if image == null or image.is_empty():
+		return null
+	return image.duplicate()
 
 static func _load_override(fixed: String) -> Image:
 	if fixed.is_empty() or fixed.contains("..") or fixed.is_absolute_path():
@@ -111,7 +177,7 @@ static func apply(view: Sprite2D, frame: Dictionary, display_scale: float = 1.0)
 		return
 	view.texture = texture
 	view.centered = false
-	if premultiply and view.material == null:
+	if premultiply and view.material == null and not bool(direct_textures.get(String(frame.get("asset", "")), false)):
 		view.material = hq_material()
 	var region: Dictionary = frame.get("region", {})
 	view.region_enabled = not region.is_empty()

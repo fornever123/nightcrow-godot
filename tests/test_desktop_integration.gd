@@ -51,7 +51,7 @@ func run() -> void:
 	check(p.speed>=300.0,"第二轮手感：跑速提到 300 以上（步幅 18.6/帧，帧率跟着提）")
 	check(clips.air_attack_1.frames.size()==18 and clips.air_attack_2.frames.size()==12 and clips.air_attack_3.frames.size()==26,"空中56帧完整分为18/12/26三段")
 	check(p.air_combo.size()==3 and p.dash_left_move!=null and p.dash_move!=null,"新招式资源注入真实玩家")
-	check(p.dash_left_move.total_frames()!=p.dash_move.total_frames(),"左右冲刺使用各自动作时长")
+	check(p.dash_left_move.animation=="dash_left_video" and p.dash_move.animation=="dash_right_video" and clips.dash_left_video.frames.size()==21 and clips.dash_right_video.frames.size()==22,"左右冲刺各用视频里对应方向那一段（左1–21、右22–43帧）")
 	await step(1,frame([&"jump"],[&"jump"]))
 	await step(12)
 	await step(1,frame([&"attack_light"],[&"attack_light"]))
@@ -89,7 +89,7 @@ func run() -> void:
 	check(p.current_move==p.dash_move,"Shift+J真实输入启动右冲刺")
 	var x: float=p.position.x
 	await step(20)
-	check(p.position.x>x and view.clip_name=="dash_right","冲刺位移和右向素材同步推进")
+	check(p.position.x>x and view.clip_name=="dash_right_video","冲刺位移和右向素材同步推进")
 	stage._reset()
 	await step(1,frame([&"parry"],[&"parry"]))
 	await step(36,frame([&"parry"]))

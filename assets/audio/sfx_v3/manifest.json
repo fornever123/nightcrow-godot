@@ -97,12 +97,11 @@
   },
   "parry": {
    "files": [
-    "../selected-video/parry.wav"
+    "../parry/parry_a2.wav"
    ],
    "bus": "impact",
    "pitchJitter": 0.0,
-   "sourceVideo": "mmh3_左侧格挡_v5.m4a",
-   "peakOffsetSeconds": 0.012
+   "peakOffsetSeconds": 0.005
   },
   "block": {
    "files": [

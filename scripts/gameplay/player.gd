@@ -36,11 +36,15 @@ signal parry_success(attacker: Node, point: Vector2)
 signal block_success(attacker: Node, point: Vector2)
 ## 试玩版：S+J 下砸落地（表现层拿去放冲击尘土/震屏）
 signal plunge_landed(point: Vector2)
-## 大招（第四轮）：开始（暗屏、全场定住）→ 出刀那一帧（全屏斩）→ 收招
+## 大招「绝影 · 鸦羽止」（2026-10-26，样片 v4，见 docs/大招-鸦羽止-交接.md）：发动（全场定住、褪成黑白）→ 过场视频
+## → 一闪（ult_strike，三刀同时结算）→ 她已在敌群背后（ult_arrive）→ “咔”收剑（ult_reveal）→ 顿帧 → 影裂开 → 收（ult_finished）
 signal ult_started()
-signal ult_hit()
-## 千刃：第 index 斩（0 起，共 count 斩）。关卡收到后把主角瞬移到下一个目标的另一侧
-signal ult_pass(index: int, count: int)
+## 大招期间每帧（关卡据此推进定格 / 斩开；不依赖关卡自己的 _physics_process）
+signal ult_tick()
+signal ult_strike(index: int, count: int)
+signal ult_arrive()
+## “咔”收剑的那一帧
+signal ult_reveal()
 signal ult_finished()
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
@@ -226,22 +230,18 @@ var input_source: Object = null
 @export var ult_enabled: bool = false
 @export var ult_max: float = 100.0
 @export var ult_chord_frames: int = 6
-## 「千刃」（2026-10-23 重做，商业级版）。时间轴（60 帧 / 秒）：
-##   0～ult_charge_frames：起势——时间停住、黑边、镜头推近、拔刀架势（蓄力斩 0～7 帧）
-##   ult_charge_frames～ult_pass_start：切入——立绘带 + 招式名题字（姿势定住）
-##   ult_pass_start 起：按 ult_pass_gaps 的间隔瞬移连斩（越砍越快），每次发 ult_pass(i, N)，关卡决定瞬移到哪
-##   最后一斩后：背对敌人残心 → 转刀 → 第 ult_click_frame 帧收刀“咔”（之前几帧全场静默压暗）
-##   第 ult_hit_frame 帧：全屏巨斩 + 所有挨过刀的影一齐爆开（ult_hit，关卡结算伤害）→ 收尾
-@export var ult_total_frames: int = 214
-@export var ult_hit_frame: int = 150
-## 起势多少帧
-@export var ult_charge_frames: int = 36
-## 第一斩在第几帧（起势之后到这里是切入）
-@export var ult_pass_start: int = 72
-## 每两斩之间隔几帧（个数 + 1 = 斩几刀）。前慢后快：读得清第一刀，后面连成一片
-@export var ult_pass_gaps: PackedInt32Array = PackedInt32Array([7, 6, 6, 5, 5, 4, 4, 3, 3])
-## 收刀“咔”在第几帧（绝对帧）；之后 ult_hit_frame 全屏巨斩
-@export var ult_click_frame: int = 134
+## 「绝影 · 鸦羽止」（2026-10-26，样片 v4）。时间轴（60 帧 / 秒）：
+##   0～ult_vanish_frame：游戏里——全场定住、世界褪成黑白、上下黑边收进来，她摆出居合架势
+##   ult_vanish_frame～ult_calm_start：过场视频（推近眼睛 → 握剑 → 推开鲤口 → 白闪），这段她不在场上（ult_hidden）
+##   ult_cut_frames：一闪——白闪之后那几帧三刀同时结算（只扣血），发 ult_strike(i, 3)
+##   ult_calm_start：冲击帧，她已在敌群背后低位收势（关卡给 ult_stand_pos），发 ult_arrive；之后一切静止
+##   ult_final_frame：“咔”——跳切到收剑姿势，发 ult_reveal；顿帧 ult_freeze_frames 帧后影沿刀线裂开，到 ult_total_frames 结束
+@export var ult_total_frames: int = 248     ## 正常放完的总长；测试和无敌帧按它算
+@export var ult_vanish_frame: int = 8
+@export var ult_cut_frames := PackedInt32Array([124, 125, 126])
+@export var ult_calm_start: int = 124
+@export var ult_final_frame: int = 168
+@export var ult_freeze_frames: int = 6
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")
@@ -267,7 +267,14 @@ var ult_frame: int = -1          ## ≥0 = 正在放大招（第几帧）
 ## 大招期间角色显示哪段动画、第几帧（character_view 读；空 = 不管）
 var ult_clip: String = ""
 var ult_pose: int = -1
-var ult_from_x: float = NAN      ## 出刀冲刺之前站在哪
+var ult_from_x: float = NAN      ## 起手时站在哪（表现层用）
+var ult_cut_pos := PackedVector2Array()      ## 三刀出刀位置（关卡在 ult_started 里给；没给就在身前摆一个默认三角）
+var ult_cut_face := PackedInt32Array()       ## 三刀出刀时朝哪边
+var ult_stand_pos: Vector2 = Vector2.INF     ## 站定位置（敌群另一头的地面）
+var ult_stand_face: int = 1
+var ult_hidden := false          ## 大招里她“消失”的那几段（表现层据此隐藏角色）
+## 大招里她用哪张定格图（表现层画；空 = 用平常的角色帧）：&"iai" 居合架势 / &"zanshin" 低位收势 / &"sheathed" 收剑
+var ult_body: StringName = &""
 var _ult_move: Resource = null
 var _ult_used_seq: int = -1      ## 已经用掉的那对 J/K 按键（防止同一次按键放两次）
 var _soft_knock := false   ## 这次被击退是轻击（落地直接站稳）
@@ -313,6 +320,10 @@ var charge_frames: int = -1
 var _charge_t: float = 0.0
 ## 蓄力速率的浮点累加器（见 _process_charge 的注释）
 var _charge_accum: float = 0.0
+## The new grounded release has an authored hop; airborne release keeps its jump.
+var _charge_authored_hop: bool = false
+var _charge_hop_started: bool = false
+var _charge_hop_origin_y: float = 0.0
 
 var input_buffer: InputBuffer
 
@@ -329,6 +340,7 @@ var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
 var _air_jumps_left: int = 0
+var _ground_jump_used: bool = false
 var _uppercut_jump_pending: bool = false
 var _uppercut_used_light_seq: int = -1
 var _last_jump_frame: int = -1000
@@ -340,6 +352,8 @@ var _air_slow_hit_tick: int = -1
 var _jump_buffer_tick: int = -1
 var _frame_counter: int = 0
 var _hit_this_swing: Dictionary = {}
+## 本招已经打中几次（换招清零）；穿透招式只在第 1 次顿帧，表现层据此减弱后续命中的震屏
+var swing_hit_count: int = 0
 var _squash_timer: int = 0
 ## 已消费的按键边沿记账：action -> 该边沿的 Frame.seq
 var _consumed_edge: Dictionary = {}
@@ -607,7 +621,7 @@ func _physics_process(delta: float) -> void:
 	_update_attack_hold(frame)
 
 	if ult_frame >= 0:
-		_process_ult(delta)
+		_process_ult(delta, frame)
 		return
 
 	# 蓄力是"招式之外的一个前置阶段"，所以优先于状态机分流
@@ -633,6 +647,7 @@ func _update_ground_air() -> void:
 		ground_frames += 1
 		air_frames = 0
 		_air_jumps_left = extra_air_jumps
+		_ground_jump_used = false
 		_air_light_left = air_light_uses
 		_air_hit_slow_frames = 0
 		var landing_peak := _peak_y
@@ -755,14 +770,14 @@ func _buffer_jump(frame: InputBuffer.Frame) -> void:
 func _can_jump() -> bool:
 	if ground_frames > 0:
 		return true
-	if air_frames > 0 and air_frames <= coyote_frames:
+	if not _ground_jump_used and air_frames > 0 and air_frames <= coyote_frames:
 		return true
 	return _air_jumps_left > 0
 
 
 ## Either order forms one rising uppercut; W-first reuses its existing jump.
 func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
-	if up_strike_move == null or (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)):
+	if charge_frames >= 0 or up_strike_move == null or (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)):
 		return false
 	if frame.actions.has(&"dash_modifier"):
 		return false
@@ -782,12 +797,15 @@ func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
 		return false
 	var reuse_jump := _last_jump_from_up and not _last_jump_is_uppercut \
 			and _frame_counter - _last_jump_frame < uppercut_input_frames and not is_on_floor()
+	# Once airborne, held W is steering/aim input, not another jump command on every J.
+	# Only a fresh W chord or the original W-first jump may request a new uppercut.
+	if not is_on_floor() and not reuse_jump and not fresh_up:
+		return false
 	if is_on_floor():
 		ground_frames = maxi(ground_frames, 1)
 		air_frames = 0
 	if not reuse_jump and not _can_jump():
 		return false
-	var windup := move_frame if current_move != null and light_combo.has(current_move) else 0
 	_uppercut_used_light_seq = light_frame.seq
 	_consumed_edge[&"attack_light"] = light_frame.seq
 	_consumed_edge[&"jump"] = frame.seq
@@ -802,7 +820,9 @@ func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
 		_last_jump_is_uppercut = true
 		move_frame = up_strike_move.startup_frames
 	else:
-		move_frame = mini(windup, maxi(up_strike_move.startup_frames - 1, 0))
+		# Keyboard order must not add a grounded windup delay. Take off this tick,
+		# then enter the strike's active phase on the next physics tick.
+		move_frame = maxi(up_strike_move.startup_frames - 1, 0)
 	return true
 
 
@@ -810,6 +830,9 @@ func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
 ## the ultimate. Neutral jumps retain ordinary platform drop-through behavior.
 func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	if state in [State.LAUNCHED, State.DOWN, State.DEAD] or ult_frame >= 0:
+		return false
+	# Charging is a persistent stance; _process_charge handles ordinary jumps and gravity.
+	if charge_frames >= 0:
 		return false
 	var busy := state != State.NEUTRAL or charge_frames >= 0 or hitstop_frames > 0 \
 			or _guard_active or not locomotion_animation.is_empty()
@@ -905,6 +928,7 @@ func _try_drop_through() -> bool:
 	ground_frames = 0
 	# 穿下去算“已经离地”：之后再按跳就是二段跳（不白送一次首跳）
 	air_frames = coyote_frames + 1
+	_ground_jump_used = true
 	velocity.y = 60.0
 	_set_visual_scale(Vector2(1.1, 0.9))
 	_squash_timer = 4
@@ -938,9 +962,10 @@ func _do_jump() -> void:
 	if not locomotion_animation.is_empty():
 		_set_facing(input_direction if input_direction != 0 else _turn_target)
 	_cancel_locomotion()
-	var is_double := ground_frames == 0 and not (air_frames > 0 and air_frames <= coyote_frames)
+	var is_double := ground_frames == 0 and (_ground_jump_used or not (air_frames > 0 and air_frames <= coyote_frames))
 	_jump_buffer_counter = 0
 	ground_frames = 0
+	_ground_jump_used = true
 	# 起跳前先把自己从几何体里"挤"出来。
 	# 如果角色和地形有重叠（掉帧、被顶进平台、测试里瞬移），
 	# move_and_slide 会优先解算重叠，把这一帧的起跳速度直接吃掉 ——
@@ -958,13 +983,8 @@ func _do_jump() -> void:
 		_set_visual_scale(Vector2(0.74, 1.30))
 		_squash_timer = 7
 	else:
-		# 首跳（含土狼时间内的那一跳）。
-		#
-		# 【重要契约】土狼窗口在首跳之后必须继续正常倒数，这里【不能】把
-		# air_frames 清零重来：那会把窗口从起跳那一刻重新续上 6 帧，
-		# 玩家在这段时间里按的第二跳会被一直算成"首跳"，
-		# 二段跳的次数一点都掉不下去（实测就是这个症状）。
-		# 让它自然走完 ≤coyote_frames 帧，之后再按才是真正的二段跳。
+		# Coyote time rescues an unspent ground jump after walking off a ledge.
+		# A successful launch spends it immediately; the next press is a double jump.
 		air_frames = maxi(air_frames, 1)
 		velocity.y = _jump_velocity
 		_jump_rising = true
@@ -1066,10 +1086,7 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 		if finisher == &"drive":
 			return &"air_drive"
 		if not air_combo.is_empty():
-			if air_combo_index == 0:
-				return &"air_combo"
-			_take_edge(&"attack_light")
-			return &""
+			return &"air_combo"
 		if _air_light_left > 0:
 			return &"air_up"
 		# 没次数时也消费这次按键，避免之后被 K 重置后自动补出一刀。
@@ -1179,6 +1196,10 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	action_idle_frames = 0
 	_dash_facing = facing
 	current_move = mv
+	_charge_authored_hop = mv == charge_move and not mv.root_motion_y.is_empty() \
+			and float(mv.root_motion_y.min()) < -0.1 and is_on_floor()
+	_charge_hop_started = false
+	_charge_hop_origin_y = global_position.y
 	finisher_intent = &""
 	_uppercut_jump_pending = is_up and (mv == up_strike_move or mv == air_up_move) and _can_jump()
 	if not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
@@ -1199,6 +1220,7 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	link_open = false
 	last_swing_hit = false
 	_hit_this_swing.clear()
+	swing_hit_count = 0
 	if _is_light_finisher(mv) and air_combo.is_empty():
 		_air_light_left = maxi(_air_light_left, 1)
 	# 前摇反向蓄力（设计文档 §8.4 Anticipation）
@@ -1319,12 +1341,9 @@ func _process_charge(delta: float, frame: InputBuffer.Frame) -> void:
 		_take_edge(&"attack_ranged")
 		_start_ranged()
 
-	# 松开（或到达上限自动放）就出招
+	# 蓄满只封顶伤害，继续按住仍保持；松开才释放。
 	var released := not frame.actions.has(&"attack_light")
 	if released and charge_frames >= cm.min_charge_frames:
-		_release_charge()
-		return
-	if charge_frames >= cm.max_charge_frames:
 		_release_charge()
 		return
 	# 还没到最短蓄力就松手 → 当成一次普通轻击（不惩罚玩家）
@@ -1390,6 +1409,14 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		_move_horizontal(delta, frame, mv.movement_scale)
 
 	elif phase == &"recovery":
+		# Uppercut takeoff already spent its jump. After the strike, J may start
+		# normal air attacks without requiring another jump or waiting the long ground tail.
+		if not is_on_floor() and (mv == up_strike_move or mv == air_up_move) \
+				and not air_combo.is_empty() and _resolve_light_press():
+			_move_horizontal(delta, frame, 1.0)
+			_apply_air_attack_gravity(delta, current_move)
+			_move_with_root_motion(delta, current_move)
+			return
 		# 挑飞取消（试玩版，launcher_cancel=true 时）：地面招式的后摇一开始就能 W+J 接上挑，
 		# 和"后摇按 W 跳起取消"同一时机。让"打满失衡 → 眩晕 → 立刻挑飞"这一步不被长后摇拖住。
 		if launcher_cancel and not link_open and is_on_floor() and up_strike_move != null \
@@ -1537,10 +1564,8 @@ func _resolve_light_press() -> bool:
 			_start_air_finisher(finisher)
 			return true
 		_take_edge(&"attack_light")
-		if current_move != null and air_combo.has(current_move) and air_combo_index < air_combo.size():
-			_start_air_combo_move()
-			return true
-		return false
+		_start_air_combo_move()
+		return true
 	if _should_charge_on_hold():
 		# 两种情况都算"按住"：
 		#   a) 边沿还在（还没出过招）→ 直接消费边沿进蓄力
@@ -1639,10 +1664,13 @@ func _do_hit_check(mv: Resource) -> void:
 				and (owner_node.is_in_group(&"shade") or owner_node.is_in_group(&"dummy")):
 			_on_melee_mobility_hit(mv)
 		last_swing_hit = true
+		swing_hit_count += 1
 		# Apply the attacker's pause on a real hit, not only when this actor receives damage.
-		var charge_bonus := roundi(mv.charge_hitstop_bonus * _charge_t)
-		hitstop_frames = maxi(hitstop_frames, mv.hitstop_frames + charge_bonus)
-		hitstop_this_tick = hitstop_frames > 0
+		# 穿透招式只在第一次命中停，路上后面的敌人照样受击，但自己不再一顿一顿。
+		if not mv.hitstop_first_only or swing_hit_count == 1:
+			var charge_bonus := roundi(mv.charge_hitstop_bonus * _charge_t)
+			hitstop_frames = maxi(hitstop_frames, mv.hitstop_frames + charge_bonus)
+			hitstop_this_tick = hitstop_frames > 0
 		_set_visual_scale(mv.squash)
 		_squash_timer = 2
 		hit_confirmed.emit(owner_node, mv, point)
@@ -1939,6 +1967,7 @@ func reset_state(pos: Vector2) -> void:
 	ult_energy = 0.0
 	ult_clip = ""
 	ult_pose = -1
+	_reset_ult_flow()
 	action_idle_frames = 0
 	global_position = pos
 	velocity = Vector2.ZERO
@@ -1967,6 +1996,7 @@ func reset_state(pos: Vector2) -> void:
 	ground_frames = 0
 	air_frames = 0
 	_air_jumps_left = extra_air_jumps
+	_ground_jump_used = false
 	_air_light_left = air_light_uses
 	_jump_buffer_counter = 0
 	_uppercut_jump_pending = false
@@ -1994,13 +2024,13 @@ func combat_intent() -> StringName:
 
 func _wants_air_slam(frame: InputBuffer.Frame) -> bool:
 	return frame != null and frame.axis.y > 0.5 and not air_combo.is_empty() \
-			and air_combo_index < air_combo.size() and not is_on_floor()
+			and not is_on_floor()
 
 
 ## 空中已经出过至少一刀后，按住前方 + J：直接出横扫终结（把敌人水平打飞去撞墙/撞人）
 func _wants_air_drive(frame: InputBuffer.Frame) -> bool:
 	return frame != null and frame.axis.x * float(facing) > 0.5 and absf(frame.axis.y) < 0.5 \
-			and not air_combo.is_empty() and air_combo_index >= 1 and air_combo_index < air_combo.size() \
+			and not air_combo.is_empty() and air_combo_index >= 1 \
 			and not is_on_floor()
 
 
@@ -2183,13 +2213,16 @@ func _reset_air_combo() -> void:
 	air_suspend_used = 0
 
 func _start_air_combo_move() -> void:
-	if is_on_floor() or air_combo_index >= air_combo.size():
+	if is_on_floor() or air_combo.is_empty():
 		return
+	air_combo_index %= air_combo.size()
 	var mv: Resource = air_combo[air_combo_index]
 	air_combo_index += 1
 	_start_move(mv, false)
 
 func _apply_air_attack_gravity(delta: float, _mv: Resource) -> void:
+	if _mv == charge_move and _charge_authored_hop:
+		return
 	if finisher_intent == &"slam" and not is_on_floor():
 		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
 		return
@@ -2281,9 +2314,30 @@ func _root_motion_step(mv: Resource) -> float:
 	if clip.is_empty():
 		return 0.0
 	var n: int = mv.root_motion_x.size()
+	if bool(clip.get("rootMotionSmooth", false)):
+		# 动画 24 帧/秒、物理 60 帧/秒：按帧取值会一帧猛冲上百像素、接着一两帧不动（一顿一顿）。
+		# 平滑版在相邻两帧之间线性插值，每帧开头仍然正好落在该帧的位置。
+		return (_root_motion_at(mv, clip, float(move_frame + 1)) - _root_motion_at(mv, clip, float(move_frame))) * mv.root_motion_scale
 	var i0 := clampi(Timeline.frame_at(clip, mv.anim_seconds(float(move_frame)), mv.animation_fps, true, false), 0, n - 1)
 	var i1 := clampi(Timeline.frame_at(clip, mv.anim_seconds(float(move_frame + 1)), mv.animation_fps, true, false), 0, n - 1)
 	return (float(mv.root_motion_x[i1]) - float(mv.root_motion_x[i0])) * mv.root_motion_scale
+
+
+## 招式第 f 个物理帧时的累计根位移（在当前动画帧和下一帧之间线性插值）。
+func _root_motion_at(mv: Resource, clip: Dictionary, f: float, curve: Array = []) -> float:
+	var frames: Array = clip.get("frames", [])
+	var values: Array = mv.root_motion_x if curve.is_empty() else curve
+	var n: int = mini(values.size(), frames.size())
+	if n == 0:
+		return 0.0
+	var seconds: float = mv.anim_seconds(f)
+	var i := clampi(Timeline.frame_at(clip, seconds, mv.animation_fps, true, false), 0, n - 1)
+	if i >= n - 1:
+		return float(values[n - 1])
+	var start := Timeline.ticks_before(frames, i)
+	var length := maxf(Timeline.duration_ticks(frames[i]), 0.000001)
+	var t := clampf((maxf(seconds, 0.0) * mv.animation_fps - start) / length, 0.0, 1.0)
+	return lerpf(float(values[i]), float(values[i + 1]), t)
 
 
 ## 贴身刹车（试玩版）：敌人不是物理体、挡不住人，根位移往前推时
@@ -2312,8 +2366,16 @@ func _clamp_root_motion(step_px: float) -> float:
 ## 根位移只作用这一帧，不留在 velocity 里，免得变成惯性滑步。
 func _move_with_root_motion(delta: float, mv: Resource) -> void:
 	var root_step := 0.0
-	if (is_on_floor() or finisher_intent != &"") and mv != charge_move:
+	if ((is_on_floor() or finisher_intent != &"") and mv != charge_move) \
+			or (mv == charge_move and not mv.root_motion_x.is_empty()):
 		root_step = _root_motion_step(mv)
+	var hop_active := mv == charge_move and _charge_authored_hop
+	var hop := 0.0
+	if hop_active:
+		var clip: Dictionary = _sprite_config().get("animations", {}).get(mv.animation, {})
+		hop = _root_motion_at(mv, clip, float(move_frame + 1), mv.root_motion_y)
+		_charge_hop_started = _charge_hop_started or hop < -0.1
+		velocity.y = (_charge_hop_origin_y + hop - global_position.y) / maxf(delta, 0.000001)
 	var rv := _clamp_root_motion(root_step * float(facing)) / maxf(delta, 0.000001)
 	velocity.x += rv
 	move_and_slide()
@@ -2321,6 +2383,10 @@ func _move_with_root_motion(delta: float, mv: Resource) -> void:
 		velocity.x = 0.0
 	else:
 		velocity.x -= rv
+	if hop_active:
+		if is_on_ceiling() or (_charge_hop_started and hop >= -0.001):
+			_charge_authored_hop = false
+		velocity.y = 0.0
 
 
 func _guard_config() -> Dictionary:
@@ -2432,6 +2498,8 @@ func _play_guard_reaction(reactions: Array, parried: bool) -> void:
 	_reaction_guard_held = keep_guard
 
 func _interrupt_action_flow() -> void:
+	_charge_authored_hop = false
+	_charge_hop_started = false
 	_uppercut_jump_pending = false
 	_air_hit_slow_frames = 0
 	_reaction_guard_held = false
@@ -2526,105 +2594,103 @@ func _start_ult() -> void:
 	ult_frame = 0
 	ult_energy = 0.0
 	ult_from_x = global_position.x
+	_reset_ult_flow()
 	_update_ult_pose()
 	link_open = false
 	last_swing_hit = true
 	_hit_this_swing.clear()
+	swing_hit_count = 0
 	velocity = Vector2.ZERO
 	hitstop_frames = 0
-	invuln_frames = maxi(invuln_frames, ult_total_frames + 12)
-	_set_visual_scale(Vector2(0.86, 1.16))
+	invuln_frames = maxi(invuln_frames, ult_total_frames + 100)
+	_set_visual_scale(Vector2(1.12, 0.88))
 	_squash_timer = 6
 	ult_started.emit()
 
 
-func _process_ult(delta: float) -> void:
+func _reset_ult_flow() -> void:
+	ult_cut_pos = PackedVector2Array()
+	ult_cut_face = PackedInt32Array()
+	ult_stand_pos = Vector2.INF
+	ult_stand_face = facing
+	ult_hidden = false
+	ult_body = &""
+
+
+func _process_ult(_delta: float, _frame: InputBuffer.Frame) -> void:
 	var mv := current_move
 	if mv == null:
 		ult_frame = -1
 		ult_clip = ""
 		ult_pose = -1
+		ult_hidden = false
+		ult_body = &""
 		state = State.NEUTRAL
 		return
 	ult_frame += 1
-	var passes := ult_pass_frames()
-	var k := passes.find(ult_frame)
+	if ult_frame == ult_vanish_frame:
+		_ult_fill_defaults()
+	var k := ult_cut_frames.find(ult_frame)
 	if k >= 0:
-		ult_pass.emit(k, passes.size())
-		_set_visual_scale(Vector2(1.22, 0.86))
-		_squash_timer = 3
+		ult_strike.emit(k, ult_cut_frames.size())
+	if ult_frame == ult_calm_start:
+		ult_arrive.emit()
+	if ult_frame == ult_final_frame:
+		ult_reveal.emit()
 	_update_ult_pose()
 	move_frame = mini(int(mv.total_frames()) - 1, int(float(ult_frame) / float(maxi(ult_total_frames, 1)) * float(mv.total_frames())))
-	if ult_frame == ult_hit_frame:
-		_set_visual_scale(Vector2(0.9, 1.12))
-		_squash_timer = 5
-		ult_hit.emit()
-	# 连斩和收刀都悬在原地（瞬移由关卡调 ult_dash_by）；一齐爆开之后才正常下落
-	if ult_frame < ult_hit_frame + 4:
-		velocity = Vector2.ZERO
-	else:
-		velocity.x = 0.0
-		_apply_gravity(delta, _gravity)
-	move_and_slide()
+	_move_ult()
+	ult_tick.emit()
 	if ult_frame >= ult_total_frames:
 		ult_frame = -1
 		ult_clip = ""
 		ult_pose = -1
+		ult_hidden = false
+		ult_body = &""
 		_end_attack()
 		ult_finished.emit()
 
 
-## 每一斩发生在第几帧（绝对帧）
-func ult_pass_frames() -> PackedInt32Array:
-	var out := PackedInt32Array()
-	var f := ult_pass_start
-	for i in ult_pass_gaps.size() + 1:
-		out.append(f)
-		if i < ult_pass_gaps.size():
-			f += maxi(ult_pass_gaps[i], 1)
-	return out
+## 关卡没给路线（测试直接起手）时：站定在身前远处（ult_cut_pos 只留给表现层参考）
+func _ult_fill_defaults() -> void:
+	var fx := float(facing)
+	var p := global_position
+	if ult_cut_pos.size() < ult_cut_frames.size():
+		ult_cut_pos = PackedVector2Array([p + Vector2(fx * 520.0, -60.0), p + Vector2(fx * 120.0, -260.0), p + Vector2(fx * 560.0, -20.0)])
+		ult_cut_face = PackedInt32Array([-facing, facing, -facing])
+	if ult_stand_pos == Vector2.INF:
+		ult_stand_pos = p + Vector2(fx * 640.0, 0.0)
+		ult_stand_face = facing
 
 
-## 千刃的姿势：起手 = 蓄力斩架势；每一斩 = 冲刺斩挥出（第 11 帧，带刀光）2 帧 → 收势（第 15 帧）；
-## 最后一斩后 = 收刀：残心（第 0 帧）→ 转刀 → 第 ult_click_frame 帧到第 14 帧“咔” → 慢慢收尾
+## 位置：起手原地 → 过场视频期间不在场上 → 冲击帧那一刻已经站在敌群背后。全程不走物理（直接写位置）
+func _move_ult() -> void:
+	velocity = Vector2.ZERO
+	if ult_frame < ult_calm_start:
+		ult_hidden = ult_frame >= ult_vanish_frame
+		return
+	if ult_stand_pos != Vector2.INF:
+		global_position = ult_stand_pos
+		_set_facing(ult_stand_face)
+	ult_hidden = false
+
+
+## 姿势：居合架势 → （过场视频）→ 低位收势 → “咔”跳切到收剑。定格图由表现层画（ult_body），
+## ult_clip / ult_pose 给 character_view 兜底（表现层没接上时也有个像样的姿势）
 func _update_ult_pose() -> void:
 	if ult_frame < 0:
 		ult_clip = ""
 		ult_pose = -1
+		ult_body = &""
 		return
-	if ult_frame < ult_pass_start:
-		ult_clip = "charge_slash"
-		ult_pose = mini(int(float(ult_frame) * 8.0 / float(maxi(ult_charge_frames, 1))), 7)
+	if ult_frame < ult_vanish_frame:
+		ult_body = &"iai"
+		ult_clip = "draw"
+		ult_pose = 14
 		return
-	var passes := ult_pass_frames()
-	var last: int = passes[passes.size() - 1]
-	if ult_frame < last + 6:
-		var since := 999
-		for pf in passes:
-			if pf <= ult_frame:
-				since = ult_frame - pf
-		ult_clip = "dash_right"
-		ult_pose = 11 if since < 2 else 15
+	if ult_frame < ult_calm_start:
+		ult_body = &""
 		return
-	var s := ult_frame - (last + 6)
-	var click_s := maxi(ult_click_frame - (last + 6), 8)
+	ult_body = &"zanshin" if ult_frame < ult_final_frame else &"sheathed"
 	ult_clip = "sheathe"
-	if s < 6:
-		ult_pose = 0
-	elif s < click_s:
-		ult_pose = 4 + int(float(s - 6) * 10.0 / float(maxi(click_s - 6, 1)))
-	else:
-		ult_pose = mini(14 + int(float(s - click_s) / 2.0), 38)
-
-
-## 大招出刀：瞬间横移 dx（先抬一点越过台阶，横着走，碰墙就停，再落回地面）。关卡在 ult_hit 里调用
-func ult_dash_by(dx: float) -> void:
-	ult_from_x = global_position.x
-	if is_zero_approx(dx):
-		return
-	var lift := 40.0
-	var up := move_and_collide(Vector2(0.0, -lift))
-	var rose := lift if up == null else absf(up.get_travel().y)
-	move_and_collide(Vector2(dx, 0.0))
-	move_and_collide(Vector2(0.0, rose + 6.0))
-	velocity = Vector2.ZERO
+	ult_pose = 18

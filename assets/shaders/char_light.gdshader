@@ -22,18 +22,21 @@ uniform float flip = 1.0;
 uniform vec2 px = vec2(2.0, 2.0);   // 1 个“边缘光宽度”对应多少贴图像素（x/y）
 uniform vec2 spx = vec2(1.0, 1.0);  // 1 个屏幕像素对应多少贴图像素（x/y）
 uniform float ol_width = 0.0;       // 描边宽度（屏幕像素），0 = 不描边
-uniform vec3 ol_col = vec3(0.04, 0.047, 0.094);
+uniform vec3 ol_col = vec3(0.008, 0.008, 0.012);
 uniform float punch_con = 1.0;      // 对比
 uniform float punch_sat = 1.0;      // 饱和
 
 // 轮廓取样：某点“算不算身体”（刀光：亮且偏蓝白、或亮紫（紫刀光/紫晕，见 tools/art/recolor_slash.py）→ 不算，所以刀光外面不描边）
-#define OL_TAP(ACC, UVV) { \
+#define OL_TAP(ACC, ALPHA, UVV) { \
 	vec2 ol_u = (UVV); \
-	vec4 ol_t = texture(TEXTURE, ol_u) * inside(ol_u); \
+	vec4 ol_t; \
+	HQ_BOX(ol_t, ol_u, dFdx(UV), dFdy(UV), 2) \
+	ALPHA = ol_t.a; \
 	if (ol_t.a > 0.02) { \
 		vec3 ol_s = ol_t.rgb / ol_t.a; \
 		float ol_fx = max(step(0.55, min(ol_s.r, min(ol_s.g, ol_s.b))) * step(ol_s.r + 0.04, ol_s.b), \
 			step(0.68, ol_s.b) * step(ol_s.g + 0.2, ol_s.b) * step(ol_s.r + 0.08, ol_s.b)); \
+		ol_fx = max(ol_fx, smoothstep(0.4, 0.6, ol_s.b) * smoothstep(0.08, 0.2, ol_s.b - ol_s.g) * smoothstep(-0.1, 0.06, ol_s.b - ol_s.r)); \
 		ACC = max(ACC, ol_t.a * (1.0 - ol_fx)); \
 	} \
 }
@@ -78,21 +81,30 @@ void fragment() {
 		c.rgb = col;
 	}
 	vec4 o = vec4(c.rgb * c.a, c.a);
-	if (ol_width > 0.0 && c.a < 0.98) {
-		vec2 r = TEXTURE_PIXEL_SIZE * spx * ol_width;
+	if (ol_width > 0.0) {
+		// Screen derivatives keep the stroke width stable across frames, flips and squash.
+		vec2 rx = dFdx(UV) * ol_width;
+		vec2 ry = dFdy(UV) * ol_width;
 		float ol = 0.0;
-		OL_TAP(ol, UV + vec2(r.x, 0.0))
-		OL_TAP(ol, UV - vec2(r.x, 0.0))
-		OL_TAP(ol, UV + vec2(0.0, r.y))
-		OL_TAP(ol, UV - vec2(0.0, r.y))
-		OL_TAP(ol, UV + r * 0.7071)
-		OL_TAP(ol, UV - r * 0.7071)
-		OL_TAP(ol, UV + vec2(r.x, -r.y) * 0.7071)
-		OL_TAP(ol, UV + vec2(-r.x, r.y) * 0.7071)
-		OL_TAP(ol, UV + vec2(r.x * 0.5, 0.0))
-		OL_TAP(ol, UV - vec2(r.x * 0.5, 0.0))
-		OL_TAP(ol, UV + vec2(0.0, r.y * 0.5))
-		OL_TAP(ol, UV - vec2(0.0, r.y * 0.5))
+		float body = 0.0;
+		float center_alpha = 0.0;
+		OL_TAP(body, center_alpha, UV)
+		float eroded = 1.0;
+		for (int j = -1; j <= 1; j++) {
+			for (int i = -1; i <= 1; i++) {
+				if (i == 0 && j == 0) continue;
+				vec2 dir = normalize(vec2(float(i), float(j)));
+				vec2 sample_uv = UV + rx * dir.x + ry * dir.y;
+				float neighbor = 0.0;
+				float neighbor_alpha = 0.0;
+				OL_TAP(neighbor, neighbor_alpha, sample_uv)
+				ol = max(ol, neighbor);
+				eroded = min(eroded, neighbor_alpha);
+			}
+		}
+		// A narrow inner stroke also covers cropped texture edges; it never expands geometry.
+		float inner = smoothstep(0.12, 0.85, body) * (1.0 - smoothstep(0.1, 0.85, eroded));
+		o.rgb = mix(o.rgb, ol_col * c.a, inner);
 		ol = smoothstep(0.15, 0.6, ol) * (1.0 - c.a);
 		o += vec4(ol_col * ol, ol);
 	}

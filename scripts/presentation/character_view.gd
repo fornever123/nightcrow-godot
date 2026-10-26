@@ -129,8 +129,11 @@ func _draw_frame() -> void:
 		time = actor.locomotion_clock
 	elif not stance_clip.is_empty() and clip_name == stance_clip:
 		time = stance_clock
+	if actor.is_charging() and bool(setup.get("chargeAnimated", false)):
+		# The charge timer survives movement, jumps and landing view events.
+		time = float(actor.charge_frames) / 60.0
 	frame_index = Timeline.frame_at(clip, time, fps, true, actor.state != actor.State.DEAD)
-	if actor.is_charging():
+	if actor.is_charging() and not bool(setup.get("chargeAnimated", false)):
 		frame_index = int(setup.get("chargeFrame", 2))
 	elif actor.is_in_parry() and not bool(clip.get("playDuringParry", false)):
 		frame_index = 0

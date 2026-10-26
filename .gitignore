@@ -35,6 +35,10 @@ Thumbs.db
 *.keystore
 /export_credentials.cfg
 /.github-auth/
+# 自动化浏览器的用户资料（Cookie、登录状态等），绝不上传
+/.dsh-chrome-profile/
+# 手动备份副本
+*.bak-*
 
 # AI 高清离线参考（2026-10-20 生成，2026-10-21 起停用）：只留在本机，不上传。
 /assets/image/ai-hd-20261020/

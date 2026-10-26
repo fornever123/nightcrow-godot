@@ -44,6 +44,12 @@ SPECS = {
     "draw": ("B", 0.0, 2.42),
     "sheathe": ("B", 124 / 24, 6.575),
 }
+# Events routed to a chosen replacement instead of their video cut. The cut is
+# still written to selected-video/ for the archive, but the bank plays this.
+MANIFEST_OVERRIDES = {
+    # 2026-10-26: user picked the layered parry A2; see assets/audio/parry/README.md.
+    "parry": {"files": ["../parry/parry_a2.wav"], "bus": "impact", "pitchJitter": 0.0, "peakOffsetSeconds": 0.005},
+}
 
 
 def sha(data):
@@ -145,6 +151,8 @@ def main():
             "durationSeconds": count / SR, "sampleRate": SR, "channels": CHANNELS,
         })
         print(f"Prepared {key}: {count / SR:.3f}s, peak {peak_offset:.3f}s", flush=True)
+    for key, entry in MANIFEST_OVERRIDES.items():
+        manifest["clips"][key] = dict(entry)
     # Keep the public event key, but retire its unused additional synthetic rush.
     for name in manifest["clips"].get("dash", {}).get("files", []):
         path = (BANK / name).resolve()
@@ -165,6 +173,7 @@ def main():
         "pitchChanges": False, "synthesizedLayers": False,
         "clips": rows,
         "aliases": {"dash": "swing_dash (startup layer suppressed; one recording per dash)"},
+        "overrides": {key: entry["files"][0] for key, entry in MANIFEST_OVERRIDES.items()},
         "replacedGeneratedFiles": sorted({f"{key}_{i}.ogg.b64" for key in (*SPECS, "dash") if key not in ("draw", "sheathe", "swing_dash_left")
                                           for i in range(1 if key == "die" else 2)}),
         "retained": "Unmatched footsteps, jumps, landings, impacts, enemy, UI, charge and ranged audio; original M4A archive",

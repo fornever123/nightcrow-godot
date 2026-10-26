@@ -105,7 +105,7 @@ func run() -> void:
 		peak = minf(peak, p.position.y)
 		if p.is_on_floor() and i > 3:
 			break
-	check(y0 - peak < j.height * 0.6 and y0 - peak > 30.0, "真实按键早松 = 小跳（%.0f / %.0f）" % [y0 - peak, j.height])
+	check(y0 - peak < j.height * 0.7 and y0 - peak > 30.0, "真实按键早松仍有明显小跳，过渡较温和（%.0f / %.0f）" % [y0 - peak, j.height])
 
 	# ---- 二段跳落下 = 重落地
 	await fresh()

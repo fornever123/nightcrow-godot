@@ -114,7 +114,7 @@ func run() -> void:
 	check(p.current_move.id == &"air3", "third J edge starts air finisher")
 	await step(20)
 	await step(1, input([&"attack_light"], [&"attack_light"]))
-	check(not p.is_on_floor() and p.current_move == null, "air combo cannot restart before landing")
+	check(not p.is_on_floor() and p.current_move == p.air_combo[0], "air combo restarts at the first attack without requiring landing")
 	check(p.air_suspend_used == 0, "legacy suspend settings cannot pause an ordinary airborne attack")
 	await step(100)
 	check(p.is_on_floor() and p.air_combo_index == 0, "air combo truly lands and resets")

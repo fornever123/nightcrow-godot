@@ -116,9 +116,9 @@ func run() -> void:
 	await reset()
 	p.charge_frames = 7
 	p._charge_accum = 0.5
-	await jump_edge()
-	check(p.velocity.y < 0.0 and p.charge_frames < 0 and p.current_move == null,
-			"jump cancels charge and clears its accumulated release state")
+	await jump_edge([&"jump", &"attack_light"])
+	check(p.velocity.y < 0.0 and p.charge_frames >= 0 and p.current_move == null,
+			"jump preserves charge and its accumulated release state")
 	await reset()
 	p.locomotion_animation = "turn_left"
 	p._turn_target = -1
@@ -183,8 +183,8 @@ func run() -> void:
 	# separately by its injected action when supported by the runtime mapping.
 	await reset()
 	await step(frame([&"jump", &"aim_up", &"attack_light"], [&"jump", &"attack_light"]))
-	check(p.current_move == stage.moves.up_strike and p.velocity.y >= 0.0,
-			"W+J remains an up-strike rather than being consumed as a jump")
+	check(p.current_move == stage.moves.up_strike and p.velocity.y < 0.0,
+			"W+J starts an immediately rising up-strike, retaining the attack")
 	await reset()
 	p.clear_input_queue()
 	key_event(KEY_W, true)

@@ -129,13 +129,14 @@ func run() -> void:
 		await step(1,[&"attack_light"])
 	check(p.is_charging(),"真实按住 J 能在后摇进入蓄力")
 	d.reset_state()
-	p.position.x=d.position.x-120
-	for tick in 90:
-		if p.last_charge_frames>0:
+	p.position.x=d.position.x-460
+	for tick in stage.moves.charge_1.max_charge_frames + 5:
+		if p.charge_frames >= stage.moves.charge_1.max_charge_frames:
 			break
 		await step(1,[&"attack_light"])
-	check(p.last_charge_frames==72,"满蓄力自动释放沿用 C 盘时长")
-	check(await wait_hit(d.max_hp),"满蓄力真实命中")
+	check(p.is_charging() and p.charge_frames>=stage.moves.charge_1.max_charge_frames,"满蓄力继续保持，松开才释放")
+	await step(1)
+	check(await wait_hit(d.max_hp, stage.moves.charge_1.startup_frames + 6),"满蓄力真实命中")
 	check(p.hitstop_frames==stage.moves.charge_1.hitstop_frames+stage.moves.charge_1.charge_hitstop_bonus,"满蓄力为角色停顿添加 6 帧重量")
 	check(stage.camera._trauma>0,"蓄力重击才震屏")
 	var charge_source: Dictionary = {}

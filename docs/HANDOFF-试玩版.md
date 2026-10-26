@@ -752,3 +752,49 @@ F. 交付：独立夜景试玩场景（设为主场景，训练场保留）、�
 - 本机：用户 07:00 左右已用 APPLY_MERGE 合并到 `f2d9f6d`；之后的提交（千刃 v1～v3、定调图、中景）用 `.runtime/ai-update.bundle` + 根目录 `APPLY_AI_UPDATE.bat`（已忽略，不上传）交付，双击即快进并调用 github-sync 上传。
 - GitHub：云端没有推送权限（add_repo 要求用户在 claude.ai 绑定 GitHub；gh 设备登录被代理拒绝），所以 GitHub 只能靠用户本机上传。
 
+
+## 22. 大招「绝影」定稿（2026-10-24，节点 28）
+
+用户先后否定了千刃、一闪、AI 刀光、月下浮空连斩、化成影子这几版，最后定的是：**DNF 觉醒 + 艾尔之光必杀的路子，元素是影和乌鸦，背上单翼 + 影子补出的影翼凑成一对**。完整分镜、素材和参数见 `docs/大招-绝影设计.md`，评审模板见 `docs/大招-评审模板.md`。
+
+- 协作规矩（用户原话）：“现在阶段还在设计阶段，我说干活你才去干活。”设计阶段只出方案和样稿，用户说“干活”才改代码。
+- 代码：
+  - `player.gd`：`ult_*` 时间轴，信号 `ult_launch` / `ult_tick` / `ult_strike` / `ult_hit` / `ult_landed` / `ult_reveal`。
+  - `shade.gd`：新增 `ult_hold` / `ult_cut` / `ult_release`。
+  - `night_trial.gd`：大招段负责挑飞队形、空中托举、终结、落地、爆鸦，伤害数字在 reveal 时冒出。
+  - `ult_fx.gd`：整个重写。
+- 着色器：新增 `fx_shadow_wing.gdshader`（影翼和剪影）、`fx_ult_impact.gdshader`（冲击帧）；删除 `fx_ult_split`、`fx_ult_shock`、`fx_ult_ink`。
+- 大招期间打死最后一只敌人，不再触发 0.3 倍慢动作（`_on_shade_died`）。原来会把俯冲拖慢，收刀特写就没了。
+- 素材：AI 图共 6 张，都放在 `assets/image/ult/`，原图在 `tools/art/src/ult/juying/`；绿底抠图用 `tools/art/key_green.py`。
+- 测试：
+  - `test_shades_v4` 的 `test_ult` 改成新流程，检查挑飞 1 次、空中 4 刀、终结 1 刀、上天高度、下砸冲击。
+  - 全量 649 项 0 失败。
+- 截图：`tests/dev/ult_shot.gd`（帧号按新时间轴）。录逐帧视频：用 `SHOTS=0,1,…,199` 截全部帧，再用 ffmpeg 按 60fps 合成。
+
+### 22.1 评审与暂停点（2026-10-24）
+- 按 `docs/大招-评审模板.md` 让独立子智能体评了两轮（第一轮约 4.4 分，第二轮约 4.4 分），按意见改了两轮。主要改动：
+  - 影鸦和羽毛改用贴图：小影鸦是 `shadow_crow.png` 缩小的，羽毛是 `feather_*.png`，由 `tools/art/make_feathers.py` 生成。
+  - 巨鸦压暗成剪影，眼睛发光，和她一起斜冲进敌群；敌人按她俯冲的帧数同步下落。
+  - 刀光改成实心影刃，命中溅墨点（去掉月牙描边和四芒星）。
+  - 冲击帧改成黑白交替 3 帧；收刀特写前用淡紫闪，不用纯白。
+  - 抠图加强了去溢色。印章改成深紫底。
+  - 伤害数字由大招自己画：粗体、错开排列，另有总伤害。
+  - 死掉的影在 reveal 时直接碎成鸦；HUD 在 reveal 后 8 帧开始恢复。
+- 暂停时：
+  - 第三轮评审被中止，没有结果。最后一版录像在会话临时目录 `capture5/`，没有进仓库。
+  - 最后一次改动（影刃逐段画四边形、总伤害居中）之后，全量测试没有跑完；在这之前的改动跑过，649 项 0 失败。
+  - 所有改动都没有提交，也没有上传。
+- 第二轮评审里还没处理的意见：
+  - 空中的敌人在暗背景上看不清，建议加冷灰白外描边。
+  - 切入的题字是 AI 写的行草，评审认为字形不规范；用户之前接受了这张题字，改不改由用户决定。
+  - 甲影（220 血）设计上扛得住大招，评审看成“大招没清场”，要不要改由用户决定。
+
+## 23. 弹刀音效换新（2026-10-26）
+
+- 用户要求："现实一点的击中音效""弹刀要有力量感、振刀嗡鸣"。不要用 Maker，全部本地做。纯代码合成的命中声被否了（"一眼游戏"）；2 秒大厅回响被嫌"回音太大"；低频颤动的合成嗡鸣被评"完全不像"。之后按用户要求调研名作，用《只狼》弹刀原声做频谱实测来对标。
+- 《只狼》弹刀实测：嗡鸣主音 1.75–4kHz，衰减 40dB 用 0.86–2.34s；低频冲击衰减 20dB 用 0.24–0.47s；前 200ms 只掉 1–4dB；尾音是一条主音加密集金属共振。
+- 用户从候选中选了 **A2**，已接入：`assets/audio/sfx_v3/manifest.json` 的 `parry` 改为指向 `../parry/parry_a2.wav`（48kHz 立体声，2.0s）。制作说明和授权见 `assets/audio/parry/README.md`，生成脚本在 `tools/audio/parry_v4/`。原来的视频切片 `selected-video/parry.wav` 保留。
+- `tools/audio/apply_selected_video_audio.py` 新增 `MANIFEST_OVERRIDES`：重新跑 `make_sfx_v3.py` 时，仍会切出 `parry.wav` 留档，但 `parry` 事件不会被改回视频原声。
+- `tests/test_selected_audio.gd`：视频原声事件从 16 个改为 15 个，另外新增检查 `parry` 指向 A2、立体声 48kHz、时长 2.0s、无随机音高，且 `play_parry()` 实际播放的就是它。
+- 授权：素材有 CC0（Still North、Kenney、blacklodgegames），也有 OGA-BY 3.0（will_leamon 的拳击）。**发布时制作名单需写 "Additional Sound FX by Will Leamon"。**
+- 击中声的真实录音候选还在试听目录 `E: game\work\sfx-audition-hit-parry-20261025\`（`processed2/`），用户还没选，未接入。

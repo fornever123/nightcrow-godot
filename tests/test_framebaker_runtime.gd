@@ -210,6 +210,7 @@ func run() -> void:
 	sprite.animations.test_charge = {"fps": 10.0, "frames": pose_frames, "overlayEffect": "test_charge_fx"}
 	sprite.chargeAnimation = "test_charge"
 	sprite.chargeFrame = 1
+	sprite.erase("chargeAnimated") # Explicit legacy config: one held preparation pose.
 	p.state = p.State.NEUTRAL
 	p.current_move = null
 	p.charge_frames = 1

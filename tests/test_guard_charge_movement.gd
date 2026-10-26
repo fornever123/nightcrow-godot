@@ -118,17 +118,14 @@ func run() -> void:
 		"charge steering turns normally without ending the charge")
 	var jump_y := p.global_position.y
 	await step(frame([&"attack_light", &"move_right", &"jump"], [&"jump"], Vector2.RIGHT))
-	check(p.charge_frames < 0 and p.current_move == null and p.global_position.y < jump_y,
-		"jump cancels charging immediately and starts normal upward movement")
+	check(p.charge_frames >= 0 and p.current_move == null and p.global_position.y < jump_y,
+		"jump keeps charging active and starts normal upward movement")
 	var vy_after_jump := p.velocity.y
 	for i in 5:
 		await step(frame([&"attack_light", &"move_right", &"jump"], [], Vector2.RIGHT))
-	check(p.charge_frames < 0 and p.velocity.y > vy_after_jump and p.velocity.y < 0.0,
-		"cancelled charge stays cancelled while the jump follows ordinary gravity")
-	# Test a fresh airborne charge release separately from jump cancellation.
-	p._start_charge()
-	p.charge_frames = p.charge_move.min_charge_frames
-	await step(frame([&"attack_light", &"move_right"], [], Vector2.RIGHT))
+	check(p.charge_frames > 0 and p.velocity.y > vy_after_jump and p.velocity.y < 0.0,
+		"charge continues accumulating while the jump follows ordinary gravity")
+	# Releasing in the air still emits the accumulated attack.
 	var release_x := p.global_position.x
 	var release_y := p.global_position.y
 	await step(frame([&"move_right"], [], Vector2.RIGHT))
@@ -140,13 +137,13 @@ func run() -> void:
 	p._start_charge()
 	var auto_cap: int = p.charge_move.max_charge_frames
 	for i in auto_cap - 1:
-		await step(frame([&"attack_light", &"move_right"], [], Vector2.RIGHT))
+		await step(frame([&"attack_light"]))
 	var auto_release_x := p.global_position.x
 	await step(frame([&"attack_light", &"move_right"], [], Vector2.RIGHT))
-	check(p.charge_frames < 0 and p.current_move == p.charge_move,
-		"full charge auto-releases into the charge move")
+	check(p.charge_frames >= auto_cap and p.current_move == null,
+		"full charge stays held until J is released")
 	check(p.global_position.x > auto_release_x and p.velocity.x > 0.0,
-		"auto-release preserves momentum and advances movement on its release tick")
+		"full charge preserves momentum and continues movement")
 
 	# Guard allows normal jump and second jump, with L still active.
 	await reset_stage()

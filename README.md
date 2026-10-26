@@ -14,6 +14,8 @@ GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever1
 
 **2026-10-19 原声接入**：已按动作切成 [16 份游戏音效](assets/audio/selected-video/README.md)，替换对应挥剑、冲刺、格挡弹刀、拔收刀和死亡声音；无对应片段的声音保留，清理 27 份已替换的旧生成音效。
 
+**2026-10-26 弹刀换新**：精准弹刀改用对标《只狼》实测做的 [新弹刀声](assets/audio/parry/README.md)（有刀身嗡鸣，约 2 秒）；格挡仍用视频原声。素材含 OGA-BY 授权部分，发布时制作名单需写 "Additional Sound FX by Will Leamon"。
+
 ## 你只需要双击这两个文件
 
 - `OPEN_GAME.bat`：打开 Godot 游戏。

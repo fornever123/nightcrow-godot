@@ -1,5 +1,5 @@
 extends SceneTree
-## 开发工具：大招截图。四种影站一排 → 能量满 → J+K → 按「千刃」时间轴在几个关键帧各截一张。
+## 开发工具：大招截图。四种影站一排 → 能量满 → J+K → 按「绝影」时间轴在几个关键帧各截一张。
 ## DISPLAY=:99 godot --path . --script res://tests/dev/ult_shot.gd --resolution 1280x720 --fixed-fps 60
 ## 截图目录：环境变量 SHOT_DIR（默认 res://.runtime/shots）
 const Buffer := preload("res://scripts/core/input_buffer.gd")
@@ -10,10 +10,11 @@ func _initialize() -> void:
 	call_deferred("run")
 
 
-func fr(actions: Array[StringName] = [], edges: Array[StringName] = []) -> Buffer.Frame:
+func fr(actions: Array[StringName] = [], edges: Array[StringName] = [], axis := Vector2.ZERO) -> Buffer.Frame:
 	var f := Buffer.Frame.new()
 	f.actions = actions
 	f.pressed_this_frame = edges
+	f.axis = axis
 	return f
 
 
@@ -66,8 +67,9 @@ func run() -> void:
 	await physics_frame
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
-	# 千刃（2026-10-23）：起手 / 第 2 斩 / 中段 / 最后几斩 / 收刀 / 一齐爆开 / 收尾。SHOTS="12,27,..." 可改
-	var want := {20: "ult_01_charge", 50: "ult_02_cutin", 58: "ult_03_seal", 74: "ult_04_pass1", 95: "ult_05_pass5", 116: "ult_06_pass10", 130: "ult_07_still", 142: "ult_08_slit", 148: "ult_09_slit2", 151: "ult_10_white", 153: "ult_11_duotone", 157: "ult_12_hold", 162: "ult_13_pop", 180: "ult_14_afterglow", 208: "ult_15_end"}
+	# 绝影冷峻版（2026-10-25）：发动 / 刀缝张开 / 题字 / 三刀冲击帧 / 斩线 / 静 / 终结冲击帧 / 横断 / 定格 / 斩开 / 收。SHOTS="12,27,..." 可改
+	var want := {4: "ult_01_flash", 14: "ult_02_slit", 26: "ult_03_title", 42: "ult_04_cut1_impact", 46: "ult_05_cut1", 58: "ult_06_cut2", 68: "ult_07_cut3", 86: "ult_08_calm", 100: "ult_09_final_impact", 103: "ult_10_split", 118: "ult_11_freeze", 140: "ult_12_apart", 165: "ult_13_after"}
+	p.ult_reveal.connect(func(): print("reveal at f=", p.ult_frame))
 	if OS.get_environment("SHOTS") != "":
 		want = {}
 		for v in OS.get_environment("SHOTS").split(","):

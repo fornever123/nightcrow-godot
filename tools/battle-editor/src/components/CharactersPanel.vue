@@ -52,7 +52,7 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
   </PanelShell>
   <PanelShell title="蓄力时移动" eyebrow="走动与跳跃">
     <EditorField label="蓄力移动速度（正常=100%）" type="number" :model-value="(actor.chargeMovementScale??0.85)*100" min="0" max="100" step="1" @update="actor.chargeMovementScale=$event/100" @changed="emit('changed')"/>
-    <p class="notice">蓄力时可以走动、转向；跳跃会取消蓄力。松开攻击键释放蓄力，按格挡键转为防守。</p>
+    <p class="notice">按住 J 蓄力时可以走动、转向、跳跃和落地，进度不会清空；蓄满后继续保持，松开 J 才释放。蓄力只降低15%移速，按格挡键转为防守。</p>
   </PanelShell>
   <PanelShell title="格挡与弹刀" eyebrow="按下立即防守">
     <p class="notice">按下 L 立即防守，举剑动作不影响判定；挡住或弹刀成功会立即换成对应动作。按住 L 可以移动、跳跃，但不能攻击。</p>
@@ -68,7 +68,7 @@ function inputText(key:string){return (props.config.input?.[key]||[]).join(', ')
     <p class="notice">输入可用逗号分隔多个绑定。SHIFT+J 为冲刺攻击，L_HOLD 为持续防守。</p>
   </PanelShell>
   <PanelShell title="空中连段与追击" eyebrow="跳跃取消 · 命中慢坠">
-    <p class="notice">上挑自身就是一次起跳，W后按J、J后按W都可以，不额外赠送跳跃。空格可取消出招；受击、倒地和大招期间不能跳跃脱身。空中近战命中后短暂慢坠，挥空正常下落。</p>
+    <p class="notice">上挑按下即起跳，W后按J、J后按W都可以，不额外赠送跳跃。上挑后J可接空中三连，三刀可重复循环，不限空中攻击次数；跳跃仍按配置扣次数。空格可取消出招；受击、倒地和大招期间不能跳跃脱身。空中近战命中后短暂慢坠，挥空正常下落。</p>
     <div class="field-grid">
       <EditorField label="W与J连续按的宽容时间（秒）" type="number" :model-value="(airCombat.uppercutInputFrames??12)/60" min="0.05" max="0.5" step="0.05" @update="setAirCombat('uppercutInputFrames',Math.max(1,Math.round($event*60)))"/>
       <EditorField label="命中后慢坠时长（秒）" type="number" :model-value="(airCombat.hitFallSlowFrames??12)/60" min="0" max="2" step="0.05" @update="setAirCombat('hitFallSlowFrames',Math.round($event*60))"/>

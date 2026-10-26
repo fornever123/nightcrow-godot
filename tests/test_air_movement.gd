@@ -135,9 +135,9 @@ func run() -> void:
 	await process_frame
 	check(is_equal_approx(p.speed, 680.0), "player run speed is doubled to 680")
 	check(is_equal_approx(p.jump_height, 340.0), "jump height is doubled to 340")
-	check(is_equal_approx(p.max_fall_speed, 1105.0), "fall terminal speed is reduced to 1105")
-	check(is_equal_approx(p._fall_gravity, 2.0 * 170.0 / (0.26 * 0.26) * 0.85),
-		"fall acceleration is reduced by 15 percent despite the doubled jump height")
+	check(is_equal_approx(p.max_fall_speed, 1300.0), "retuned descent uses a 1300 terminal speed")
+	check(is_equal_approx(p._fall_gravity, 2.0 * 340.0 / (0.33 * 0.33)),
+		"fall acceleration follows the new 0.33-second descent profile at unchanged height")
 	check(is_equal_approx(p.acceleration, 12000.0) and is_equal_approx(p.deceleration, 14400.0),
 		"acceleration and braking double with run speed")
 

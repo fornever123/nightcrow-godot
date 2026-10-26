@@ -21,8 +21,8 @@ const Backdrop := preload("res://scripts/night/night_backdrop.gd")
 const Terrain := preload("res://scripts/night/terrain.gd")
 const NightLight := preload("res://scripts/night/night_light.gd")
 const CharLight := preload("res://assets/shaders/char_light.gdshader")
-const RIM_PX := 2.5                 ## 角色月光边缘光宽度（屏幕像素）
-const OUTLINE_PX := 2.0             ## 角色深色描边宽度（屏幕像素，第三轮方案1）
+const RIM_PX := 0.9                 ## 同尺寸细节：窄边缘光，避免把头发/衣服照成白带
+const OUTLINE_PX := 1.1             ## 恒定屏幕像素黑边；内外衔接避免贴图裁边断线
 ## 镜头缩放（第三轮节点 15）：0.5 = 世界 2 单位 = 屏幕 1 像素，角色在屏幕上约 85px 高。
 ## 只缩镜头、不缩世界：判定、速度、跳高、击退和身高的比例全都不变。
 const ZOOM := 0.5
@@ -106,17 +106,17 @@ var _round_max_combo: int = 0
 var _time: float = 0.0
 var ult_fx: Node2D
 var _ult_hint_shown := false
-var _ult_collect := false         ## 千刃巨斩结算那一下为 true：伤害数字先记着，等 ult_fx 爆开（popped）再冒；砍死的影也等爆开再放击杀特效
+var _ult_collect := false         ## 绝影期间为 true：伤害数字不弹，只累计（定格时显示总伤害）
 var _ult_texts := {}
-var _ult_targets: Array = []      ## 千刃：起手时屏幕里的影 {node, cuts}
-var _ult_dir: int = 1             ## 千刃：当前往哪边斩
-var _ult_left: float = 0.0
-var _ult_right: float = 0.0
-var _ult_anchor: Node2D           ## 千刃期间镜头钉在这里
-const ULT_PASS_OVERSHOOT := 130.0 ## 千刃：瞬移到目标另一侧多远
-const ULT_BURST_HOLD := 10        ## 千刃：巨斩后敌人定格几帧再飞出去（ult_fx.BURST_HOLD 要一致）
-const ULT_BASE_DMG := 30.0        ## 千刃：每只影的伤害 = 30 + 每挨一刀 15
-const ULT_DMG_PER_CUT := 15.0
+var _ult_targets: Array = []      ## 绝影：发动时屏幕里的影 {node}
+var _ult_side: int = 1            ## 绝影：敌群在主角哪一边
+var _ult_final := {"p": Vector2.ZERO, "d": Vector2.RIGHT}   ## 绝影：终结刃口（全局坐标）
+var _ult_dealt: float = 0.0       ## 绝影：三刀已经打出的伤害
+var _ult_done := false            ## 绝影：终结伤害已经结算
+var _ult_anchor: Node2D           ## 绝影期间镜头钉在它上面
+const ULT_CUT_DMG := 8.0          ## 绝影：一闪里的三刀每刀（不致死）
+const ULT_FINAL_DMG := 66.0       ## 绝影：“咔”之后沿刀线裂开（三刀 24 + 66 = 90 = 影卒满血）
+const ULT_SHAKE := 6              ## 绝影：终结后震几帧再进入定格
 
 
 func _ready() -> void:
@@ -176,12 +176,10 @@ func _ready() -> void:
 	style = Style.new()
 	_build_hud()
 	ult_fx.hud = hud
-	ult_fx.sheathed.connect(func(_p: Vector2): audio.play_block())
 	_ult_anchor = Node2D.new()
 	_ult_anchor.name = "UltCameraAnchor"
 	add_child(_ult_anchor)
 	ult_fx.anchor = _ult_anchor
-	ult_fx.popped.connect(_on_ult_pop)
 	encounter = Encounter.new()
 	encounter.name = "Encounter"
 	add_child(encounter)
@@ -259,6 +257,10 @@ func _build_lighting() -> void:
 	light_mat.set_shader_parameter("punch_con", 1.08)
 	light_mat.set_shader_parameter("punch_sat", 1.12)
 	light_mat.set_shader_parameter("hq_max_taps", 8)
+	# 角色仅约84屏幕像素高：保留面积采样，降低反锐化和透明边收紧，保护细线。
+	light_mat.set_shader_parameter("hq_sharp", 0.5)
+	light_mat.set_shader_parameter("hq_edge", 1.03)
+	light_mat.set_shader_parameter("moon_amt", 0.5)
 	(player.get_node("Visual/ActorSprite") as Sprite2D).material = light_mat
 
 
@@ -319,7 +321,7 @@ func _build_hud() -> void:
 	hud = Hud.new()
 	hud.style = style
 	hud.help_visible = bool(config.ui.get("showMoveHints", true))
-	hud.help_text = "A/D 移动   W/空格 跳   S+空格 跳下木台   J 攻击·按住蓄力   W+J/J+W 跳起上挑   K 远射   L 格挡/弹刀   Shift+J 冲刺斩   J+K 大招\n空格取消出招（受击/倒地/大招除外）·空中命中慢坠   S+J 下砸·前+J 横扫   H 隐藏   F3 木桩   R 重开"
+	hud.help_text = "A/D 移动   W/空格 跳   S+空格 跳下木台   J 攻击·按住蓄力·松开释放   W+J/J+W 跳起上挑   K 远射   L 格挡/弹刀   Shift+J 冲刺斩   J+K 大招\n蓄力中可跑跳·蓄满保持；空格取消出招（受击/倒地/大招除外）·空中J循环三连·命中慢坠   S+J 下砸·前+J 横扫   H 隐藏   F3 木桩   R 重开"
 	layer.add_child(hud)
 
 
@@ -328,12 +330,10 @@ func _connect_player() -> void:
 	player.parry_success.connect(_on_parry)
 	player.block_success.connect(_on_block)
 	# 冲刺斩起步“呼”一声；刀风统一走 swing_cue（判定帧前 3 帧，音画对齐）
+	# 冲刺斩只看原画（整段原版帧里的刀光、尘土），不再叠程序尘土 / 速度线 / 残影
 	player.move_started.connect(func(move: Resource, _index: int):
 		if move == player.dash_move or move == player.dash_left_move:
-			audio.play_dash()
-			fx.spawn_dash(player.global_position + Vector2(0, player.foot_offset), player.facing)
-			fx.mark_dash_start(player.global_position)
-			fx.start_ghosts(player.get_node("Visual/ActorSprite"), 0.45))
+			audio.play_dash())
 	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
 	player.jumped.connect(func(is_double: bool):
 		audio.play_jump(is_double)
@@ -352,8 +352,10 @@ func _connect_player() -> void:
 	player.wall_slam.connect(_on_player_wall)
 	player.died.connect(_on_player_died)
 	player.ult_started.connect(_on_ult_started)
-	player.ult_hit.connect(_on_ult_hit)
-	player.ult_pass.connect(_on_ult_pass)
+	player.ult_tick.connect(_ult_tick)
+	player.ult_strike.connect(_on_ult_strike)
+	player.ult_arrive.connect(_on_ult_arrive)
+	player.ult_reveal.connect(_on_ult_reveal)
 	player.ult_finished.connect(_ult_release_camera)
 	audio.attach_player(player)
 
@@ -566,19 +568,20 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	var dir := target.global_position - player.global_position
 	if mv.direction > 0:
 		dir = Vector2.UP
+	# 穿透招式（冲刺斩）路上的第 2 只起：角色不停，震屏和命中特效也收小，不再整屏压暗
+	var follow_up: bool = mv.hitstop_first_only and player.swing_hit_count > 1
 	# 招式分档震幅已在 Config.moves 中乘过全局倍率，这里不重复相乘。
 	if mv.shake_amount > 0.0:
-		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else 1.0), dir)
+		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else (0.35 if follow_up else 1.0)), dir)
 	audio.play_impact(mv)
 	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move
-	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv), mv.direction > 0, dir, is_dash, mv.id)
-	if is_dash:
-		fx.spawn_dash_hit(point.lerp(target.global_position, 0.5), player.facing)
+	# 冲刺斩命中只留小火花（slim）+ 顿帧，不画“一闪”亮线
+	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv) * (0.5 if follow_up else 1.0), mv.direction > 0, dir, is_dash, mv.id)
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
 	if _ult_collect:
-		_ult_texts[s] = amount
+		_ult_texts[s] = float(_ult_texts.get(s, 0.0)) + amount
 		return
 	# 伤害数字放在血条上方（不和血条叠在一起）
 	fx.spawn_text(Vector2(lerpf(point.x, s.global_position.x, 0.5), s.global_position.y - s.half_h - 64.0), "%.0f" % amount, amount)
@@ -603,11 +606,15 @@ func _on_shade_launched(point: Vector2) -> void:
 	audio.play_launch()
 	fx.spawn_launch(point)
 	fx.spawn_dust(Vector2(point.x, terrain.support_y(point.x, point.y)), 0.7)
-	_queue_hint(&"air", "W后按J或J后按W：跳起上挑！空中 J 连斩，命中短暂慢坠 · S+J 下砸 · 前+J 横扫撞墙", 6.0, true)
+	_queue_hint(&"air", "W后按J或J后按W：跳起上挑！空中 J 三连可循环，不占跳跃次数 · 命中慢坠 · S+J 下砸 · 前+J 横扫撞墙", 6.0, true)
 
 
 func _on_slam_impact(point: Vector2, strength: float) -> void:
 	style.add_event(&"slam", clampf(strength, 0.5, 1.5))
+	if player.is_ult():
+		# 大招里的砸地：用大招自己的紫白冲击（金色碎石火花不在她的配色里），不弹“下砸！”字
+		ult_fx.spark(point)
+		return
 	hud.callout("下砸！", Color("ffb054"), 40)
 	camera.add_shake(22.0 * strength * shake_mul, Vector2.DOWN)
 	audio.play_slam(strength)
@@ -685,10 +692,12 @@ func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 
 
 func _on_shade_died(s: Node2D) -> void:
+	if bool(s.get("_split_on")):
+		style.add_event(&"kill")      # 绝影斩开：断成两半就是它的死法，不再放击杀火花和碎块消散
+		return
 	camera.add_shake(6.0 * shake_mul, s.global_position - player.global_position)
 	audio.play_shade_die()
-	if not _ult_collect:          # 大招砍死的：等它爆开（ult_fx 的余波）再炸，不在这里炸
-		fx.spawn_kill(s.global_position)
+	fx.spawn_kill(s.global_position)
 	fx.track_dissolve(s)
 	var airborne: bool = s.position.y < s.ground_y() - 10.0
 	if airborne:
@@ -697,7 +706,8 @@ func _on_shade_died(s: Node2D) -> void:
 	else:
 		style.add_event(&"kill")
 	# 一波的最后一只：短暂慢动作，让终结那一下读得出来
-	if encounter.alive_count() == 0 and encounter._queue.is_empty() and encounter._reinforce.is_empty():
+	# 大招自己有完整的节奏（俯冲、收刀特写），不再叠慢动作
+	if encounter.alive_count() == 0 and encounter._queue.is_empty() and encounter._reinforce.is_empty() and not player.is_ult():
 		_slowmo(0.3, 0.45)
 
 
@@ -809,7 +819,7 @@ func _process(_delta: float) -> void:
 	hud.ult_frac = player.ult_energy / maxf(player.ult_max, 1.0)
 	if player.ult_ready() and not _ult_hint_shown:
 		_ult_hint_shown = true
-		_queue_hint(&"ult", "能量满了！J + K 一起按：大招（全屏斩）", 6.0, true)
+		_queue_hint(&"ult", "能量满了！J + K 一起按：大招「绝影」（空中按方向选终结）", 6.0, true)
 	var enc_no := encounter_index % ROUND.size() + 1
 	if phase == Phase.EXPLORE:
 		var left := ROUND.size() - encounter_index % ROUND.size()
@@ -895,138 +905,177 @@ func _draw_seals() -> void:
 			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.6, 0), p + Vector2(0, s), p + Vector2(-s * 0.6, 0)]), col)
 
 
-# ---------------------------------------------------------------- 大招「千刃」（2026-10-23 重做）
+# ---------------------------------------------------------------- 大招「绝影 · 鸦羽止」（2026-10-26，样片 v4，见 docs/大招-鸦羽止-交接.md）
 
-## 起手：时间停住——屏幕里活着的影和飞行物全部定住；镜头钉在当前位置（连斩瞬移时画面不乱晃）
+## 发动：时间停住——屏幕里活着的影和飞行物全部定住；按敌群算好站定位置（敌群背后）和刀线（敌群胸口高度），
+## 交给主角（位置）和 ult_fx（画面）。夜景前景和光影后期大招期间关掉（黑白层要盖住整个世界）
 func _on_ult_started() -> void:
 	audio.play_ult_start()
-	camera.add_shake(3.0 * shake_mul, Vector2.UP)
 	var cx: float = camera.get_screen_center_position().x
 	var half := 640.0 / ZOOM - 40.0
 	_ult_targets.clear()
 	_ult_texts.clear()
+	_ult_dealt = 0.0
+	_ult_done = false
 	var freeze: int = player.ult_total_frames + 2
+	var px: float = player.global_position.x
+	var left := INF
+	var right := -INF
+	var chest := 0.0
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		if not s.is_alive():
 			continue
 		s.hitstop_frames = maxi(s.hitstop_frames, freeze)
 		s.bars_hidden = true
 		if s.spawn_frames <= 0 and absf(s.global_position.x - cx) <= half + 100.0:
-			_ult_targets.append({"node": s, "cuts": 0})
-	_ult_targets.sort_custom(func(a, b): return a.node.global_position.x < b.node.global_position.x)
+			_ult_targets.append({"node": s})
+			left = minf(left, s.global_position.x)
+			right = maxf(right, s.global_position.x)
+			chest += s.global_position.y - s.half_h * 0.25      # 胸口：脚底往上约 0.6 倍身高
 	for b in get_tree().get_nodes_in_group(&"shade_projectile"):
 		b.set_physics_process(false)
-	_ult_dir = player.facing
-	_ult_left = cx - half
-	_ult_right = cx + half
+	var feet: Vector2 = player.global_position + Vector2(0.0, player.foot_offset)
+	var ground: float = terrain.support_y(px, feet.y) if terrain != null else feet.y
+	var stand_y: float = ground - player.foot_offset
+	var k := 1.0 / maxf(camera.zoom.x, 0.01)         # 样片里的 1 屏幕像素 = 世界里 k 单位
+	if _ult_targets.is_empty():
+		left = px + float(player.facing) * 260.0 * k
+		right = left
+		chest = stand_y - 10.0 * k
+	else:
+		chest /= float(_ult_targets.size())
+	if right - left < 220.0 * k:                     # 只有一只 / 挤在一起：按至少这么宽排三刀
+		var mid := (left + right) * 0.5
+		left = mid - 110.0 * k
+		right = mid + 110.0 * k
+	var mean := (left + right) * 0.5
+	_ult_side = 1 if mean >= px else -1
+	var sd := float(_ult_side)
+	var lo := cx - half + 40.0
+	var hi := cx + half - 40.0
+	if not _ult_targets.is_empty():
+		lo = maxf(lo, float(_ult_targets[0].node.arena_left) + 60.0)
+		hi = minf(hi, float(_ult_targets[0].node.arena_right) - 60.0)
+	var far: float = right if _ult_side > 0 else left
+	player.ult_stand_pos = Vector2(clampf(far + sd * 170.0 * k, lo, hi), stand_y)
+	player.ult_stand_face = _ult_side     # 背对敌群
+	player._set_facing(_ult_side)
+	# 刀线：水平，敌群胸口高度
+	var c := Vector2(mean, chest)
+	_ult_final = {"p": c, "d": Vector2.RIGHT}
+	# 镜头：钉住不跟人，由 ult_fx 推（框住原地的影子和站定的她）
 	_ult_anchor.global_position = camera.get_screen_center_position()
 	camera.follow_target = _ult_anchor
-	ult_fx.begin()
+	if post != null:
+		post.set_enabled(false)
+	if backdrop != null and backdrop.has_method("set_ult_mode"):
+		backdrop.set_ult_mode(true)
+	var shades: Array = []
+	for t in _ult_targets:
+		shades.append(t.node)
+	ult_fx.begin({"final": _ult_final, "stand": player.ult_stand_pos, "side": _ult_side,
+		"shades": shades, "k": k})
 
 
-## 第 k 斩：瞬移穿过下一个目标（来回折返），沿路留残影和一道斩线，目标身上多一道刀痕
-func _on_ult_pass(k: int, count: int) -> void:
-	if k == 0:
-		# 第一刀先把飞在半空的影矢 / 炸弹全部斩碎
+## 一闪里的一刀（白闪之后连着三帧）：每只影都挨一下（不致死、不弹数字，伤害先攒着）
+func _on_ult_strike(i: int, _count: int) -> void:
+	if i == 0:      # 第一刀：飞行中的影矢一起斩碎
 		for b in get_tree().get_nodes_in_group(&"shade_projectile"):
 			if is_instance_valid(b):
 				fx.spawn_deflect(b.global_position, Vector2(player.facing, 0))
 				b.queue_free()
-	var from: Vector2 = player.global_position
-	var tg: Dictionary = _ult_pick_target(from.x)
-	var dest_x: float
-	if tg.is_empty():
-		# 屏幕里没有影：对着空气来回斩（照样好看）
-		dest_x = from.x + float(_ult_dir) * 300.0
-		if dest_x < _ult_left or dest_x > _ult_right:
-			_ult_dir = -_ult_dir
-			dest_x = from.x + float(_ult_dir) * 300.0
-	else:
-		dest_x = tg.node.global_position.x + float(_ult_dir) * ULT_PASS_OVERSHOOT
-	dest_x = clampf(dest_x, _ult_left, _ult_right)
-	player._set_facing(_ult_dir)
-	player.ult_dash_by(dest_x - from.x)
-	var to: Vector2 = player.global_position
-	var cut_pt := Vector2.INF
-	var node: Node2D = null
-	if not tg.is_empty():
-		node = tg.node
-		tg.cuts += 1
-		cut_pt = node.global_position + Vector2(0.0, -node.half_h * 0.35)
-		node.flash = 4
-		node.flash_color = Color.WHITE
-	ult_fx.cut(from, to, cut_pt, node, k, count)
-	audio.play_swing(0.45 + 0.4 * float(k) / float(maxi(count - 1, 1)))
-	if node != null:
-		audio.play_blade_hit(0.35)
-	camera.add_shake((2.0 + 2.5 * float(k) / float(maxi(count - 1, 1))) * shake_mul, Vector2(_ult_dir, 0))
-
-
-## 下一个目标：沿当前方向、主角前面最近的那只；前面没有了就掉头。只有一只的话来回穿它。
-func _ult_pick_target(x: float) -> Dictionary:
-	var alive := _ult_targets.filter(func(t): return is_instance_valid(t.node) and t.node.is_alive())
-	if alive.is_empty():
-		return {}
-	for attempt in 2:
-		var best: Dictionary = {}
-		var best_d := INF
-		for t in alive:
-			var d: float = (t.node.global_position.x - x) * float(_ult_dir)
-			if d > 20.0 and d < best_d:
-				best_d = d
-				best = t
-		if not best.is_empty():
-			return best
-		_ult_dir = -_ult_dir
-	return alive[0]
-
-
-## 收刀之后一齐爆开：每只挨过刀的影吃满伤害并被打飞（躲不开、挡不住、霸体也扛不住），伤害数字这时才冒
-func _on_ult_hit() -> void:
-	audio.play_ult_slash()
-	var mv: Resource = player.ult_move()
-	var px: float = player.global_position.x
-	var hit: Array = []
+	_ult_collect = true
 	for t in _ult_targets:
-		var s: Node2D = t.node
+		var s = t.node
 		if not is_instance_valid(s) or not s.is_alive():
-			continue          # 屏幕里的影全都吃这一下（刀数不够没轮到的也算一刀）
-		var dir := 1 if s.global_position.x >= px else -1
-		var pt: Vector2 = s.global_position + Vector2(0.0, -s.half_h * 0.3)
-		s.hitstop_frames = 0
-		var hp0: float = s.hp
-		# 伤害随挨的刀数涨：50 → 每刀 +15 的比例（两刀左右就能斩杀影卒）；数字等爆开那一下再冒
-		var cuts := maxi(int(t.cuts), 1)
-		_ult_collect = true
-		s.take_hit(mv, dir, pt, 0.0, false, (ULT_BASE_DMG + ULT_DMG_PER_CUT * float(cuts)) / maxf(mv.damage, 1.0), player)
-		_ult_collect = false
-		s.hitstop_frames = ULT_BURST_HOLD     # 巨斩成形后全场定格一下（白剪影），再一齐被打飞
-		s.flash = ULT_BURST_HOLD
-		s.flash_color = Color.WHITE
-		hit.append({"node": s, "pt": pt, "cuts": cuts, "dmg": maxf(hp0 - maxf(s.hp, 0.0), 0.0)})
-	ult_fx.burst(hit)
-	camera.add_shake((18.0 if hit.size() > 0 else 8.0) * shake_mul, Vector2(player.facing, 0))
-	audio.play_slam(1.4)
-	if hit.size() > 0:
-		audio.play_blade_hit(1.0)
+			continue
+		_ult_dealt += s.ult_cut(ULT_CUT_DMG, s.global_position)
+	_ult_collect = false
+	ult_fx.strike(i)
+	if i == 0:      # 三刀挤在冲击帧里，只出一声
+		audio.play_swing(0.8)
+		if not _ult_targets.is_empty():
+			audio.play_blade_hit(0.8)
+		camera.add_shake(4.0 * shake_mul, Vector2(player.facing, 0))
+
+
+func _on_ult_arrive() -> void:
+	ult_fx.arrive()
+
+
+## “咔”收剑：总伤害这时就定了；影要等顿帧结束才沿刀线裂开（_ult_tick）。不在大招里直接调用（测试）时立刻结算
+func _on_ult_reveal() -> void:
+	var total := _ult_dealt
+	for t in _ult_targets:
+		var s = t.node
+		if is_instance_valid(s) and s.is_alive():
+			total += minf(s.hp, ULT_FINAL_DMG)
+	ult_fx.reveal(total)
+	audio.play_ult_slash()
+	camera.add_shake(5.0 * shake_mul, Vector2.DOWN)
 	style.add_event(&"ult")
+	if not player.is_ult():
+		_ult_execute()
 
 
+## 每帧（跟着主角的 ult_tick）：终结后 ULT_SHAKE 帧进入定格——停震屏、全场静音；定格结束那一帧影断开、声音回来
+func _ult_tick() -> void:
+	if not player.is_ult():
+		return
+	var f: int = player.ult_frame
+	if f == player.ult_final_frame + ULT_SHAKE:
+		camera.reset_shake()
+		_ult_mute(true)
+	if f == player.ult_final_frame + player.ult_freeze_frames:
+		_ult_mute(false)
+		_ult_execute()
+
+
+## 终结伤害：砍死的沿刃口斩成上下两半，没死的被震飞
+func _ult_execute() -> void:
+	if _ult_done:
+		return
+	_ult_done = true
+	var px: float = player.global_position.x
+	var any := false
+	_ult_collect = true
+	for t in _ult_targets:
+		var s = t.node
+		if not is_instance_valid(s) or not s.is_alive():
+			continue
+		var side := 1 if s.global_position.x >= px else -1
+		s.ult_split_kill(Vector2(s.global_position.x, _ult_final.p.y), _ult_final.d, ULT_FINAL_DMG, -side)
+		any = true
+	_ult_collect = false
+	_ult_texts.clear()
+	if any:
+		audio.play_slam(0.8)
+		audio.play_shade_die()
+
+
+func _ult_mute(on: bool) -> void:
+	var master := AudioServer.get_bus_index(&"Master")
+	if master >= 0:
+		AudioServer.set_bus_mute(master, on)
+
+
+## 收尾 / 被打断（重开、倒下）：镜头还给主角；还被定住的影放开；血条、声音、夜景前景、光影后期都回来
 func _ult_release_camera() -> void:
+	_ult_mute(false)
 	if camera.follow_target == _ult_anchor:
 		camera.follow_target = player
+	for t in _ult_targets:
+		var s = t.node
+		if is_instance_valid(s) and s.is_alive():
+			s.hitstop_frames = 0
+			s.ult_flat(Color(0, 0, 0, 0))
 	_ult_targets.clear()
+	_ult_texts.clear()
 	for s in get_tree().get_nodes_in_group(&"shade"):
 		s.bars_hidden = false
-
-
-## 千刃：定格结束、某只影爆开 —— 这时才冒它的伤害数字（大号）；砍死的放击杀特效
-func _on_ult_pop(s: Node2D) -> void:
-	if not is_instance_valid(s):
-		return
-	if _ult_texts.has(s):
-		var amount: float = _ult_texts[s]
-		_ult_texts.erase(s)
-		fx.spawn_text(s.global_position + Vector2(0, -s.half_h - 80.0), "%.0f" % amount, amount * 1.6)
-	if not s.is_alive():
-		fx.spawn_kill(s.global_position)
+		if s.is_alive() and s.hitstop_frames > 0:
+			s.hitstop_frames = 0
+	if post != null:
+		post.set_enabled(true)
+	if backdrop != null and backdrop.has_method("set_ult_mode"):
+		backdrop.set_ult_mode(false)

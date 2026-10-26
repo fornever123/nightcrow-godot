@@ -31,7 +31,9 @@ func plan_of(name: String) -> Array:
 				[1, [J], [J]], [12, [], []], [1, [J], [J]], [12, [], []], [1, [J], [J]], [12, [], []],
 				[1, [&"move_down", J], [&"move_down", J], Vector2(0, 1)], [50, [], []]]
 		"dash":    # Shift+J 冲刺斩
-			return [[1, [&"dash_modifier", J], [&"dash_modifier", J]], [55, [], []]]
+			return [[1, [&"dash_modifier", J], [&"dash_modifier", J]], [80, [], []]]
+		"dashl":   # 向左 Shift+J
+			return [[1, [&"dash_modifier", J, &"move_left"], [&"dash_modifier", J], Vector2.LEFT], [80, [], []]]
 		"ranged":
 			return [[1, [&"attack_ranged"], [&"attack_ranged"]], [40, [], []]]
 		"fx":      # 不走输入，直接触发各种事件特效：弹刀 / 格挡 / 挨打 / 破防 / 下砸 / 炸弹 / 撞墙 / 击杀

@@ -1,0 +1,245 @@
+{
+ "total_hits": 599,
+ "top": [
+  {
+   "file": "Mace Sabre Blade.wav",
+   "t": 4.3,
+   "len": 0.92,
+   "peak_db": -27.2,
+   "ring_s": 0.49,
+   "sustain_db": -25.8,
+   "centroid": 5690,
+   "clip": "sn_00.wav"
+  },
+  {
+   "file": "Axe Spear Blade on Blade.wav",
+   "t": 1.725,
+   "len": 0.81,
+   "peak_db": -37.6,
+   "ring_s": 0.16,
+   "sustain_db": -19.8,
+   "centroid": 5373,
+   "clip": "sn_01.wav"
+  },
+  {
+   "file": "Norse Sword Katana Blade on Blade.wav",
+   "t": 12.805,
+   "len": 1.06,
+   "peak_db": -36.9,
+   "ring_s": 0.34,
+   "sustain_db": -24.1,
+   "centroid": 5304,
+   "clip": "sn_02.wav"
+  },
+  {
+   "file": "Mace Sabre Blade.wav",
+   "t": 3.31,
+   "len": 1.0,
+   "peak_db": -30.1,
+   "ring_s": 0.29,
+   "sustain_db": -24.4,
+   "centroid": 6405,
+   "clip": "sn_03.wav"
+  },
+  {
+   "file": "Axe Spear Blade on Blade.wav",
+   "t": 0.545,
+   "len": 0.69,
+   "peak_db": -34.2,
+   "ring_s": 0.12,
+   "sustain_db": -21.5,
+   "centroid": 6601,
+   "clip": "sn_04.wav"
+  },
+  {
+   "file": "Norse Sword Katana Blade on Blade.wav",
+   "t": 9.655,
+   "len": 0.91,
+   "peak_db": -39.1,
+   "ring_s": 0.16,
+   "sustain_db": -23.1,
+   "centroid": 5304,
+   "clip": "sn_05.wav"
+  },
+  {
+   "file": "Spear Norse Sword Blade on Blade.wav",
+   "t": 10.75,
+   "len": 2.81,
+   "peak_db": -35.5,
+   "ring_s": 0.26,
+   "sustain_db": -25.8,
+   "centroid": 5677,
+   "clip": "sn_06.wav"
+  },
+  {
+   "file": "Norse Sword Katana Blade on Blade.wav",
+   "t": 7.65,
+   "len": 1.0,
+   "peak_db": -34.1,
+   "ring_s": 0.15,
+   "sustain_db": -23.9,
+   "centroid": 5615,
+   "clip": "sn_07.wav"
+  },
+  {
+   "file": "Spear Spear Blade on Blade.wav",
+   "t": 11.225,
+   "len": 0.9,
+   "peak_db": -20.8,
+   "ring_s": 0.33,
+   "sustain_db": -27.8,
+   "centroid": 5852,
+   "clip": "sn_08.wav"
+  },
+  {
+   "file": "Spear Sabre Blade on Blade.wav",
+   "t": 12.715,
+   "len": 0.94,
+   "peak_db": -37.3,
+   "ring_s": 0.35,
+   "sustain_db": -28.3,
+   "centroid": 6264,
+   "clip": "sn_09.wav"
+  },
+  {
+   "file": "Seax Dagger Blade on Blade.wav",
+   "t": 9.07,
+   "len": 0.79,
+   "peak_db": -35.3,
+   "ring_s": 0.3,
+   "sustain_db": -27.9,
+   "centroid": 6103,
+   "clip": "sn_10.wav"
+  },
+  {
+   "file": "Sabre Katana Hilt on Blade.wav",
+   "t": 9.3,
+   "len": 3.01,
+   "peak_db": -38.9,
+   "ring_s": 0.31,
+   "sustain_db": -28.4,
+   "centroid": 5828,
+   "clip": "sn_11.wav"
+  },
+  {
+   "file": "Sabre Norse Sword Blade on Blade.wav",
+   "t": 4.315,
+   "len": 0.91,
+   "peak_db": -33.2,
+   "ring_s": 0.38,
+   "sustain_db": -29.9,
+   "centroid": 4839,
+   "clip": "sn_12.wav"
+  },
+  {
+   "file": "Spear Spear Blade on Blade.wav",
+   "t": 9.605,
+   "len": 0.95,
+   "peak_db": -30.9,
+   "ring_s": 0.38,
+   "sustain_db": -29.9,
+   "centroid": 5557,
+   "clip": "sn_13.wav"
+  },
+  {
+   "file": "Mace Sabre Blade.wav",
+   "t": 5.205,
+   "len": 0.82,
+   "peak_db": -29.5,
+   "ring_s": 0.39,
+   "sustain_db": -30.3,
+   "centroid": 5687,
+   "clip": "sn_14.wav"
+  },
+  {
+   "file": "Mace Dagger Blade.wav",
+   "t": 4.345,
+   "len": 0.87,
+   "peak_db": -36.6,
+   "ring_s": 0.22,
+   "sustain_db": -27.4,
+   "centroid": 1537,
+   "clip": "sn_15.wav"
+  },
+  {
+   "file": "Spear Sabre Blade on Hilt.wav",
+   "t": 6.175,
+   "len": 0.94,
+   "peak_db": -37.4,
+   "ring_s": 0.34,
+   "sustain_db": -30.0,
+   "centroid": 5260,
+   "clip": "sn_16.wav"
+  },
+  {
+   "file": "Seax Dagger Blade on Blade.wav",
+   "t": 5.685,
+   "len": 0.71,
+   "peak_db": -39.9,
+   "ring_s": 0.19,
+   "sustain_db": -28.2,
+   "centroid": 4474,
+   "clip": "sn_17.wav"
+  },
+  {
+   "file": "Spear Katana Blade on Blade.wav",
+   "t": 11.285,
+   "len": 0.82,
+   "peak_db": -30.4,
+   "ring_s": 0.15,
+   "sustain_db": -27.4,
+   "centroid": 5824,
+   "clip": "sn_18.wav"
+  },
+  {
+   "file": "Spear Sabre Blade on Blade.wav",
+   "t": 15.54,
+   "len": 1.61,
+   "peak_db": -34.3,
+   "ring_s": 0.31,
+   "sustain_db": -30.8,
+   "centroid": 4470,
+   "clip": "sn_19.wav"
+  },
+  {
+   "file": "Sabre Katana Hilt on Blade.wav",
+   "t": 7.245,
+   "len": 0.88,
+   "peak_db": -32.8,
+   "ring_s": 0.29,
+   "sustain_db": -31.0,
+   "centroid": 5804,
+   "clip": "sn_20.wav"
+  },
+  {
+   "file": "Dagger Axe Blade on Haft.wav",
+   "t": 3.025,
+   "len": 0.74,
+   "peak_db": -35.6,
+   "ring_s": 0.11,
+   "sustain_db": -27.6,
+   "centroid": 4642,
+   "clip": "sn_21.wav"
+  },
+  {
+   "file": "Spear Sabre Blade on Blade.wav",
+   "t": 17.94,
+   "len": 0.66,
+   "peak_db": -36.9,
+   "ring_s": 0.3,
+   "sustain_db": -31.7,
+   "centroid": 5419,
+   "clip": "sn_22.wav"
+  },
+  {
+   "file": "Dagger Katana Blade on Blade.wav",
+   "t": 2.71,
+   "len": 0.72,
+   "peak_db": -31.1,
+   "ring_s": 0.16,
+   "sustain_db": -28.9,
+   "centroid": 6103,
+   "clip": "sn_23.wav"
+  }
+ ]
+}

@@ -178,10 +178,10 @@ func run() -> void:
 	await ticks(1)
 	press_space()
 	await ticks(1)
-	check(p.current_move == null and int(counts["jumps"]) == 1,
-			"Space can cancel uppercut windup before its scheduled takeoff")
+	check(p.current_move == null and int(counts["jumps"]) == 2,
+			"Space cancels the immediately airborne uppercut using the normal double jump")
 	await ticks(stage.moves.up_strike.startup_frames + 4)
-	check(int(counts["jumps"]) == 1, "cancelled uppercut never adds a delayed takeoff")
+	check(int(counts["jumps"]) == 2, "cancelled uppercut never adds a delayed third takeoff")
 
 	# A jump outside the 12-frame conversion window still cancels the ordinary
 	# attack as a regular jump, without turning it into an uppercut.

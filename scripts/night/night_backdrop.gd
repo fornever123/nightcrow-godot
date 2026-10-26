@@ -69,6 +69,13 @@ var _meteor := {"t": -1.0, "next": 4.0, "from": Vector2.ZERO, "dir": Vector2.ZER
 var _petals: Array = []
 
 ## 灯笼在世界里的火光位置（给环境光用）：返回离 x 最近的那盏
+## 大招「绝影」冷峻版：挡在角色前面的前景（花瓣、萤火、前景光斑）大招期间藏起来，不然会露在黑白画面 / 冲击帧前面
+func set_ult_mode(on: bool) -> void:
+	for n in [_front, _motes]:
+		if is_instance_valid(n):
+			n.visible = not on
+
+
 func nearest_lantern(x: float) -> Vector2:
 	if not ok:
 		return Vector2(INF, INF)
