@@ -3,7 +3,6 @@
 > 先读这一份，再按需查细节文档。细节都在仓库里：
 > - `docs/HANDOFF-试玩版.md`：整个试玩版的历史与设计，**§19～§21 是最近三次的工作**。
 > - `docs/开发交接.md`：最早期的工程结构、修改器、测试命令。
-> - `docs/美术方案-10分.md`：背景美术方案，**§9 是当前的「月下东方园林湖」**。
 > - `AGENTS.md`：仓库规则。
 >
 > 本文和这些文档冲突时，以本文为准（本文最新）。
@@ -31,9 +30,7 @@
   - 用户提过“5 小时额度用到 70% 就停”。AI 看不到额度，已告诉用户由他喊停。
 - 用户的审美取向（从对话中得出）：
   - 要“商业级、华丽”。
-  - 背景是像素风，角色保持**高清 Q 版**（不像素化）。
   - 紫色只给主角。
-  - 用户否决过：穹环/钟塔题材、紫色背景、水城方案，以及“月亮”和角色无关的命名。
 
 ## 2. 版本与交付通道（非常重要）
 
@@ -104,10 +101,6 @@ GODOT=<godot路径> bash tools/dev/runtests.sh          # 全量 18 个脚本 64
    - 伤害：每只影 = 30 + 15 × 挨的刀数。大招期间隐藏敌人血条。
    - 子智能体审核：第 1 轮“未达到”，第 2 轮“接近”。之后按第 2 轮意见做了 v3，并换上正式立绘，**还没送第 3 轮审核**。
    - 详见 HANDOFF §20、§21。
-3. **背景换成「月下东方园林湖」**：
-   - 定调图已通过：`docs/视觉设计/ref/lake/keyart_v1.png`。
-   - **中景·湖对岸已接入**：3 段 GPT 图用 `tools/art/make_lake_mid.py` 拼成循环长条，替换 layers.json 的 `castle`，并加了湖面倒影。旧石桥层设置了 `hidden`。
-
 ## 5. 正在进行、下一步要做的
 
 ### 5.1 大招改名「绝影」+ 重新设计特效（用户刚定，**代码还没改**）
@@ -136,17 +129,6 @@ GODOT=<godot路径> bash tools/dev/runtests.sh          # 全量 18 个脚本 64
   - 如果 GPT 写的题字有错字，就用 Ma Shan Zheng 字体（OFL）跑 `make_ult_title.py` 生成。
 - 做完后**再起一个独立子智能体只看截图审核**（第 2 轮审核意见在 HANDOFF §21），截图发给用户。
 
-### 5.2 背景剩下的层（`docs/美术方案-10分.md` §9）
-
-- 还没换的层：
-  - 远山：现在是旧雪山，会从树缝里露出白色。
-  - 近景石板堤：现在是旧“月下堤岸”步道。
-  - 前景芦苇、垂柳剪影。
-  - 平台地形：木栈道、石台。
-- 用户要求**图要比屏幕长很多、能循环**，所以每层都让 GPT **分 3 段出**：第 2 段附第 1 段，要求左边缘接上；第 3 段要求两头都接上，首尾相连。
-- 下一张应出“远山”。提示词还没给用户，可以仿照中景那段（参考聊天记录或 §9）。
-- 拼接工具 `make_lake_mid.py` 可以改参数复用：`GRID_W`、`COLORS`、`OVERLAP`、`HORIZON`，并写到对应的 layer。
-
 ### 5.3 其他待办
 
 - 用户之前选了“修好 3 个问题”，已经完成。当初列的“完善方向”（主菜单/暂停/设置、手柄、新关卡/Boss、Windows 打包）**都还没做**，用户没要求。
@@ -162,7 +144,6 @@ GODOT=<godot路径> bash tools/dev/runtests.sh          # 全量 18 个脚本 64
 | 关卡 / 波次 / 事件路由 | `scripts/night/night_trial.gd`、`encounter.gd` |
 | 大招演出 | `scripts/night/ult_fx.gd` |
 | 特效库 | `scripts/presentation/impact_fx.gd`、`pixel_fx.gd` |
-| 夜景分层 | `scripts/night/night_backdrop.gd` + `assets/scenery/moon_embankment/layers.json`（图层为 `*.webp.b64`） |
 | 评价 | `scripts/night/style_meter.gd` |
 | 大招素材 | `assets/image/ult/`（title、seal、cutin） |
-| 美术加工脚本 | `tools/art/make_lake_mid.py`、`make_ult_cutin.py`、`make_ult_title.py`、`keyart_check.py`（定调图检查）；用户原图在 `tools/art/src/` |
+| 美术加工脚本 | `tools/art/make_ult_cutin.py`、`make_ult_title.py`；用户原图在 `tools/art/src/` |

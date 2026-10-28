@@ -5,31 +5,43 @@ extends Node2D
 ##   发动（0～ult_vanish_frame）：世界褪成黑白、压暗；上下黑边收进来；她换成居合架势，镜头往她身上推一点
 ##   过场（ult_vanish_frame～ult_calm_start）：全屏播过场视频（推近眼睛 → 握剑 → 推开鲤口 → 白闪）
 ##   冲击（ult_calm_start 起 4 帧）：白底黑剪影 2 帧 → 反相 2 帧；她已在敌群背后低位收势
-##   静（～ult_final_frame）：原地留下她的影子（黑剪影 + 紫边）；一道刀线横穿敌群胸口；刀线上的鸦羽被切成两半、慢慢错开；镜头极慢推近
-##   咔（ult_final_frame）：跳切到收剑姿势，腰间一线白光，顿帧 ult_freeze_frames 帧
-##   落：影子碎成鸦羽飞回她身上；影沿刀线裂开（关卡调 shade.ult_split_kill）；颜色从刀线往上下恢复；
-##       羽毛按正常速度落下；黑边退出，镜头回到平常。“咔”之后画在世界里的东西一拍二（每张停 2 帧），镜头和颜色保持顺滑
+##   静（～ult_final_frame）：原地留下她的影子（黑剪影 + 紫边）；一道刀线横穿敌群胸口；刀线上的鸦羽被切成两半、慢慢错开
+##   咔（ult_final_frame）：跳切到收剑姿势，腰间一线白光，画面沿刀线错开 3 帧，顿帧 ult_freeze_frames 帧
+##   落：影子碎成鸦羽飞回她身上；影顺着她冲过去的方向依次裂开（关卡每隔几帧调一次 slice）：斩痕闪 2 帧、
+##       断口炸出鸦羽、一圈冲击波扭曲、一声斩切；颜色从刀线往上下恢复；黑边退出，镜头回到平常。
+##       “咔”之后画在世界里的东西一拍二（每张停 2 帧），镜头和颜色保持顺滑
+## 镜头（实机段改进计划 3.1，docs/大招-实机段改进计划.md）：冲击帧中景 → 静前半近景对准她 → 静后半慢慢拉到能同时看到影子和她
+##   → 咔硬切到腰和剑的近景 → 落硬切回中景 → 最后 34 帧拉回平常
+## 屏幕效果（同上 3.4）：静的时候暗角 + 颗粒；冲击帧后和第一只影裂开时径向速度线；咔和第一只影裂开时色差；每只影裂开时冲击波
 
 const MONO_SHADER := preload("res://assets/shaders/fx_ult_mono.gdshader")
+const SCREEN_SHADER := preload("res://assets/shaders/fx_ult_screen.gdshader")
+const SlashShape := preload("res://scripts/presentation/ult_slash_shape.gd")
 const FLAT_SHADER := preload("res://assets/shaders/fx_ult_flat.gdshader")
 const VIOLET_SHADER := preload("res://assets/shaders/fx_ult_violet.gdshader")
 const MOVIE_PATH := "res://assets/video/ult_cinematic.ogv"
 ## 大招音效（tools/audio/make_ult_sfx.py 用真实录音拼的）：在第几帧开始放（带小数时按小数部分从中间放），
 ## 放在 assets/audio/ult/<名字>.ogg。时间轴见那个脚本的说明
 const SFX := {&"ult_start": 0.0, &"ult_eye": 44.0, &"ult_push": 90.6, &"ult_rise": 108.7,
-	&"ult_impact": 124.0, &"ult_sheathe": 142.8, &"ult_burst": 174.0}
+	&"ult_impact": 124.0, &"ult_sheathe": 142.8}
+## 每只影裂开时放一声斩切（按顺序轮换）
+const CUT_SFX: Array[StringName] = [&"ult_cut_0", &"ult_cut_1", &"ult_cut_2", &"ult_cut_3"]
 const SFX_BUS := &"SFX_Impact"
-## 三张定格图在同一张画布上对齐（前脚脚尖 = ANCHOR），贴图 1 像素 = 世界 0.5 单位
+## 三张定格图在同一张画布上对齐（前脚脚尖 = ANCHOR），贴图 1 像素 = 世界 BODY_SCALE 单位
 const BODY_PATHS := {&"iai": "res://assets/image/ult/feather/iai.png",
 	&"zanshin": "res://assets/image/ult/feather/zanshin.png",
 	&"sheathed": "res://assets/image/ult/feather/sheathed.png"}
 const ANCHOR := Vector2(519.0, 341.0)
-const BODY_SCALE := 0.5
+const BODY_SCALE := 0.6
 const FOOT_DX := 36.0                          ## 前脚脚尖在身体中心前方多远（世界单位）
 const BAR_H := 56.0                            ## 上下黑边（屏幕像素）
 const IMPACT := 4                              ## 冲击帧：白底黑剪影 2 帧 + 反相 2 帧
-const CAM_Z := 1.5                             ## 静的时候镜头放大到平常的几倍（视野放不下起点和终点时自动缩小）
-const CAM_DROP := 68.0                         ## 镜头中心比她脚底高多少（世界单位）
+## 机位（相对平常镜头的放大倍数）：近景对准她 / 咔的腰和剑 / 中景和远景按要框住的范围自动算（不超过 MID_Z）
+const NEAR_Z := 3.0
+const WAIST_Z := 5.0
+const MID_Z := 2.2
+const NEAR_LEAD := 90.0                        ## 近景时镜头中心往她背后（刀线延伸的方向）偏多少（世界单位）
+const FEET_ROW := 0.62                         ## 中景 / 近景时她脚底在屏幕高度的哪儿
 const VIOLET := Color("9b5cff")
 const VIOLET_L := Color("b98cff")
 const PAPER := Color("f4f4f6")
@@ -68,6 +80,9 @@ var _flat_black: ShaderMaterial
 var _flat_white: ShaderMaterial
 var _flat_violet: ShaderMaterial
 var _feathers: Node2D
+var _line: Node2D            ## 静的时候那道刀线（世界层，画在她身后）
+var _fx_layer: CanvasLayer   ## 屏幕级效果（错开 / 冲击波 / 色差 / 速度线 / 暗角 / 颗粒）
+var _fx_mat: ShaderMaterial
 var _ui: CanvasLayer
 var _ui_front: Node2D        ## 刀线、腰间白光、上下黑边
 var _movie_layer: CanvasLayer
@@ -80,7 +95,8 @@ var _voices: Array[AudioStreamPlayer] = []
 var _ambient: Array = []     ## {pos, ang, poly, top, depth, vx, spin}
 var _cut: Array = []         ## {halves: [poly, poly], cut: [[a, b], [a, b]], spin}
 var _shards: Array = []      ## 影子碎成的羽毛 {from, bend, poly, ang}
-var _debris: Array = []      ## 影裂开时的黑色碎片 {pos, vel, size}
+var _slices: Array = []      ## 已经裂开的影 {pos（刀线上）, t（第几帧裂开）, i, burst: [{vel, poly, top, ang, spin}]}
+var _enemy_x := Vector2.ZERO ## 发动时敌群的左右范围（世界 x）
 
 
 func _ready() -> void:
@@ -126,6 +142,9 @@ func _ready() -> void:
 		s.material = _flat_black if d == Vector2.ZERO else _flat_violet
 		_shadow.add_child(s)
 		_shadow_parts.append(s)
+	_line = Node2D.new()
+	_top.add_child(_line)
+	_line.draw.connect(_draw_line)
 	_body = _body_sprite()
 	_body_violet = ShaderMaterial.new()
 	_body_violet.shader = VIOLET_SHADER
@@ -134,6 +153,19 @@ func _ready() -> void:
 	_feathers = Node2D.new()
 	_top.add_child(_feathers)
 	_feathers.draw.connect(_draw_feathers)
+	_fx_layer = CanvasLayer.new()
+	_fx_layer.layer = 9
+	add_child(_fx_layer)
+	var fb := BackBufferCopy.new()
+	fb.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+	_fx_layer.add_child(fb)
+	var fr := ColorRect.new()
+	fr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx_mat = ShaderMaterial.new()
+	_fx_mat.shader = SCREEN_SHADER
+	fr.material = _fx_mat
+	_fx_layer.add_child(fr)
 	_ui = CanvasLayer.new()
 	_ui.layer = 11
 	add_child(_ui)
@@ -151,11 +183,11 @@ func _ready() -> void:
 	if ResourceLoader.exists(MOVIE_PATH):
 		_movie.stream = load(MOVIE_PATH)
 	_movie_layer.add_child(_movie)
-	for k in SFX:
+	for k in SFX.keys() + CUT_SFX:
 		var st := _load_audio("res://assets/audio/ult/%s.ogg" % k)
 		if st != null:
 			_sfx[k] = st
-	for i in 4:
+	for i in 8:
 		var v := AudioStreamPlayer.new()
 		v.bus = SFX_BUS if AudioServer.get_bus_index(SFX_BUS) >= 0 else &"Master"
 		add_child(v)
@@ -181,6 +213,7 @@ func _flat(col: Color) -> ShaderMaterial:
 func _set_layers(on: bool) -> void:
 	_mono_layer.visible = on
 	_top.visible = on
+	_fx_layer.visible = on
 	_ui.visible = on
 	_movie_layer.visible = false
 	if not on and _movie.is_playing():
@@ -227,7 +260,12 @@ func begin(data: Dictionary) -> void:
 	_sfx_done.clear()
 	_build_feathers()
 	_build_shards()
-	_build_debris()
+	_enemy_x = Vector2(INF, -INF)
+	for sh in data.get("shades", []):
+		if is_instance_valid(sh):
+			_enemy_x = Vector2(minf(_enemy_x.x, sh.global_position.x), maxf(_enemy_x.y, sh.global_position.x))
+	if _enemy_x.x > _enemy_x.y:
+		_enemy_x = Vector2(_start.x, _start.x)
 	_hud_k = 0.0          # 发动那一帧就藏 HUD（不渐隐，避免头几帧还看得到）
 	_apply_hud()
 
@@ -250,6 +288,26 @@ func spark(_point: Vector2) -> void:
 	pass
 
 
+## 关卡让第 i 只影沿刀线裂开的那一刻：记下来画斩痕、鸦羽、冲击波；放一声斩切；影闪白
+func slice(s: Node2D, i: int) -> void:
+	if _phase == 0 or not is_instance_valid(s):
+		return
+	var burst: Array = []
+	for k in 16:
+		var ang := _rng.randf_range(-170.0, -10.0) * PI / 180.0
+		var f := _feather(_rng.randf_range(16.0, 34.0))
+		burst.append({"vel": Vector2(cos(ang), sin(ang)) * _rng.randf_range(4.0, 11.0), "poly": f.poly, "top": f.top,
+			"ang": _rng.randf_range(0.0, TAU), "spin": _rng.randf_range(-14.0, 14.0),
+			"off": Vector2(_rng.randf_range(-24.0, 24.0), _rng.randf_range(-6.0, 6.0))})
+	_slices.append({"pos": Vector2(s.global_position.x, _line_y()), "t": _f, "i": i, "burst": burst})
+	if s.get("flash") != null:
+		s.flash = 4
+		s.flash_color = Color.WHITE
+	var key: StringName = CUT_SFX[i % CUT_SFX.size()]
+	if _sfx.has(key):
+		_play(_sfx[key], 0.0)
+
+
 func clear() -> void:
 	_restore_view()
 	for s in _data.get("shades", []):
@@ -269,11 +327,12 @@ func clear() -> void:
 	_ambient.clear()
 	_cut.clear()
 	_shards.clear()
-	_debris.clear()
+	_slices.clear()
 	_white.visible = false
 	_mono_mat.set_shader_parameter("amount", 0.0)
 	_mono_mat.set_shader_parameter("dim", 0.0)
 	_mono_mat.set_shader_parameter("reveal_r", 0.0)
+	_reset_screen_fx()
 	_set_layers(false)
 	_hud_k = 1.0
 	_apply_hud()
@@ -339,9 +398,11 @@ func _process(_delta: float) -> void:
 	_update_body(reveal)
 	_update_shadow(g)
 	_update_camera(g, ts, total)
+	_update_screen_fx(g)
 	_update_hud(ts)
 	_white.queue_redraw()
 	_feathers.queue_redraw()
+	_line.queue_redraw()
 	_ui_front.queue_redraw()
 
 
@@ -360,13 +421,17 @@ func _update_sfx() -> void:
 		var from := (_f - t0) / 60.0
 		if from >= st.get_length() - 0.02:
 			continue
-		var v := _voices[0]
-		for c in _voices:
-			if not c.playing:
-				v = c
-				break
-		v.stream = st
-		v.play(maxf(from, 0.0))
+		_play(st, from)
+
+
+func _play(st: AudioStream, from: float) -> void:
+	var v := _voices[0]
+	for c in _voices:
+		if not c.playing:
+			v = c
+			break
+	v.stream = st
+	v.play(maxf(from, 0.0))
 
 
 func _impact_kind() -> int:
@@ -450,42 +515,149 @@ func _update_shadow(g: float) -> void:
 	_shadow.position = Vector2((2.0 if int(g) % 17 == 0 else 0.0), 0.0) if kind == 0 else Vector2.ZERO
 
 
-## 镜头：发动时往她身上推一点；回到游戏后放大框住起点到终点，静的时候极慢推近，收尾回到平常
+## 镜头：发动时往她身上推一点；回到游戏后按机位硬切（见文件头），收尾 34 帧拉回平常
 func _update_camera(g: float, ts: float, total: float) -> void:
-	if not is_instance_valid(_cam):
+	if not is_instance_valid(_cam) or not is_instance_valid(anchor) or _center0 == Vector2.INF:
 		return
-	var stand: Vector2 = _data.get("stand", _start)
-	if is_instance_valid(anchor) and _center0 != Vector2.INF:
-		# 发动时往她身上靠；回到游戏后对准影子和她的正中间
-		if g < 0.0:
-			anchor.global_position = _center0.lerp(Vector2(_start.x, _center0.y), _ramp(_f, 0.0, 8.0, true) * 0.5)
-		else:
-			anchor.global_position = Vector2((_start.x + stand.x) * 0.5, _center0.y)
+	var center: Vector2
 	var z := 1.0
-	var drop := 0.0
 	if g < 0.0:
 		z = lerpf(1.0, 1.12, _ramp(_f, 0.0, 8.0, true))
+		center = Vector2(lerpf(_center0.x, _start.x, _ramp(_f, 0.0, 8.0, true) * 0.5), NAN)
 	else:
-		var span := absf(stand.x - _start.x) + 520.0
-		var zcap := maxf(1.0, get_viewport().get_visible_rect().size.x / (span * maxf(_zoom0.x, 0.01)))
-		var zz := minf(CAM_Z, zcap)
-		if ts <= 0.0:
-			z = zz * lerpf(1.0, 1.053, _ramp(g, 4.0, _ka(), true))
+		var ka := _ka()
+		var shot: Array
+		if g < IMPACT:
+			shot = _shot_mid()
+		elif g < 27.0:
+			shot = _shot_near()
+		elif g < ka:
+			var a := _shot_near()
+			var b := _shot_wide()
+			var u := _ramp(g, 27.0, ka - 2.0)
+			u = u * u * (3.0 - 2.0 * u)
+			shot = [(a[0] as Vector2).lerp(b[0], u), lerpf(a[1], b[1], u)]
+		elif g < ka + _frz():
+			shot = _shot_waist()
 		else:
-			z = zz * lerpf(1.053, 0.933, _ramp(ts, 0.0, 24.0, true))
+			shot = _shot_mid()
+		center = shot[0]
+		z = shot[1]
+		# 收尾：拉回平常（对准她，镜头自己的跟随接得上）
 		var back := _ramp(_f, total - 34.0, total - 4.0, true)
-		z = lerpf(z, 1.0, back)
-		var fo: Variant = player.get("foot_offset")
-		var feet := stand.y + (float(fo) if fo != null else 84.0)
-		var lock: Variant = _cam.get("lock_y")
-		var cy := float(lock) if lock != null and is_finite(float(lock)) else _cam.global_position.y
-		drop = (feet - CAM_DROP - cy) * (1.0 - back)
+		if back > 0.0:
+			center = Vector2(lerpf(center.x, player.global_position.x, back), lerpf(center.y, _center0.y, back))
+			z = lerpf(z, 1.0, back)
+	anchor.global_position = Vector2(center.x, _center0.y)
 	_cam.zoom = _zoom0 * z
 	if _cam.get("base_offset") != null:
-		_cam.base_offset = _offset0 + Vector2(0.0, drop)
-	# 镜头自己的跟随在这之前已经跑过了：当帧就对准，冲击帧那一刻不能晚一帧
+		var lock: Variant = _cam.get("lock_y")
+		var cy := float(lock) if lock != null and is_finite(float(lock)) else _center0.y
+		_cam.base_offset = _offset0 + Vector2(0.0, (center.y - cy) if is_finite(center.y) else 0.0)
+	# 镜头自己的跟随在这之前已经跑过了：当帧就对准，切机位那一帧不能晚一帧
 	if _cam.has_method("snap_to_target"):
 		_cam.snap_to_target()
+
+
+func _feet() -> float:
+	var stand: Vector2 = _data.get("stand", _start)
+	var fo: Variant = player.get("foot_offset") if _ok() else null
+	return stand.y + (float(fo) if fo != null else 84.0)
+
+
+## 能框住 x0～x1（两边各留一点）的放大倍数，不超过 cap
+func _fit(x0: float, x1: float, cap: float) -> float:
+	var w := get_viewport().get_visible_rect().size.x
+	return clampf(w / ((absf(x1 - x0) + 300.0) * maxf(_zoom0.x, 0.01)), 1.0, cap)
+
+
+## 机位中心的 y：让她脚底落在屏幕高度的 FEET_ROW
+func _cy(z: float) -> float:
+	var h := get_viewport().get_visible_rect().size.y / maxf(_zoom0.y * z, 0.01)
+	return _feet() - h * (FEET_ROW - 0.5)
+
+
+func _shot_mid() -> Array:
+	var stand: Vector2 = _data.get("stand", _start)
+	var x0 := minf(_enemy_x.x, stand.x)
+	var x1 := maxf(_enemy_x.y, stand.x)
+	var z := _fit(x0, x1, MID_Z)
+	return [Vector2((x0 + x1) * 0.5, _cy(z)), z]
+
+
+func _shot_near() -> Array:
+	var stand: Vector2 = _data.get("stand", _start)
+	var face := float(player.get("facing")) if _ok() else 1.0
+	return [Vector2(stand.x - face * NEAR_LEAD, _cy(NEAR_Z)), NEAR_Z]
+
+
+func _shot_wide() -> Array:
+	var stand: Vector2 = _data.get("stand", _start)
+	var z := _fit(_start.x, stand.x, MID_Z)
+	return [Vector2((_start.x + stand.x) * 0.5, _cy(z)), z]
+
+
+func _shot_waist() -> Array:
+	var stand: Vector2 = _data.get("stand", _start)
+	var face := float(player.get("facing")) if _ok() else 1.0
+	return [Vector2(stand.x - face * 10.0, _feet() - 50.0), WAIST_Z]
+
+
+## 屏幕级效果：每帧按时间轴算参数
+func _update_screen_fx(g: float) -> void:
+	var vs := get_viewport().get_visible_rect().size
+	_fx_mat.set_shader_parameter("screen_size", vs)
+	var ka := _ka()
+	var kind := _impact_kind()
+	var ts := _after(false)
+	# 暗角 + 颗粒：回到游戏后到颜色恢复前
+	var calm := 0.0 if g < IMPACT else 1.0 - _ramp(ts, 0.0, 30.0)
+	_fx_mat.set_shader_parameter("vignette", 0.55 * calm)
+	_fx_mat.set_shader_parameter("grain", 0.05 * calm)
+	_fx_mat.set_shader_parameter("grain_seed", floorf(_f / 2.0))
+	# 咔：画面沿刀线错开 3 帧
+	var gi := int(g)
+	var split := 0.0
+	if gi >= int(ka) and gi < int(ka) + 3:
+		split = [30.0, 18.0, 6.0][gi - int(ka)]
+	_fx_mat.set_shader_parameter("split_px", split)
+	_fx_mat.set_shader_parameter("split_y", _line_screen().y / maxf(vs.y, 1.0))
+	# 色差：咔那 2 帧、第一只影裂开那 2 帧
+	var ab := 0.0
+	if gi >= int(ka) and gi < int(ka) + 2:
+		ab = 3.0
+	var first: Dictionary = _slices[0] if not _slices.is_empty() else {}
+	if not first.is_empty() and _f - float(first.t) < 2.0:
+		ab = 3.0
+	_fx_mat.set_shader_parameter("aberration_px", ab)
+	# 径向速度线：冲击帧之后 4 帧（以她为中心）、第一只影裂开 3 帧（以那只影为中心）
+	var xf := get_viewport().get_canvas_transform()
+	var lines := 0.0
+	var lc: Vector2 = xf * player.global_position if _ok() else vs * 0.5
+	if kind == 0 and g >= IMPACT and g < IMPACT + 4.0:
+		lines = 0.8 * (1.0 - (g - IMPACT) / 4.0)
+	if not first.is_empty() and _f - float(first.t) < 3.0:
+		lines = 0.7
+		lc = xf * (first.pos as Vector2)
+	_fx_mat.set_shader_parameter("lines", lines)
+	_fx_mat.set_shader_parameter("lines_center", lc / vs)
+	_fx_mat.set_shader_parameter("lines_seed", floorf(_f))
+	# 冲击波：每只影裂开后 8 帧，半径从 0 扩到屏幕高度的 0.16
+	var shocks: Array = []
+	for sl in _slices:
+		var age := _f - float(sl.t)
+		if age >= 0.0 and age < 8.0 and shocks.size() < 4:
+			var p: Vector2 = xf * (sl.pos as Vector2) / vs
+			shocks.append(Vector4(p.x, p.y, 0.16 * _ramp(age, 0.0, 8.0, true), 1.0 - age / 8.0))
+	while shocks.size() < 4:
+		shocks.append(Vector4.ZERO)
+	_fx_mat.set_shader_parameter("shocks", shocks)
+
+
+func _reset_screen_fx() -> void:
+	for k in ["vignette", "grain", "split_px", "aberration_px", "lines"]:
+		_fx_mat.set_shader_parameter(k, 0.0)
+	_fx_mat.set_shader_parameter("shocks", [Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
 
 
 func _update_hud(ts: float) -> void:
@@ -602,19 +774,6 @@ func _build_shards() -> void:
 			"bend": _rng.randf_range(-120.0, -20.0), "poly": f.poly, "top": f.top, "ang": _rng.randf_range(0.0, TAU)})
 
 
-func _build_debris() -> void:
-	var ly := _line_y()
-	var shades: Array = _data.get("shades", [])
-	if shades.is_empty():
-		return
-	for i in 70:
-		var s = shades[i % shades.size()]
-		if not is_instance_valid(s):
-			continue
-		_debris.append({"pos": Vector2(s.global_position.x + _rng.randf_range(-40.0, 40.0), ly + _rng.randf_range(-12.0, 12.0)),
-			"vel": Vector2(_rng.randf_range(-8.0, 8.0), _rng.randf_range(-10.0, 2.0)), "size": _rng.randf_range(4.0, 10.0)})
-
-
 # ---------------------------------------------------------------- 画
 
 func _draw_feathers() -> void:
@@ -656,15 +815,16 @@ func _draw_feathers() -> void:
 			var mid := (from + to) * 0.5 + Vector2(0.0, minf(from.y, to.y) - (from.y + to.y) * 0.5 + float(s.bend) - 80.0)
 			var p := from * (1.0 - u) * (1.0 - u) + mid * 2.0 * (1.0 - u) * u + to * u * u
 			_draw_one(s.poly, s.top, p, float(s.ang) + deg_to_rad(t * 12.0), 1.0 - maxf(0.0, u - 0.75) / 0.25)
-	# 影裂开时的黑色碎片
-	var kd := _after(true) - 6.0
-	if kd >= 0.0:
-		var alpha := maxf(0.0, 1.0 - kd * 6.0 / 255.0)
-		if alpha > 0.0:
-			for d in _debris:
-				var p: Vector2 = d.pos + (d.vel as Vector2) * kd + Vector2(0.0, 0.24 * kd * kd)
-				var sz := float(d.size)
-				_feathers.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -sz), p + Vector2(sz * 0.6, 0), p + Vector2(0, sz * 0.4)]), Color(0.04, 0.03, 0.06, alpha))
+	# 每只影裂开时断口炸出的鸦羽：先炸开、被空气拖慢、再翻转飘落（一拍二）
+	for sl in _slices:
+		var age := floorf((_f - float(sl.t)) / 2.0) * 2.0
+		if age < 0.0 or age > 60.0:
+			continue
+		var drag := 1.0 - exp(-age / 9.0)
+		var fade := 1.0 - maxf(0.0, age - 34.0) / 26.0
+		for fb in sl.burst:
+			var p: Vector2 = (sl.pos as Vector2) + (fb.off as Vector2) + (fb.vel as Vector2) * 9.0 * drag + Vector2(0.0, 0.05 * age * age)
+			_draw_one(fb.poly, fb.top, p, float(fb.ang) + deg_to_rad(float(fb.spin) * age), fade)
 
 
 func _draw_one(poly: PackedVector2Array, top: PackedVector2Array, pos: Vector2, ang: float, alpha: float) -> void:
@@ -696,6 +856,32 @@ static func _cut_edge(poly: PackedVector2Array, y: float) -> PackedVector2Array:
 	return PackedVector2Array([Vector2(lo, y), Vector2(hi, y)])
 
 
+## 静的时候那道刀线：白芯紫光，慢慢变淡，咔之后褪掉（世界层，粗细按屏幕像素算）
+func _draw_line() -> void:
+	var g := _g()
+	if g < IMPACT or not is_instance_valid(_cam):
+		return
+	var la := 1.0 if g < 10.0 else maxf(0.35, 1.0 - (g - 10.0) / 30.0)
+	var t := _after(true)
+	if t >= 0.0:
+		la *= maxf(0.0, 1.0 - t / 20.0)
+	if la <= 0.01:
+		return
+	var zrel := _cam.zoom.x / maxf(_zoom0.x, 0.01)
+	var px := 1.0 / maxf(_cam.zoom.x, 0.01)            # 屏幕 1 像素 = 世界多少
+	var zk := maxf(1.0, zrel / 1.5)
+	var core := (2.0 if g < 30.0 else 1.0) * zk * px
+	var glow := (14.0 if g < 30.0 else 8.0) * zk * px
+	var c := _cam.get_screen_center_position()
+	var half := get_viewport().get_visible_rect().size.x * px
+	var y := _line_y()
+	var a := Vector2(c.x - half, y)
+	var b := Vector2(c.x + half, y)
+	for i in 4:
+		_line.draw_line(a, b, Color(0.63, 0.43, 1.0, 0.16 * la), glow * (1.0 - float(i) * 0.22))
+	_line.draw_line(a, b, Color(1, 1, 1, la), core)
+
+
 ## 冲击帧的底（在地形之上、角色之下）
 func _draw_white() -> void:
 	if not is_instance_valid(_cam):
@@ -704,7 +890,7 @@ func _draw_white() -> void:
 	if kind == 0:
 		return
 	var c := _cam.get_screen_center_position()
-	var size := get_viewport().get_visible_rect().size / _cam.zoom * 1.4
+	var size := get_viewport().get_visible_rect().size / _zoom0 * 3.0   # 按平常镜头的视野放大 3 倍盖住，切机位那一帧也不会露边
 	_white.draw_rect(Rect2(c - size * 0.5, size), PAPER if kind == 1 else Color.BLACK)
 
 
@@ -724,18 +910,24 @@ func _draw_ui_front() -> void:
 			_ui_front.draw_line(Vector2(0.0, y), Vector2(vs.x, y), Color.BLACK, 3.0)
 		elif kind == 2:
 			_ui_front.draw_line(Vector2(0.0, y), Vector2(vs.x, y), Color.WHITE, 3.0)
-		else:
-			var la := 1.0 if g < 10.0 else maxf(0.35, 1.0 - (g - 10.0) / 30.0)
-			var t := _after(true)
-			if t >= 0.0:
-				la *= maxf(0.0, 1.0 - t / 20.0)
-			if la > 0.01:
-				var core := 2.0 if g < 30.0 else 1.0
-				var glow := 14.0 if g < 30.0 else 8.0
-				for i in 4:
-					var w := glow * (1.0 - float(i) * 0.22)
-					_ui_front.draw_line(Vector2(0.0, y), Vector2(vs.x, y), Color(0.63, 0.43, 1.0, 0.16 * la), w)
-				_ui_front.draw_line(Vector2(0.0, y), Vector2(vs.x, y), Color(1, 1, 1, la), core)
+	# 每只影裂开：一道短促的斩痕（前宽后尖），最饱满的 2 帧之后 4 帧褪掉
+	var xf2 := get_viewport().get_canvas_transform()
+	var zk2 := _cam.zoom.x / maxf(_zoom0.x, 0.01) if is_instance_valid(_cam) else 1.0
+	for sl in _slices:
+		var age := _f - float(sl.t)
+		if age < 0.0 or age >= 6.0:
+			continue
+		var c: Vector2 = xf2 * (sl.pos as Vector2)
+		var tilt := -0.35 if int(sl.i) % 2 == 0 else 0.3
+		var d := Vector2(cos(tilt), sin(tilt)) * 120.0 * zk2
+		var a2 := 1.0 if age < 2.0 else 1.0 - (age - 2.0) / 4.0
+		var w := (16.0 if age < 2.0 else 16.0 * (1.0 - (age - 2.0) / 4.0)) * maxf(zk2 / 1.5, 1.0)
+		var glow_poly := SlashShape.ribbon(c - d * 1.1, c + d * 1.1, w * 2.2, 0.12, 1.0, 0.0)
+		if glow_poly.size() >= 3:
+			_ui_front.draw_colored_polygon(glow_poly, Color(0.63, 0.43, 1.0, 0.35 * a2))
+		var core_poly := SlashShape.ribbon(c - d, c + d, w, 0.12, 1.0, 0.0)
+		if core_poly.size() >= 3:
+			_ui_front.draw_colored_polygon(core_poly, Color(1, 1, 1, a2))
 	# 咔：腰间一线白光
 	var t2 := _after(true)
 	if g >= _ka() and t2 < 8.0 and _ok():
@@ -743,7 +935,7 @@ func _draw_ui_front() -> void:
 		var xf := get_viewport().get_canvas_transform()
 		var face := float(player.get("facing"))
 		var fo: Variant = player.get("foot_offset")
-		var waist := player.global_position + Vector2(-face * 6.0, (float(fo) if fo != null else 84.0) - 64.0)
+		var waist := player.global_position + Vector2(-face * 6.0, (float(fo) if fo != null else 84.0) - 48.0 * BODY_SCALE / 0.5)
 		var p0 := xf * (waist - Vector2(36.0, 0.0))
 		var p1 := xf * (waist + Vector2(36.0, 0.0))
 		_ui_front.draw_line(p0, p1, Color(1, 1, 1, a), 2.0)

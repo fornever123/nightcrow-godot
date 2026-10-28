@@ -70,6 +70,16 @@ const ROUND: Array = [
 
 enum Phase { EXPLORE, FIGHT, FALLEN }
 
+## 关卡参数：默认 = 月下堤岸；别的关卡（rain_street.gd）继承本脚本，在 _init() 里改这几项
+var zoom_level: float = ZOOM
+var cam_y: float = CAM_Y
+var arena_half: float = ARENA_HALF
+var first_arena_x: float = FIRST_ARENA_X
+var arena_spacing: float = ARENA_SPACING
+var trigger_before: float = TRIGGER_BEFORE
+var round_waves: Array = ROUND
+var stage_title: PackedStringArray = ["月下堤岸", "往右走，影子会在前面拦路"]
+
 var config: Dictionary
 var moves: Dictionary
 var player: CharacterBody2D
@@ -116,7 +126,7 @@ var _ult_done := false            ## 绝影：终结伤害已经结算
 var _ult_anchor: Node2D           ## 绝影期间镜头钉在它上面
 const ULT_CUT_DMG := 8.0          ## 绝影：一闪里的三刀每刀（不致死）
 const ULT_FINAL_DMG := 66.0       ## 绝影：“咔”之后沿刀线裂开（三刀 24 + 66 = 90 = 影卒满血）
-const ULT_SHAKE := 6              ## 绝影：终结后震几帧再进入定格
+const ULT_SLICE_GAP := 3          ## 绝影：顿帧之后影顺着她冲过去的方向依次裂开，每隔几帧一只
 
 
 func _ready() -> void:
@@ -163,7 +173,7 @@ func _ready() -> void:
 	fx.enabled = bool(config.feedback.get("effectsEnabled", true))
 	fx.damage_numbers_enabled = bool(config.ui.get("showDamageNumbers", true))
 	fx.z_index = 5
-	fx.text_scale = 1.0 / ZOOM
+	fx.text_scale = 1.0 / zoom_level
 	fx.fx_scale = 1.0
 	fx.floor_at = func(x: float, y: float) -> float: return terrain.support_y(x, y)
 	add_child(fx)
@@ -188,9 +198,23 @@ func _ready() -> void:
 	encounter.cleared.connect(_on_encounter_cleared)
 	encounter.shade_spawned.connect(_on_shade_spawned)
 	_connect_player()
-	hud.banner("月下堤岸", "往右走，影子会在前面拦路", 3.2)
+	hud.banner(stage_title[0], stage_title[1], 3.2)
 	_queue_hint(&"move", "A / D 移动   W / 空格 跳   J 攻击", 6.0)
+	_stage_ready()
 	print("NIGHT_TRIAL_READY")
+
+
+## 子关卡的扩展点：地形、夜景、搭完之后的额外节点
+func _make_terrain() -> Node2D:
+	return Terrain.new()
+
+
+func _make_backdrop() -> Node2D:
+	return Backdrop.new()
+
+
+func _stage_ready() -> void:
+	pass
 
 
 # ---------------------------------------------------------------- 搭建
@@ -208,7 +232,7 @@ func _build_world() -> void:
 	ground.add_child(shape)
 	add_child(ground)
 	back_wall = _make_wall(back_limit - 20.0)
-	terrain = Terrain.new()
+	terrain = _make_terrain()
 	terrain.name = "Terrain"
 	terrain.floor_y = floor_y
 	terrain.z_index = -70           # 背景像素化那层（−75）之后：地形和角色一样清楚
@@ -231,7 +255,7 @@ func _make_wall(x: float) -> StaticBody2D:
 
 
 func _build_backdrop() -> void:
-	var b: Node2D = Backdrop.new()
+	var b: Node2D = _make_backdrop()
 	b.name = "Backdrop"
 	b.camera = camera
 	b.floor_y = floor_y
@@ -295,23 +319,23 @@ func _lamp_at(p: Vector2) -> Vector3:
 func _build_camera() -> void:
 	camera = Camera2D.new()
 	camera.set_script(CameraScript)
-	camera.position = Vector2(640, CAM_Y)
-	camera.zoom = Vector2(ZOOM, ZOOM)
-	camera.lock_y = CAM_Y
+	camera.position = Vector2(640, cam_y)
+	camera.zoom = Vector2(zoom_level, zoom_level)
+	camera.lock_y = cam_y
 	camera.position_snap = 1.0       # 镜头停在整屏幕像素上：像素风地形的格子不会忽宽忽窄
 	camera.shake_decay = float(config.camera.get("shakeDecay", 7))
 	# 噪声与方向偏置沿用 C 盘参考；缩放补偿后保持完整屏幕震幅。
 	camera.pixel_snap = 2.0 * float(config.camera.get("shakePixelSnap", 1))
-	camera.shake_world_scale = 1.0 / ZOOM
+	camera.shake_world_scale = 1.0 / zoom_level
 	camera.max_shake = float(config.camera.get("maxShake", 42))
 	add_child(camera)
 	camera.make_current()
 	camera.follow_target = player
 	camera.follow_smoothing = float(config.camera.get("followLerp", 0.12)) * 60.0
-	camera.look_ahead = float(config.camera.get("lookAhead", 0.0)) / ZOOM
+	camera.look_ahead = float(config.camera.get("lookAhead", 0.0)) / zoom_level
 	camera.arena_min = Vector2(back_limit - 30.0, 0)
 	camera.arena_max = Vector2(1.0e9, 720)
-	camera.global_position = Vector2(maxf(START_X, back_limit - 30.0 + 640.0 / ZOOM), CAM_Y)
+	camera.global_position = Vector2(maxf(START_X, back_limit - 30.0 + 640.0 / zoom_level), cam_y)
 
 
 func _build_hud() -> void:
@@ -368,7 +392,7 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	match phase:
 		Phase.EXPLORE:
-			if player.global_position.x >= _next_center() - TRIGGER_BEFORE:
+			if player.global_position.x >= _next_center() - trigger_before:
 				_lock_arena()
 		Phase.FIGHT:
 			_round_time += delta
@@ -401,7 +425,7 @@ func _next_center() -> float:
 
 
 func _center_of(i: int) -> float:
-	return FIRST_ARENA_X + float(i) * ARENA_SPACING
+	return first_arena_x + float(i) * arena_spacing
 
 
 ## 第 i 处和下一处的地形都生成好；走远了的拆掉
@@ -413,13 +437,13 @@ func _ensure_terrain(i: int) -> void:
 
 func _lock_arena() -> void:
 	arena_center = _next_center()
-	var left := arena_center - ARENA_HALF
-	var right := arena_center + ARENA_HALF
+	var left := arena_center - arena_half
+	var right := arena_center + arena_half
 	seal_x = Vector2(left, right)
 	seal_walls = [_make_wall(left - 20.0), _make_wall(right + 20.0)]
-	camera.arena_min = Vector2(arena_center - ARENA_HALF - 40.0, 0)
-	camera.arena_max = Vector2(arena_center + ARENA_HALF + 40.0, 720)
-	var waves: Array = ROUND[encounter_index % ROUND.size()]
+	camera.arena_min = Vector2(arena_center - arena_half - 40.0, camera.arena_min.y)
+	camera.arena_max = Vector2(arena_center + arena_half + 40.0, camera.arena_max.y)
+	var waves: Array = round_waves[encounter_index % round_waves.size()]
 	encounter.setup(waves, left, right, floor_y, player, self, pow(ROUND_HP_MUL, float(round_index)))
 	_ensure_terrain(encounter_index)
 	encounter.terrain = terrain
@@ -435,10 +459,10 @@ func _unlock_arena() -> void:
 		if is_instance_valid(w):
 			w.queue_free()
 	seal_walls.clear()
-	back_limit = arena_center - ARENA_HALF
+	back_limit = arena_center - arena_half
 	back_wall.position.x = back_limit - 20.0
-	camera.arena_min = Vector2(back_limit - 30.0, 0)
-	camera.arena_max = Vector2(1.0e9, 720)
+	camera.arena_min = Vector2(back_limit - 30.0, camera.arena_min.y)
+	camera.arena_max = Vector2(1.0e9, camera.arena_max.y)
 	phase = Phase.EXPLORE
 
 
@@ -462,7 +486,7 @@ func _on_encounter_cleared() -> void:
 	audio.play_clear()
 	_unlock_arena()
 	encounter_index += 1
-	if encounter_index % ROUND.size() == 0:
+	if encounter_index % round_waves.size() == 0:
 		_show_round_result()
 		round_index += 1
 		style.reset_stats()
@@ -532,7 +556,7 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.died.connect(_on_shade_died.bind(s))
 	s.strike_landed.connect(_on_strike_landed.bind(s))
 	s.windup_started.connect(audio.play_shade_windup)
-	s.ui_scale = 1.0 / ZOOM
+	s.ui_scale = 1.0 / zoom_level
 	if s.kind == A:
 		s.strike_started.connect(func(_h: bool): audio.play_shade_shot())
 	else:
@@ -820,12 +844,12 @@ func _process(_delta: float) -> void:
 	if player.ult_ready() and not _ult_hint_shown:
 		_ult_hint_shown = true
 		_queue_hint(&"ult", "能量满了！J + K 一起按：大招「绝影」（空中按方向选终结）", 6.0, true)
-	var enc_no := encounter_index % ROUND.size() + 1
+	var enc_no := encounter_index % round_waves.size() + 1
 	if phase == Phase.EXPLORE:
-		var left := ROUND.size() - encounter_index % ROUND.size()
+		var left := round_waves.size() - encounter_index % round_waves.size()
 		hud.wave_text = "第 %d 轮 · 前方还有 %d 处封印" % [round_index + 1, left]
 	else:
-		hud.wave_text = "第 %d 轮 · 封印 %d/%d · 第 %d/%d 波" % [round_index + 1, enc_no, ROUND.size(),
+		hud.wave_text = "第 %d 轮 · 封印 %d/%d · 第 %d/%d 波" % [round_index + 1, enc_no, round_waves.size(),
 				maxi(encounter.wave_index, 0) + 1, encounter.waves.size()]
 	_update_lighting()
 	queue_redraw()
@@ -911,7 +935,7 @@ func _draw_seals() -> void:
 ## 交给主角（位置）和 ult_fx（画面）。夜景前景和光影后期大招期间关掉（黑白层要盖住整个世界）
 func _on_ult_started() -> void:
 	var cx: float = camera.get_screen_center_position().x
-	var half := 640.0 / ZOOM - 40.0
+	var half := 640.0 / zoom_level - 40.0
 	_ult_targets.clear()
 	_ult_texts.clear()
 	_ult_dealt = 0.0
@@ -969,6 +993,8 @@ func _on_ult_started() -> void:
 		post.set_enabled(false)
 	if backdrop != null and backdrop.has_method("set_ult_mode"):
 		backdrop.set_ult_mode(true)
+	# 顺着她冲过去的方向排：离起点近的先裂开
+	_ult_targets.sort_custom(func(a, b): return absf(a.node.global_position.x - px) < absf(b.node.global_position.x - px))
 	var shades: Array = []
 	for t in _ult_targets:
 		shades.append(t.node)
@@ -1013,34 +1039,44 @@ func _on_ult_reveal() -> void:
 		_ult_execute()
 
 
-## 每帧（跟着主角的 ult_tick）：终结后 ULT_SHAKE 帧进入定格——停震屏、全场静音；定格结束那一帧影断开、声音回来
+## 每帧（跟着主角的 ult_tick）：“咔”的顿帧里停震屏；顿帧结束后影每隔 ULT_SLICE_GAP 帧裂开一只
 func _ult_tick() -> void:
 	if not player.is_ult():
 		return
 	var f: int = player.ult_frame
-	if f == player.ult_final_frame + ULT_SHAKE:
+	if f == player.ult_final_frame:
 		camera.reset_shake()
-		_ult_mute(true)
-	if f == player.ult_final_frame + player.ult_freeze_frames:
-		_ult_mute(false)
-		_ult_execute()
+	var k: int = f - (player.ult_final_frame + player.ult_freeze_frames)
+	if k >= 0 and k % ULT_SLICE_GAP == 0:
+		_ult_slice(k / ULT_SLICE_GAP)
 
 
-## 终结伤害：砍死的沿刃口斩成上下两半，没死的被震飞
+## 终结伤害一次全部结算（不在大招里直接调用时，例如测试）
 func _ult_execute() -> void:
 	if _ult_done:
 		return
 	_ult_done = true
-	var px: float = player.global_position.x
+	for i in _ult_targets.size():
+		_ult_slice(i)
+
+
+## 第 i 只影：沿刀线斩成上下两半（没死的被震飞），弹出它在这一招里挨的总伤害
+func _ult_slice(i: int) -> void:
+	if i >= _ult_targets.size() or _ult_targets[i].get("done", false):
+		return
+	_ult_targets[i]["done"] = true
+	var s = _ult_targets[i].node
+	if not is_instance_valid(s) or not s.is_alive():
+		return
+	var side := 1 if s.global_position.x >= player.global_position.x else -1
 	_ult_collect = true
-	for t in _ult_targets:
-		var s = t.node
-		if not is_instance_valid(s) or not s.is_alive():
-			continue
-		var side := 1 if s.global_position.x >= px else -1
-		s.ult_split_kill(Vector2(s.global_position.x, _ult_final.p.y), _ult_final.d, ULT_FINAL_DMG, -side)
+	s.ult_split_kill(Vector2(s.global_position.x, _ult_final.p.y), _ult_final.d, ULT_FINAL_DMG, -side)
 	_ult_collect = false
-	_ult_texts.clear()
+	var dealt: float = _ult_texts.get(s, 0.0)
+	_ult_texts.erase(s)
+	if dealt > 0.0:
+		fx.spawn_text(Vector2(s.global_position.x, s.global_position.y - s.half_h - 64.0), "%.0f" % dealt, dealt)
+	ult_fx.slice(s, i)
 
 
 func _ult_mute(on: bool) -> void:

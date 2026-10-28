@@ -9,7 +9,7 @@
   124  冲击帧：一声极短、极亮的斩 + 一点低频顿感；之后全场静
   ~146→168  静：收刀的摩擦声慢慢滑进去，168 “咔”（画面在这一帧跳切到收剑）
   168～174  顿帧：完全无声
-  174  影沿刀线裂开：两声斩切 + 肉感切开，3 帧一前一后
+  174 起 影顺着她冲过去的方向依次裂开（每隔 3 帧一只）：每只一声斩切（ult_cut_0～3，游戏里按裂开的时刻放）
 """
 import os, sys
 import numpy as np
@@ -99,16 +99,20 @@ def cue_sheathe():
     return L.normalize(room(x, 0.06), -18.0)
 
 
-def cue_burst():
-    # 两声斩切 + 肉感切开，3 帧一前一后
-    s1 = L.hp(load(X + 'Katana Swing.wav', 5.74, 5.92), 700)
-    s2 = L.hp(load(X + 'Katana Swing.wav', 0.33, 0.50), 700)
-    f1 = load(FLESH + 'sword-1a.wav')
-    f2 = load(FLESH + 'sword-1b.wav')
-    gap = 3 / FPS
-    x = L.mix(0.9, (L.fade(s1, 0.001, 0.03), 0.0, 1.0), (f1, 0.005, 0.8),
-              (L.fade(s2, 0.001, 0.03), gap, 0.75), (f2, gap + 0.005, 0.6))
-    return L.normalize(room(x, 0.09), -14.0, peak_ceiling_db=-1.0)
+def cue_cuts():
+    """影依次裂开：每只一声斩切（挥刀最亮的一段 + 肉感切开），4 个变体轮换，音高略有不同"""
+    swings = [L.hp(load(X + 'Katana Swing.wav', 5.74, 5.92), 700),
+              L.hp(load(X + 'Katana Swing.wav', 0.33, 0.50), 700),
+              L.hp(load(X + 'Katana Swing.wav', 7.93, 8.10), 700),
+              L.hp(load(X + 'Katana Swing.wav', 2.28, 2.45), 700)]
+    flesh = [load(FLESH + n) for n in ('sword-1a.wav', 'sword-1b.wav', 'sword-arm-2a.wav', 'sword-arm-2b.wav')]
+    pitch = [1.0, 1.05, 0.96, 1.02]
+    out = []
+    for i in range(4):
+        sw = L.fade(L.resample(swings[i], pitch[i]), 0.001, 0.03)
+        x = L.mix(0.7, (sw, 0.0, 1.0), (flesh[i], 0.005, 0.75))
+        out.append(L.normalize(room(x, 0.09), -15.0 - 0.8 * i, peak_ceiling_db=-1.0))
+    return out
 
 
 # ---------------------------------------------------------------- 放到时间轴上
@@ -121,7 +125,10 @@ def main():
         'ult_rise': (cue_rise(), 124, 'end'),
         'ult_impact': (cue_impact(), 124, None),
         'ult_sheathe': (cue_sheathe(), 168, SHEATH_PRE),
-        'ult_burst': (cue_burst(), 174, None),
+        'ult_cut_0': (cue_cuts()[0], 174 + 3 * 0, None),
+        'ult_cut_1': (cue_cuts()[1], 174 + 3 * 1, None),
+        'ult_cut_2': (cue_cuts()[2], 174 + 3 * 2, None),
+        'ult_cut_3': (cue_cuts()[3], 174 + 3 * 3, None),
     }
     track = np.zeros(L.n(TOTAL / FPS + 1.0))
     starts = {}

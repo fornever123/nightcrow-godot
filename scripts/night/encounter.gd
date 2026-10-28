@@ -24,6 +24,10 @@ var host: Node
 var terrain = null
 var spawn_points: Array = []        ## [Vector2(x, 脚底 y)]，按“右、左、右、左…”交替排
 var _spawn_i: int = 0
+## 雨夜河岸街（大竞技场、三层楼）：这几种影优先挑最高的出生点（影弓站阳台 / 屋顶）
+var high_kinds: Array = []
+## 出生点离玩家最远多少（INF = 不限）。竞技场比屏幕宽得多时，别让影子刷在两屏以外半天走不过来
+var spawn_reach: float = INF
 
 var wave_index: int = -1
 var alive: Array = []
@@ -147,7 +151,7 @@ func _spawn(kind: int) -> void:
 	s.max_attackers = _max_attackers
 	s.terrain = terrain
 	if not spawn_points.is_empty():
-		var p := _pick_spawn_point()
+		var p := _pick_high_point() if high_kinds.has(kind) else _pick_spawn_point()
 		s.position = Vector2(p.x, p.y - float(Shade.KINDS[kind].half_h))
 		s.facing = -1 if p.x > (arena_left + arena_right) * 0.5 else 1
 		_add(s)
@@ -172,12 +176,31 @@ func _add(s: Node2D) -> void:
 	shade_spawned.emit(s)
 
 
-## 依次取出生点，跳过离玩家太近（< 300）的
+## 最高（y 最小）且离玩家 300 ~ spawn_reach 之间的出生点；没有就退回普通挑法
+## 同一波里多只就从高到低轮着用，不叠在同一个点上
+var _high_i: int = 0
+func _pick_high_point() -> Vector2:
+	var cand: Array = spawn_points.filter(func(p: Vector2): return p.y < floor_y - 1.0 and _in_reach(p))
+	if cand.is_empty():
+		return _pick_spawn_point()
+	cand.sort_custom(func(a: Vector2, b: Vector2): return a.y < b.y)
+	_high_i += 1
+	return cand[(_high_i - 1) % cand.size()]
+
+
+func _in_reach(p: Vector2) -> bool:
+	if target == null or not is_instance_valid(target):
+		return true
+	var d := absf(p.x - target.global_position.x)
+	return d >= 300.0 and d <= spawn_reach
+
+
+## 依次取出生点，跳过离玩家太近（< 300）或太远（> spawn_reach）的
 func _pick_spawn_point() -> Vector2:
 	var n := spawn_points.size()
 	for k in n:
 		var p: Vector2 = spawn_points[(_spawn_i + k) % n]
-		if target == null or not is_instance_valid(target) or absf(p.x - target.global_position.x) >= 300.0:
+		if _in_reach(p):
 			_spawn_i = (_spawn_i + k + 1) % n
 			return p
 	var q: Vector2 = spawn_points[_spawn_i % n]

@@ -49,12 +49,14 @@ var floor_y: float = 580.0
 var platforms: Array = []           ## [{x0, x1, y, style}]
 var blocks: Array = []
 var _built: Dictionary = {}         ## 段序号 → [节点…]
+## 用哪套布局：默认月下堤岸的 SECTIONS；雨夜河岸街从 rain_street_layout.json 读进来替换
+var sections: Array = SECTIONS
 
 
 # ---------------------------------------------------------------- 搭建
 
-static func layout(index: int) -> Dictionary:
-	return SECTIONS[posmod(index, SECTIONS.size())]
+func layout(index: int) -> Dictionary:
+	return sections[posmod(index, sections.size())]
 
 
 ## 确保第 index 段（中心 center）已经生成；已生成就什么都不做
@@ -245,6 +247,13 @@ const C_PILLAR_LIT := Color(0.56, 0.27, 0.24)
 const C_LAMP := Color(1.0, 0.66, 0.34)
 const C_LAMP_HOT := Color(1.0, 0.86, 0.58)
 const C_SHADOW := Color(0.01, 0.015, 0.045)
+## 雨夜河岸街灰盒配色（冷灰；能站的顶边 G_EDGE 最亮，一眼看出哪里能站）
+const G_STONE := Color(0.27, 0.29, 0.34)
+const G_STONE_DARK := Color(0.18, 0.19, 0.23)
+const G_STONE_LIT := Color(0.40, 0.43, 0.50)
+const G_IRON := Color(0.08, 0.09, 0.11)
+const G_ROOF := Color(0.15, 0.16, 0.21)
+const G_EDGE := Color(0.78, 0.82, 0.90)
 
 
 static func hash01(a: int, b: int) -> float:
@@ -280,8 +289,68 @@ class Piece extends Node2D:
 				_draw_slab(x0, x1, y, fy)
 			"roof":
 				_draw_roof(x0, x1, y, fy)
+			# 雨夜河岸街的灰盒部件（阶段一：只求结构看得懂，美术之后按 GPT 成图替换）
+			"balcony", "ring":
+				_draw_balcony(x0, x1, y, String(data.style) == "ring")
+			"bridge", "gate", "gallery":
+				_draw_bridge(x0, x1, y)
+			"eave", "ridge", "cornice":
+				_draw_eave(x0, x1, y)
+			"steps":
+				_draw_steps(x0, x1, y, fy)
 			_:
 				_draw_plank(x0, x1, y, fy)
+
+	# ---- 灰盒：阳台 / 钟楼环廊（石板 + 栏杆 + 托架） ----
+	func _draw_balcony(x0: float, x1: float, y: float, ring: bool) -> void:
+		var bar_h := 40.0 if ring else 52.0
+		var step := 30.0 if ring else 14.0
+		var bar_w := 8.0 if ring else 3.0
+		var col := G_STONE_LIT if ring else G_IRON
+		draw_rect(Rect2(x0, y - bar_h, x1 - x0, 5.0), col)
+		var x := x0 + 4.0
+		while x < x1 - 2.0:
+			draw_rect(Rect2(x, y - bar_h, bar_w, bar_h), col)
+			x += step
+		draw_rect(Rect2(x0 - 6.0, y, x1 - x0 + 12.0, 14.0), G_STONE)
+		draw_rect(Rect2(x0 - 6.0, y, x1 - x0 + 12.0, 3.0), G_EDGE)
+		var bx := x0 + 30.0
+		while bx < x1 - 20.0:
+			draw_colored_polygon(PackedVector2Array([Vector2(bx, y + 14.0), Vector2(bx + 22.0, y + 14.0), Vector2(bx, y + 48.0)]), G_STONE_DARK)
+			bx += 150.0
+
+	# ---- 灰盒：拱桥 / 拱门顶 / 廊桥（桥面 + 石栏 + 拱） ----
+	func _draw_bridge(x0: float, x1: float, y: float) -> void:
+		var x := x0
+		while x < x1 - 6.0:
+			draw_rect(Rect2(x, y - 34.0, 12.0, 34.0), G_STONE_LIT)
+			x += 26.0
+		draw_rect(Rect2(x0, y - 38.0, x1 - x0, 6.0), G_STONE_LIT)
+		draw_rect(Rect2(x0, y, x1 - x0, 30.0), G_STONE)
+		draw_rect(Rect2(x0, y, x1 - x0, 3.0), G_EDGE)
+		var n := maxi(1, int(round((x1 - x0) / 260.0)))
+		var span := (x1 - x0) / float(n)
+		for i in n + 1:
+			var px := x0 + span * float(i)
+			draw_rect(Rect2(px - 10.0, y + 30.0, 20.0, 70.0), G_STONE)
+		for i in n:
+			var cx := x0 + span * (float(i) + 0.5)
+			draw_arc(Vector2(cx, y + 100.0), span * 0.5 - 10.0, PI, TAU, 24, G_STONE, 14.0)
+
+	# ---- 灰盒：屋檐 / 屋脊（能站的顶边 + 下面一段瓦面） ----
+	func _draw_eave(x0: float, x1: float, y: float) -> void:
+		draw_colored_polygon(PackedVector2Array([Vector2(x0 - 24.0, y + 40.0), Vector2(x0, y), Vector2(x1, y), Vector2(x1 + 24.0, y + 40.0)]), G_ROOF)
+		draw_rect(Rect2(x0, y, x1 - x0, 4.0), G_EDGE)
+		draw_line(Vector2(x1, y), Vector2(x1 + 24.0, y + 40.0), G_EDGE, 3.0)
+
+	# ---- 灰盒：石阶（实心，一级级往上） ----
+	func _draw_steps(x0: float, x1: float, y: float, fy: float) -> void:
+		var n := 3
+		for i in n:
+			var sy := y + (fy - y) * float(i) / float(n)
+			var inset := (x1 - x0) * 0.12 * float(n - 1 - i)
+			draw_rect(Rect2(x0 + inset, sy, x1 - x0 - inset * 2.0, fy - sy), G_STONE.darkened(0.08 * float(i)))
+			draw_rect(Rect2(x0 + inset, sy, x1 - x0 - inset * 2.0, 3.0), G_EDGE)
 
 	# 一格一格画：坐标都按 4 单位对齐
 	func _c(x: float, y: float, w: float, h: float, col: Color) -> void:
