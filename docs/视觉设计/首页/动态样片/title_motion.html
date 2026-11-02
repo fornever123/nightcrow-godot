@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>首页动态样片</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+/* 首页会话 11-01：首页动态样片「定格 → 斩断 → 流动」。
+   实时 GPU 流体（WebGL2）做昼光白液 / 黑液，法线打光 + 辉光做“3D 渲成 2D”的液面；
+   上层 2D 画布做雨（悬停成珠 / 重新落下）、断口裂缝、冷紫刀光、黑羽。
+   按键：R 重播　N 换游戏名　↑↓ 选菜单　空格 暂停
+   颜色按设定集 §9：昼光暖白到淡金，断口冷青白，紫只给刀光和选中，背景冷灰蓝。 */
+:root{--bone:#ece8de;--idle:#8f99ab;--violet:#9a6cff;--violet2:#c8b0ff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#020306;overflow:hidden;font-family:"Noto Serif SC",serif}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;overflow:hidden;background:#05070c}
+canvas{position:absolute;left:0;top:0;width:1280px;height:720px}
+.ui{position:absolute;inset:0;pointer-events:none}
+.latin{position:absolute;left:0;right:0;text-align:center;font-family:"Old English Text MT",serif;font-size:30px;color:#c9cfdb;text-shadow:0 2px 0 #2c3342;opacity:0}
+.half{position:absolute;left:0;right:0;text-align:center;font-weight:900;white-space:nowrap;color:var(--bone)}
+.menu{position:absolute;left:0;right:0;top:470px;text-align:center;list-style:none}
+.menu li{display:table;margin:0 auto;font-size:21px;letter-spacing:9px;line-height:48px;color:var(--idle);position:relative;opacity:0;transition:color .25s}
+.menu li.sel{color:var(--bone);font-weight:900}
+.menu li .dl,.menu li .dr{position:absolute;top:50%;width:7px;height:7px;background:var(--violet);transform:translateY(-50%) rotate(45deg) scale(0);box-shadow:0 0 8px var(--violet);transition:transform .28s cubic-bezier(.3,1.8,.5,1)}
+.menu li .dl{left:-26px}.menu li .dr{right:-17px}
+.menu li.sel .dl,.menu li.sel .dr{transform:translateY(-50%) rotate(45deg) scale(1)}
+.menu li .ul{position:absolute;left:-30px;right:-24px;bottom:4px;height:1px;background:linear-gradient(90deg,transparent,#c9cfdb 40%,transparent);transform:scaleX(0);transform-origin:0 50%}
+.menu li.sel .ul{animation:sweep .45s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes sweep{to{transform:scaleX(1)}}
+.vow{position:absolute;left:0;right:0;top:676px;text-align:center;font-size:13px;letter-spacing:5px;color:#6f788b;opacity:0}
+.clock{position:absolute;left:0;right:0;top:96px;text-align:center;font-family:Georgia,serif;font-style:italic;font-size:20px;letter-spacing:6px;color:#9aa3b5;opacity:0}
+.hint{position:fixed;right:14px;bottom:10px;font:12px/1.4 "Noto Serif SC",serif;color:#4b5263;letter-spacing:2px}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1280" height="720"></canvas>
+  <canvas id="fx" width="1280" height="720"></canvas>
+  <div class="ui">
+    <div class="clock" id="clock">5 : 59</div>
+    <div class="latin" id="latin"></div>
+    <div class="half" id="top"></div><div class="half" id="bot"></div>
+    <ul class="menu" id="menu"><li class="sel">开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li></ul>
+    <div class="vow" id="vow">愿你流血，愿你老去，愿你醒来时，已经在明天</div>
+  </div>
+  <canvas id="flash" width="1280" height="720"></canvas>
+</div>
+<div class="hint">R 重播　N 换游戏名　↑↓ 菜单　空格 暂停</div>
+
+<script>
+'use strict';
+// ---------------------------------------------------------------- 舞台缩放
+const stage=document.getElementById('stage');
+function fit(){const s=Math.min(innerWidth/1280,innerHeight/720);stage.style.transform=`translate(${-640*s}px,${-360*s}px) scale(${s})`;stage.style.left='50%';stage.style.top='50%';}
+addEventListener('resize',fit);fit();
+
+const W=1280,H=720;
+const CUT_Y=300;                 // 断口（字标）所在高度，像素，自上而下
+const CRACK_Y=74;                // 天上那道裂缝
+const NAMES=[['断晓','Lux Scissa'],['沉影之昼','Umbra Mersa'],['五点五十九','Ante Horam Sextam']];
+let nameIdx=+(new URLSearchParams(location.search).get('n')||0);
+
+// ---------------------------------------------------------------- WebGL2 流体
+const glc=document.getElementById('gl');
+const gl=glc.getContext('webgl2',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true});
+gl.getExtension('EXT_color_buffer_float');gl.getExtension('OES_texture_float_linear');
+
+const VS=`#version 300 es
+in vec2 aPos;out vec2 vUv,vL,vR,vT,vB;uniform vec2 texelSize;
+void main(){vUv=aPos*.5+.5;vL=vUv-vec2(texelSize.x,0.);vR=vUv+vec2(texelSize.x,0.);vT=vUv+vec2(0.,texelSize.y);vB=vUv-vec2(0.,texelSize.y);gl_Position=vec4(aPos,0.,1.);}`;
+const P=s=>`#version 300 es
+precision highp float;precision highp sampler2D;in vec2 vUv,vL,vR,vT,vB;out vec4 o;uniform vec2 texelSize;
+${s}`;
+const FS={
+copy:P(`uniform sampler2D uT;void main(){o=texture(uT,vUv);}`),
+clear:P(`uniform sampler2D uT;uniform float v;void main(){o=v*texture(uT,vUv);}`),
+splat:P(`uniform sampler2D uT;uniform float aspect,radius;uniform vec3 color;uniform vec2 point;uniform vec2 dir;
+void main(){vec2 p=vUv-point;p.x*=aspect;
+  // 沿 dir 拉长的椭圆印子（刀光、倾泻用）
+  float along=dot(p,dir),across=dot(p,vec2(-dir.y,dir.x));
+  float e=exp(-(along*along*0.06+across*across)/radius);
+  o=vec4(texture(uT,vUv).xyz+e*color,1.);}`),
+advect:P(`uniform sampler2D uVel,uSrc;uniform vec2 velTexel;uniform float dt,diss;
+void main(){vec2 c=vUv-dt*texture(uVel,vUv).xy*velTexel;o=texture(uSrc,c)/(1.+diss*dt);}`),
+force:P(`uniform sampler2D uVel,uDye;uniform float dt,gInk,gLight,drift,t;
+void main(){vec2 v=texture(uVel,vUv).xy;vec2 d=texture(uDye,vUv).xy;
+  v.y-=dt*(gInk*d.y+gLight*d.x);
+  v.x+=dt*drift*sin(vUv.y*9.+t*.7)*d.y;           // 黑液缓慢横向涌动
+  o=vec4(v,0.,1.);}`),
+divergence:P(`uniform sampler2D uVel;void main(){float L=texture(uVel,vL).x,R=texture(uVel,vR).x,T=texture(uVel,vT).y,B=texture(uVel,vB).y;
+  vec2 C=texture(uVel,vUv).xy;if(vL.x<0.)L=-C.x;if(vR.x>1.)R=-C.x;if(vT.y>1.)T=-C.y;if(vB.y<0.)B=-C.y;o=vec4(.5*(R-L+T-B),0.,0.,1.);}`),
+curl:P(`uniform sampler2D uVel;void main(){float L=texture(uVel,vL).y,R=texture(uVel,vR).y,T=texture(uVel,vT).x,B=texture(uVel,vB).x;o=vec4(.5*(R-L-T+B),0.,0.,1.);}`),
+vorticity:P(`uniform sampler2D uVel,uCurl;uniform float curl,dt;
+void main(){float L=texture(uCurl,vL).x,R=texture(uCurl,vR).x,T=texture(uCurl,vT).x,B=texture(uCurl,vB).x,C=texture(uCurl,vUv).x;
+  vec2 f=.5*vec2(abs(T)-abs(B),abs(R)-abs(L));f/=length(f)+1e-4;f*=curl*C;f.y*=-1.;
+  vec2 v=texture(uVel,vUv).xy+f*dt;o=vec4(clamp(v,-1000.,1000.),0.,1.);}`),
+pressure:P(`uniform sampler2D uP,uDiv;void main(){float L=texture(uP,vL).x,R=texture(uP,vR).x,T=texture(uP,vT).x,B=texture(uP,vB).x;
+  o=vec4((L+R+B+T-texture(uDiv,vUv).x)*.25,0.,0.,1.);}`),
+gradSub:P(`uniform sampler2D uP,uVel;void main(){float L=texture(uP,vL).x,R=texture(uP,vR).x,T=texture(uP,vT).x,B=texture(uP,vB).x;
+  vec2 v=texture(uVel,vUv).xy-vec2(R-L,T-B);o=vec4(v,0.,1.);}`),
+// 昼光（R）→ 黑液（G）：断口附近一圈圈往外坍，外加全局慢慢转化、局部点状转化
+transmute:P(`uniform sampler2D uDye;uniform float dt,cutY,band,bandK,globalK,aspect,t;uniform vec3 pt;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+void main(){vec4 d=texture(uDye,vUv);
+  float edge=band+.05*(n(vec2(vUv.x*14.,t*.8))-.5);
+  float k=globalK+bandK*smoothstep(edge,edge-.04,abs(vUv.y-cutY));
+  vec2 q=vUv-pt.xy;q.x*=aspect;k+=pt.z*exp(-dot(q,q)/.004);
+  float m=min(d.x,d.x*k*dt);d.x-=m;d.y+=m*1.15;o=d;}`),
+// 显示：法线打光的液面
+display:P(`uniform sampler2D uDye;uniform float t,freeze,swapFlash,oldSun,exposure;uniform vec2 dyeTexel;
+float lum(vec2 uv){vec2 d=texture(uDye,uv).xy;return d.x*.9+d.y*1.1;}
+void main(){
+  vec2 uv=vUv;vec2 d=texture(uDye,uv).xy;
+  float L=d.x,I=d.y;
+  // 背景：冷灰蓝夜
+  vec3 bg=mix(vec3(.030,.036,.060),vec3(.078,.088,.128),pow(uv.y,1.3));
+  bg+=vec3(.05,.03,.012)*oldSun*exp(-pow((uv.x-.5)*2.4,2.)-pow((uv.y-.18)*4.,2.))*2.2;   // 旧光：地平线一团暖色
+  // 液面高度 → 法线
+  float s=2.6;
+  float hx=lum(uv+vec2(dyeTexel.x*s,0.))-lum(uv-vec2(dyeTexel.x*s,0.));
+  float hy=lum(uv+vec2(0.,dyeTexel.y*s))-lum(uv-vec2(0.,dyeTexel.y*s));
+  float gr=length(vec2(hx,hy));
+  vec3 nrm=normalize(vec3(-hx*5.,-hy*5.,1.));
+  vec3 ld=normalize(vec3(-.45,.55,.72));
+  float diff=clamp(dot(nrm,ld),0.,1.);
+  float shp=mix(36.,140.,freeze);                         // 定格时高光更硬，像白瓷 / 琥珀
+  float spec=pow(max(dot(reflect(-ld,nrm),vec3(0,0,1)),0.),shp);
+  float rim=pow(1.-nrm.z,1.6);
+  // 昼光白液：暖白，薄的边缘偏淡金
+  float a=smoothstep(.01,.32,L);
+  vec3 lc=mix(vec3(1.,.84,.58),vec3(1.,.975,.93),smoothstep(.12,.7,L));
+  vec3 lightCol=lc*(.75+.45*diff)+spec*vec3(1.,.98,.95)*1.3+rim*vec3(1.,.86,.6)*.45;
+  // 黑液：亮漆黑，高光偏冷
+  // 黑液边缘一圈冷银（让黑在暗底上读得出），高光只给厚的地方，薄处不出噪点
+  float b=smoothstep(.05,.40,I);
+  float edge=smoothstep(.015,.09,gr)*smoothstep(.03,.12,I);
+  vec3 inkCol=vec3(.004,.005,.009)+spec*vec3(.62,.68,.84)*smoothstep(.25,.6,I)+edge*vec3(.20,.23,.31)+diff*vec3(.01,.012,.02);
+  vec3 c=bg;
+  c=mix(c,lightCol,a);
+  c=mix(c,inkCol,max(b,edge*.9)*(1.-a*.6));
+  c+=vec3(1.,.9,.74)*min(L,1.2)*.35;                       // 昼光自己发光（喂给辉光）
+  c+=vec3(.55,.7,.75)*swapFlash*exp(-pow((uv.y-.9)*10.,2.));   // 交接那一下，裂缝底下一层冷光
+  // 定格：整体轻微去饱和 + 冷一点
+  float g=dot(c,vec3(.3,.59,.11));c=mix(c,vec3(g)*vec3(.97,.99,1.03),freeze*.25);
+  o=vec4(c*exposure,1.);}`),
+prefilter:P(`uniform sampler2D uT;uniform float th;void main(){vec3 c=texture(uT,vUv).rgb;float b=max(c.r,max(c.g,c.b));o=vec4(c*max(b-th,0.)/max(b,1e-4),1.);}`),
+blur:P(`uniform sampler2D uT;uniform vec2 dir;void main(){vec3 c=texture(uT,vUv).rgb*.227;
+  c+=(texture(uT,vUv+dir*1.384).rgb+texture(uT,vUv-dir*1.384).rgb)*.316;c+=(texture(uT,vUv+dir*3.230).rgb+texture(uT,vUv-dir*3.230).rgb)*.07;o=vec4(c,1.);}`),
+composite:P(`uniform sampler2D uT,uB1,uB2;uniform float t,bloom;
+float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+void main(){vec3 c=texture(uT,vUv).rgb+(texture(uB1,vUv).rgb*.7+texture(uB2,vUv).rgb*.9)*bloom;
+  c=c/(1.+c*.18);                                         // 柔和压高光
+  vec2 q=vUv-.5;c*=1.-dot(q,q)*1.05;                      // 暗角
+  c+=(h(vUv*vec2(1280.,720.)+fract(t)*91.)-.5)*.022;      // 胶片颗粒
+  o=vec4(pow(max(c,0.),vec3(.95)),1.);}`),
+};
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s)+'\n'+src);return s;}
+const vs=sh(gl.VERTEX_SHADER,VS);
+const prog={};
+for(const k in FS){const p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS[k]));gl.bindAttribLocation(p,0,'aPos');gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+  const u={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const nm=gl.getActiveUniform(p,i).name;u[nm]=gl.getUniformLocation(p,nm);}prog[k]={p,u};}
+const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,-1,1,1,1,1,-1]),gl.STATIC_DRAW);
+const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([0,1,2,0,2,3]),gl.STATIC_DRAW);
+gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);gl.enableVertexAttribArray(0);
+
+function fbo(w,h,filter){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,filter);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,filter);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,w,h,0,gl.RGBA,gl.HALF_FLOAT,null);
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  gl.viewport(0,0,w,h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  return {t,f,w,h,tx:[1/w,1/h]};}
+function dbl(w,h,filter){let a=fbo(w,h,filter),b=fbo(w,h,filter);return{get r(){return a},get w(){return b},swap(){[a,b]=[b,a]},width:w,height:h,tx:[1/w,1/h]};}
+const SIM=[320,180],DYE=[1280,720];
+let vel,dye,div,curlT,pres,scene,bl1,bl2,bl3,bl4;
+function initFBOs(){vel=dbl(...SIM,gl.LINEAR);dye=dbl(...DYE,gl.LINEAR);div=fbo(...SIM,gl.NEAREST);curlT=fbo(...SIM,gl.NEAREST);pres=dbl(...SIM,gl.NEAREST);
+  scene=fbo(1280,720,gl.LINEAR);bl1=fbo(320,180,gl.LINEAR);bl2=fbo(320,180,gl.LINEAR);bl3=fbo(160,90,gl.LINEAR);bl4=fbo(160,90,gl.LINEAR);}
+function use(k){gl.useProgram(prog[k].p);return prog[k].u;}
+function tex(u,name,t,unit){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u[name],unit);}
+function draw(target){if(target){gl.viewport(0,0,target.w,target.h);gl.bindFramebuffer(gl.FRAMEBUFFER,target.f);}else{gl.viewport(0,0,1280,720);gl.bindFramebuffer(gl.FRAMEBUFFER,null);}
+  gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);}
+
+// 像素坐标（左上原点）→ uv
+const U=(x,y)=>[x/W,1-y/H];
+function splat(x,y,dx,dy,color,radius,dir=[1,0]){
+  const [ux,uy]=U(x,y);
+  let u=use('splat');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uT',vel.r.t,0);gl.uniform1f(u.aspect,W/H);gl.uniform2f(u.point,ux,uy);
+  gl.uniform3f(u.color,dx,-dy,0);gl.uniform1f(u.radius,radius/100);gl.uniform2f(u.dir,dir[0],-dir[1]);draw(vel.w);vel.swap();
+  u=use('splat');gl.uniform2f(u.texelSize,...dye.tx);tex(u,'uT',dye.r.t,0);gl.uniform3f(u.color,...color);draw(dye.w);dye.swap();}
+
+const P_=Object.seal({gInk:0,gLight:0,drift:0,curl:22,diss:.02,velDiss:.25,cutBand:0,bandK:0,globalK:0,pt:[0,0,0]});
+function step(dt,t){
+  let u=use('force');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uVel',vel.r.t,0);tex(u,'uDye',dye.r.t,1);
+  gl.uniform1f(u.dt,dt);gl.uniform1f(u.gInk,P_.gInk);gl.uniform1f(u.gLight,P_.gLight);gl.uniform1f(u.drift,P_.drift);gl.uniform1f(u.t,t);draw(vel.w);vel.swap();
+  u=use('curl');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uVel',vel.r.t,0);draw(curlT);
+  u=use('vorticity');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uVel',vel.r.t,0);tex(u,'uCurl',curlT.t,1);gl.uniform1f(u.curl,P_.curl);gl.uniform1f(u.dt,dt);draw(vel.w);vel.swap();
+  u=use('divergence');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uVel',vel.r.t,0);draw(div);
+  u=use('clear');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uT',pres.r.t,0);gl.uniform1f(u.v,.8);draw(pres.w);pres.swap();
+  u=use('pressure');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uDiv',div.t,1);
+  for(let i=0;i<24;i++){tex(u,'uP',pres.r.t,0);draw(pres.w);pres.swap();}
+  u=use('gradSub');gl.uniform2f(u.texelSize,...vel.tx);tex(u,'uP',pres.r.t,0);tex(u,'uVel',vel.r.t,1);draw(vel.w);vel.swap();
+  u=use('advect');gl.uniform2f(u.texelSize,...vel.tx);gl.uniform2f(u.velTexel,...vel.tx);tex(u,'uVel',vel.r.t,0);tex(u,'uSrc',vel.r.t,1);
+  gl.uniform1f(u.dt,dt);gl.uniform1f(u.diss,P_.velDiss);draw(vel.w);vel.swap();
+  u=use('advect');gl.uniform2f(u.texelSize,...dye.tx);gl.uniform2f(u.velTexel,...vel.tx);tex(u,'uVel',vel.r.t,0);tex(u,'uSrc',dye.r.t,1);
+  gl.uniform1f(u.dt,dt);gl.uniform1f(u.diss,P_.diss);draw(dye.w);dye.swap();
+  u=use('transmute');gl.uniform2f(u.texelSize,...dye.tx);tex(u,'uDye',dye.r.t,0);gl.uniform1f(u.dt,dt);gl.uniform1f(u.cutY,1-CUT_Y/H);
+  gl.uniform1f(u.band,P_.cutBand);gl.uniform1f(u.bandK,P_.bandK);gl.uniform1f(u.globalK,P_.globalK);gl.uniform1f(u.aspect,W/H);gl.uniform1f(u.t,t);gl.uniform3f(u.pt,...P_.pt);
+  draw(dye.w);dye.swap();}
+function render(t,look){
+  let u=use('display');gl.uniform2f(u.texelSize,...dye.tx);gl.uniform2f(u.dyeTexel,...dye.tx);tex(u,'uDye',dye.r.t,0);
+  gl.uniform1f(u.t,t);gl.uniform1f(u.freeze,look.freeze);gl.uniform1f(u.swapFlash,look.swapFlash);gl.uniform1f(u.oldSun,look.oldSun);gl.uniform1f(u.exposure,look.exposure);draw(scene);
+  u=use('prefilter');gl.uniform2f(u.texelSize,1/1280,1/720);tex(u,'uT',scene.t,0);gl.uniform1f(u.th,.55);draw(bl1);
+  u=use('blur');for(let i=0;i<2;i++){gl.uniform2f(u.texelSize,...bl1.tx);tex(u,'uT',bl1.t,0);gl.uniform2f(u.dir,bl1.tx[0],0);draw(bl2);tex(u,'uT',bl2.t,0);gl.uniform2f(u.dir,0,bl1.tx[1]);draw(bl1);}
+  u=use('copy');tex(u,'uT',bl1.t,0);draw(bl3);
+  u=use('blur');for(let i=0;i<3;i++){tex(u,'uT',bl3.t,0);gl.uniform2f(u.dir,bl3.tx[0]*1.5,0);draw(bl4);tex(u,'uT',bl4.t,0);gl.uniform2f(u.dir,0,bl3.tx[1]*1.5);draw(bl3);}
+  u=use('composite');tex(u,'uT',scene.t,0);tex(u,'uB1',bl1.t,1);tex(u,'uB2',bl3.t,2);gl.uniform1f(u.t,t);gl.uniform1f(u.bloom,look.bloom);draw(null);}
+
+// ---------------------------------------------------------------- 2D 层：雨、裂缝、刀光、黑羽
+const fx=document.getElementById('fx').getContext('2d');
+const fl=document.getElementById('flash').getContext('2d');
+const featherImg=[new Image(),new Image()];
+featherImg[0].src='../../../../assets/image/ult/feather_1.png';featherImg[1].src='../../../../assets/image/ult/feather_2.png';
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const R=(a,b)=>a+Math.random()*(b-a);
+// 雨珠精灵
+const bead=document.createElement('canvas');bead.width=bead.height=32;{const c=bead.getContext('2d');const g=c.createRadialGradient(13,13,0,16,16,16);
+  g.addColorStop(0,'rgba(255,253,246,1)');g.addColorStop(.18,'rgba(255,244,222,.95)');g.addColorStop(.45,'rgba(255,226,180,.35)');g.addColorStop(1,'rgba(255,220,170,0)');c.fillStyle=g;c.fillRect(0,0,32,32);}
+
+let drops=[],feathers=[],ash=[],slashes=[],leaks=[];
+function resetDrops(){drops=[];for(let i=0;i<520;i++)drops.push({x:R(-80,W+120),y:R(-40,H),v:R(980,1380),len:R(14,34),a:R(.10,.34),z:R(.6,1),local:1,phase:R(0,6.28)});}
+
+// ---------------------------------------------------------------- 时间轴
+const T={swap:1.7,pourEnd:3.0,freeze:3.45,slash:5.0,title:5.05,menu:6.6,idle:9};
+let t0=performance.now(),paused=false,pauseAt=0,lastT=0,sim=0;
+let look={freeze:0,swapFlash:0,oldSun:1,exposure:1,bloom:.9};
+let timeScale=1;          // 世界时间（雨、液体）
+let shake=0,flashA=0,menuSel=0,menuShown=false,nextLeak=0;
+const ease=x=>1-Math.pow(1-Math.min(Math.max(x,0),1),3);
+const easeIn=x=>Math.pow(Math.min(Math.max(x,0),1),2.2);
+const sstep=(a,b,x)=>{x=Math.min(Math.max((x-a)/(b-a),0),1);return x*x*(3-2*x);};
+
+function crackPts(){const p=[];let y=CRACK_Y;for(let i=0;i<=26;i++){const x=180+i*(920/26);y=CRACK_Y+Math.sin(i*1.7)*7+Math.sin(i*.53)*10;p.push([x,y]);}return p;}
+const CRACK=crackPts();
+const POUR=[2,5,6,10,13,14,17,21,23];   // 光帘出口（裂缝上的点）
+
+function setName(){const [cn,la]=NAMES[nameIdx];const len=cn.length;
+  const fs={2:176,4:128,5:108}[len],ls={2:40,4:20,5:12}[len];
+  for(const id of ['top','bot']){const e=document.getElementById(id);e.textContent=cn;e.style.fontSize=fs+'px';e.style.letterSpacing=ls+'px';e.style.paddingLeft=ls+'px';
+    e.style.top=(CUT_Y-fs*.66)+'px';e.style.height=(fs*1.32)+'px';e.style.lineHeight=(fs*1.32)+'px';}
+  document.getElementById('top').style.clipPath=`inset(0 0 50% 0)`;document.getElementById('bot').style.clipPath=`inset(50% 0 0 0)`;
+  const la_=document.getElementById('latin');la_.textContent=la;la_.style.top=(CUT_Y-fs*.66-46)+'px';}
+
+function restart(){initFBOs();Object.assign(P_,{gInk:0,gLight:0,drift:0,curl:7,diss:.02,velDiss:.15,cutBand:0,bandK:0,globalK:0,pt:[0,0,0]});resetDrops();feathers=[];ash=[];slashes=[];leaks=[];t0=performance.now();lastT=0;sim=0;menuShown=false;nextLeak=T.idle+2.5;
+  document.querySelectorAll('.menu li').forEach(li=>li.style.opacity=0);setName();}
+
+function burstFeathers(x0,x1,y,n,power){for(let i=0;i<n;i++){const x=R(x0,x1);feathers.push({x,y:y+R(-6,6),vx:R(-90,90)*power,vy:R(-260,-40)*power,rot:R(0,6.28),vr:R(-5,5),
+  s:R(.32,.85),k:Math.random()<.5?0:1,life:0,max:R(3.5,7),sway:R(.8,2.2),ph:R(0,6.28),blur:Math.random()<.25?R(1,3):0});}}
+
+function addSlash(x0,y0,x1,y1,dur,width){slashes.push({x0,y0,x1,y1,t:0,dur,width});}
+
+// ---------------------------------------------------------------- 主循环
+function frame(now){
+  requestAnimationFrame(frame);
+  if(paused)return;
+  const t=(now-t0)/1000;let dt=Math.min(t-lastT,1/30);lastT=t;
+
+  // —— 世界时间：交接前正常；倾泻后减速到定格；斩后猛地恢复
+  let ts=1;
+  if(t>T.freeze-0.5&&t<T.slash)ts=1-ease((t-(T.freeze-0.5))/0.75);
+  if(t>=T.slash)ts=Math.min(1,0.15+easeIn((t-T.slash)/0.35)*1.0);
+  timeScale=ts;
+  look.freeze=t<T.slash?sstep(T.freeze-0.4,T.freeze+0.3,t):1-sstep(T.slash,T.slash+0.5,t);
+  look.oldSun=1-sstep(T.swap-0.04,T.swap+0.02,t);                 // 旧光一熄
+  look.swapFlash=t>T.swap?Math.exp(-(t-T.swap)*3.2):0;               // 新光一亮（同一瞬间）
+  look.exposure=t<T.swap?0.85+0.15*sstep(0,1.2,t):1;
+
+  // —— 液体：倾泻昼光
+  if(t>T.swap&&t<T.pourEnd){
+    // 几道光帘：固定的几个出口，沿裂缝细细往下淌，不是满屏乱喷
+    const k=1-sstep(T.pourEnd-0.5,T.pourEnd,t);
+    for(const i of POUR){const p=CRACK[i];const w=0.6+0.4*Math.sin(t*3.1+i);
+      splat(p[0]+R(-5,5),p[1]+6,R(-12,12),R(200,300)*k,[.34*k*w,0,0],R(.0025,.006),[0,1]);}
+    P_.gLight=95;P_.curl=7;P_.velDiss=.15;
+  }
+  if(t>T.pourEnd&&t<T.slash){P_.gLight=95;}
+  // —— 斩断
+  if(t>=T.slash&&!frame.slashed){frame.slashed=true;
+    addSlash(-60,CUT_Y+14,W+60,CUT_Y-14,0.16,1);
+    shake=1;flashA=.9;
+    for(let i=0;i<26;i++){const x=i*(W/25);splat(x,CUT_Y+(x/W-.5)*-28,R(500,800),R(-30,30),[0,0,0],.006,[1,0]);}  // 刀风横切液面
+    burstFeathers(80,W-80,CUT_Y,70,1.15);
+    for(let i=0;i<14;i++)splat(R(0,W),H-R(0,30),R(-150,150),R(-300,-120),[0,R(.25,.4),0],R(.01,.025));   // 黑液从底下涌起
+    P_.gLight=0;P_.gInk=220;P_.drift=26;P_.curl=14;P_.bandK=6;P_.globalK=0;}
+  if(frame.slashed){const e=t-T.slash;P_.cutBand=Math.min(.8,e*0.38);P_.globalK=sstep(1.8,3.2,e)*.9;}
+  if(t<T.slash){frame.slashed=false;P_.gInk=0;P_.drift=0;P_.bandK=0;P_.globalK=0;P_.cutBand=0;}
+  // —— 待机：黑液缓慢起伏，偶尔漏下一缕光、雨珠凝住、再被斩落
+  if(t>T.idle){
+    // 底下一池黑液：不断有新的黑涌上来、翻一下再沉回去
+    if(Math.random()<dt*3)splat(R(0,W),H-R(0,40),R(-220,220),R(-380,-160),[0,R(.18,.35),0],R(.006,.02));
+    if(t>nextLeak){nextLeak=t+R(6.5,8.5);const x=R(260,W-260);leaks.push({x,y:CUT_Y-R(70,110),t:0,cut:false});}
+  }
+  P_.pt=[0,0,0];
+  for(const L of leaks){L.t+=dt;
+    if(L.t<0.9&&Math.random()<.7)splat(L.x+R(-6,6),L.y-30,R(-20,20),R(120,220),[R(.25,.45),0,0],.006,[0,1]);
+    if(L.t>1.7&&!L.cut){L.cut=true;addSlash(L.x-150,L.y+60,L.x+150,L.y-40,0.12,.55);burstFeathers(L.x-40,L.x+40,L.y,12,.7);
+      splat(L.x,L.y,900,-200,[0,0,0],.008,[1,-.3]);flashA=Math.max(flashA,.18);}
+    if(L.cut&&L.t<3)P_.pt=[L.x/W,1-L.y/H,10];}
+  leaks=leaks.filter(L=>L.t<4);
+
+  // —— 跑流体（世界时间缩放；定格时几乎不动）
+  sim+=dt*ts;
+  const sdt=dt*ts;
+  if(sdt>1e-4){step(sdt,t);}
+  render(t,look);
+
+  // —— 2D 层
+  fx.setTransform(1,0,0,1,0,0);fx.clearRect(0,0,W,H);
+  const sx=shake*R(-7,7),sy=shake*R(-4,4);shake*=Math.pow(.0009,dt);
+  stage.querySelector('.ui').style.transform=`translate(${sx}px,${sy}px)`;
+  glc.style.transform=`translate(${sx*.7}px,${sy*.7}px)`;
+  fx.setTransform(1,0,0,1,sx,sy);
+
+  // 裂缝：交接前是暗缝，交接那一下亮起冷青白
+  {const on=sstep(T.swap-0.01,T.swap+0.03,t);const glow=on*(.55+.45*Math.exp(-(t-T.swap)*1.5))*(t>T.slash?0.55:1);
+    fx.save();fx.globalCompositeOperation='lighter';fx.lineJoin='round';
+    fx.beginPath();CRACK.forEach(([x,y],i)=>i?fx.lineTo(x,y):fx.moveTo(x,y));
+    fx.strokeStyle=`rgba(40,50,70,${.6*(1-on)+.2})`;fx.lineWidth=2;fx.stroke();
+    if(glow>0){fx.shadowColor='rgba(200,236,245,.9)';fx.shadowBlur=26;fx.strokeStyle=`rgba(214,240,246,${glow})`;fx.lineWidth=2.2;fx.stroke();
+      fx.shadowBlur=60;fx.strokeStyle=`rgba(170,215,230,${glow*.35})`;fx.lineWidth=9;fx.stroke();}
+    fx.restore();}
+
+  // 雨 → 珠 → 雨
+  for(const d of drops){
+    let local=1;for(const L of leaks){const dx=d.x-L.x,dy=d.y-L.y;const r=Math.hypot(dx,dy);
+      if(r<170){const f=L.cut?Math.min(1,(L.t-1.7)/0.3):1-ease(L.t/0.6);local=Math.min(local,1-(1-f)*(1-r/170));}}
+    d.local+= (local-d.local)*Math.min(1,dt*10);
+    const s=ts*d.local;
+    d.y+=d.v*s*dt;d.x-=d.v*.22*s*dt;
+    if(d.y>H+40){d.y=R(-60,-10);d.x=R(-40,W+160);}
+    if(d.x<-60)d.x+=W+160;
+    const l=d.len*Math.min(1,s*1.2);
+    if(s>0.2){fx.strokeStyle=`rgba(150,165,190,${d.a*d.z})`;fx.lineWidth=1;fx.beginPath();fx.moveTo(d.x,d.y);fx.lineTo(d.x+.22*l,d.y-l);fx.stroke();}
+    if(s<0.6){ // 珠子：越慢越圆、越亮（被昼光照着）
+      const k=1-s/0.6;const r=(2.2+d.len*.05)*d.z*(0.6+0.4*k);
+      fx.globalAlpha=k*(.55+.45*Math.sin(t*2+d.phase)*.3+.25)*d.z;fx.drawImage(bead,d.x-r*2.4,d.y-r*2.4-l*.5,r*4.8,r*4.8);fx.globalAlpha=1;}
+  }
+
+  // 刀光
+  fx.save();fx.globalCompositeOperation='lighter';
+  for(const S of slashes){S.t+=dt;const p=ease(S.t/S.dur);const x=S.x0+(S.x1-S.x0)*p,y=S.y0+(S.y1-S.y0)*p;
+    const fade=S.t<S.dur?1:Math.exp(-(S.t-S.dur)*2.4);
+    const tail=Math.max(0,p-0.35);const tx=S.x0+(S.x1-S.x0)*tail,ty=S.y0+(S.y1-S.y0)*tail;
+    // 外层紫光
+    let g=fx.createLinearGradient(tx,ty,x,y);g.addColorStop(0,'rgba(154,108,255,0)');g.addColorStop(1,`rgba(154,108,255,${.75*fade})`);
+    fx.strokeStyle=g;fx.lineCap='round';fx.lineWidth=26*S.width;fx.shadowColor='rgba(154,108,255,.9)';fx.shadowBlur=40;
+    fx.beginPath();fx.moveTo(S.x0+(S.x1-S.x0)*Math.max(0,p-.9),S.y0+(S.y1-S.y0)*Math.max(0,p-.9));fx.lineTo(x,y);fx.globalAlpha=S.t<S.dur?1:fade*.5;fx.stroke();
+    // 白芯
+    fx.shadowBlur=12;fx.shadowColor='#efe8ff';fx.strokeStyle=`rgba(250,246,255,${fade})`;fx.lineWidth=(S.t<S.dur?4.5:1.6)*S.width;
+    fx.beginPath();fx.moveTo(S.x0+(S.x1-S.x0)*Math.max(0,p-.9),S.y0+(S.y1-S.y0)*Math.max(0,p-.9));fx.lineTo(x,y);fx.stroke();fx.globalAlpha=1;
+    // 刀尖
+    if(S.t<S.dur){fx.fillStyle='#fff';fx.shadowBlur=30;fx.beginPath();fx.arc(x,y,6*S.width,0,6.28);fx.fill();}}
+  slashes=slashes.filter(S=>S.t<S.dur+2.5);
+  // 主断口余光：一条冷紫白细线慢慢呼吸
+  if(t>T.slash+0.16){const a=.22+.12*Math.sin(t*1.6);const g=fx.createLinearGradient(0,0,W,0);
+    g.addColorStop(0,'rgba(200,176,255,0)');g.addColorStop(.5,`rgba(239,232,255,${a})`);g.addColorStop(1,'rgba(200,176,255,0)');
+    fx.strokeStyle=g;fx.lineWidth=1;fx.shadowBlur=14;fx.shadowColor='rgba(154,108,255,.8)';fx.beginPath();fx.moveTo(0,CUT_Y+14);fx.lineTo(W,CUT_Y-14);fx.stroke();}
+  fx.restore();
+
+  // 黑羽：飘落、翻面、落到黑液里化灰
+  for(const f of feathers){f.life+=dt;f.vy+=150*dt;f.vx*=Math.pow(.25,dt);f.vy*=Math.pow(.45,dt);
+    const sway=Math.sin(f.life*f.sway*2+f.ph);f.x+=(f.vx+sway*38)*dt;f.y+=f.vy*dt;f.rot+=(f.vr*Math.pow(.4,f.life)+sway*.9)*dt;
+    const flip=Math.cos(f.life*f.sway*1.4+f.ph);const fade=1-sstep(f.max-1,f.max,f.life);
+    if(f.life>f.max-1&&Math.random()<dt*10)ash.push({x:f.x,y:f.y,vx:R(-20,20),vy:R(-30,10),l:0,m:R(.8,1.6)});
+    fx.save();fx.translate(f.x,f.y);fx.rotate(f.rot);fx.scale(f.s,f.s*Math.max(.15,Math.abs(flip)));fx.globalAlpha=fade;
+    if(f.blur)fx.filter=`blur(${f.blur}px)`;const img=featherImg[f.k];if(img.complete)fx.drawImage(img,-50,-20,100,40);fx.restore();}
+  feathers=feathers.filter(f=>f.life<f.max);
+  for(const a of ash){a.l+=dt;a.x+=a.vx*dt;a.y+=a.vy*dt;a.vy-=8*dt;fx.fillStyle=`rgba(120,126,140,${.5*(1-a.l/a.m)})`;fx.fillRect(a.x,a.y,1.6,1.6);}
+  ash=ash.filter(a=>a.l<a.m);
+
+  // —— 白闪
+  fl.clearRect(0,0,W,H);if(flashA>0.005){fl.fillStyle=`rgba(246,242,255,${flashA})`;fl.fillRect(0,0,W,H);flashA*=Math.pow(.0005,dt);}
+
+  // —— 字
+  const clock=document.getElementById('clock');clock.style.opacity=(sstep(.2,1,t)*(1-sstep(T.slash,T.slash+.4,t))*.85).toFixed(3);
+  clock.style.color=t>T.freeze?'#e9ddc4':'#9aa3b5';clock.style.textShadow=t>T.swap?'0 0 14px rgba(255,236,200,.5)':'none';
+  const top=document.getElementById('top'),bot=document.getElementById('bot'),latin=document.getElementById('latin');
+  // 定格时：字被昼光凝住，暖白发光、半透明；斩后：上下错开，骨白
+  const pre=sstep(T.freeze,T.freeze+0.9,t)*(t<T.slash?1:0);
+  const post=t>=T.title?ease((t-T.title)/0.55):0;
+  const op=Math.max(pre*.75,post);
+  for(const [e,sgn] of [[top,-1],[bot,1]]){e.style.opacity=op.toFixed(3);
+    const ox=sgn*15*post+(post>0?sgn*2*Math.sin(t*.9)*sstep(T.idle-1,T.idle,t):0);e.style.transform=`translate(${ox}px,${sgn*4*post}px)`;
+    // 定格时字像刻进白瓷里（暗字 + 下沿一道亮边）；斩后变骨白
+    e.style.color=post>0?`rgb(${236+19*(1-post)},${232+21*(1-post)},${222+24*(1-post)})`:'rgba(52,47,40,.82)';
+    e.style.textShadow=post>0?`0 4px 0 rgba(30,34,46,${post}), 0 0 ${30*(1-post)+2}px rgba(200,176,255,${.8*(1-post)+.08})`:'0 1.5px 0 rgba(255,250,236,.9), 0 0 24px rgba(255,236,200,.6)';}
+  latin.style.opacity=(t>T.title+0.3?ease((t-T.title-0.3)/0.8):0).toFixed(3);
+  if(t>T.menu&&!menuShown){menuShown=true;document.querySelectorAll('.menu li').forEach((li,i)=>{li.style.transition='opacity .6s ease '+(i*0.12)+'s, transform .6s ease '+(i*0.12)+'s, color .25s';li.style.opacity=1;});selectMenu(menuSel,true);}
+  document.getElementById('vow').style.opacity=(sstep(T.menu+0.6,T.menu+1.6,t)).toFixed(3);
+}
+function selectMenu(i,force){const lis=[...document.querySelectorAll('.menu li')];menuSel=(i+lis.length)%lis.length;
+  lis.forEach((li,j)=>{li.classList.toggle('sel',j===menuSel);if(!li.querySelector('.dl'))li.insertAdjacentHTML('beforeend','<span class="dl"></span><span class="dr"></span><span class="ul"></span>');
+    if(j===menuSel){const ul=li.querySelector('.ul');ul.style.animation='none';void ul.offsetWidth;ul.style.animation='';}});}
+addEventListener('keydown',e=>{
+  if(e.key==='r'||e.key==='R')restart();
+  if(e.key==='n'||e.key==='N'){nameIdx=(nameIdx+1)%NAMES.length;setName();}
+  if(e.key===' '){paused=!paused;if(paused)pauseAt=performance.now();else t0+=performance.now()-pauseAt;e.preventDefault();}
+  if(menuShown&&(e.key==='ArrowDown'||e.key==='s'))selectMenu(menuSel+1);
+  if(menuShown&&(e.key==='ArrowUp'||e.key==='w'))selectMenu(menuSel-1);});
+restart();requestAnimationFrame(frame);
+</script>
+</body></html>
