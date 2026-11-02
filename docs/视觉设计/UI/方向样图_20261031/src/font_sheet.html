@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>暂停菜单字体候选</title>
+<style>
+/* UI 会话 10-31：暂停菜单换字候选（用户：“字换一个”）。四格 1920x1080，每格是 1280x720 的暂停菜单缩到 0.75。
+   预览用本机已装字体；“发布用”写的是能随游戏打包的开源替代。 */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;background:#000;overflow:hidden}
+.grid{display:grid;grid-template-columns:960px 960px;grid-template-rows:540px 540px}
+.cell{position:relative;width:960px;height:540px;overflow:hidden}
+.scr{position:absolute;left:0;top:0;width:1280px;height:720px;transform:scale(.75);transform-origin:0 0;color:#e6e9ef}
+.bg{position:absolute;inset:-12px;background:url(bg.png) 12px 12px/1280px 720px;filter:blur(4px) saturate(.75)}
+.dim{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(6,8,13,.68),rgba(6,8,13,.94))}
+.rain{position:absolute;inset:0;opacity:.55}
+.t{position:absolute;left:0;right:0;text-align:center}
+.div{position:absolute;left:460px;top:271px;width:360px;height:20px}
+ul{position:absolute;left:0;right:0;top:322px;list-style:none;text-align:center}
+li{line-height:52px;color:#8f99ab}
+li.sel{color:#e9e4d8}
+li.sel:before,li.sel:after{content:"◆";font-size:10px;color:#9a6cff;margin:0 18px;vertical-align:4px;font-family:serif}
+li.sel span{position:relative}
+li.sel span:after{content:"";position:absolute;left:-60px;right:-60px;bottom:-12px;height:1px;background:linear-gradient(90deg,transparent,rgba(230,233,239,.75) 55%,transparent)}
+.foot{top:608px;font-family:"Noto Serif SC";font-size:13px;letter-spacing:3px;color:#6d778a}
+.label{position:absolute;left:0;top:0;padding:8px 14px;background:rgba(0,0,0,.75);font:700 15px "Noto Sans SC";color:#fff;letter-spacing:1px}
+.label small{display:block;font-weight:400;font-size:12px;color:#c9cfda;margin-top:2px}
+.num{font-family:Georgia,serif;font-style:italic}
+/* ---- 1 铭刻 ---- */
+.f1 .h{top:150px;font-family:Castellar,serif;font-size:58px;letter-spacing:10px;text-shadow:0 2px 0 #59627a}
+.f1 .s{top:226px;font-family:"Noto Serif SC";font-size:15px;letter-spacing:14px;color:#7f8ba0}
+.f1 li{font-family:"Noto Serif SC";font-weight:700;font-size:21px;letter-spacing:12px}
+/* ---- 2 中文大字 ---- */
+.f2 .h{top:122px;font-family:"Source Han Serif SC Heavy","Source Han Serif SC";font-weight:900;font-size:74px;letter-spacing:34px;padding-left:34px;text-shadow:0 3px 0 #3c4458}
+.f2 .s{top:230px;font-family:"Engravers MT",serif;font-size:14px;letter-spacing:9px;color:#7f8ba0}
+.f2 li{font-family:"Source Han Serif SC Heavy","Source Han Serif SC";font-weight:900;font-size:21px;letter-spacing:12px}
+.f2 li:not(.sel){font-family:"Noto Serif SC";font-weight:400}
+/* ---- 3 古典斜体 ---- */
+.f3 .h{top:132px;font-family:Garamond,serif;font-style:italic;font-size:80px;letter-spacing:2px;text-shadow:0 2px 0 #59627a}
+.f3 .s{top:228px;font-family:"FZXS14";font-size:15px;letter-spacing:14px;color:#7f8ba0}
+.f3 li{font-family:"FZXS14";font-size:23px;letter-spacing:12px}
+/* ---- 4 书法 ---- */
+.f4 .h{top:118px;font-family:"PangMenZhengDao-Cu";font-size:84px;letter-spacing:20px;padding-left:20px;text-shadow:0 3px 0 #3c4458}
+.f4 .s{top:234px;font-family:Castellar,serif;font-size:13px;letter-spacing:10px;color:#7f8ba0}
+.f4 li{font-family:"STKaiti";font-size:23px;letter-spacing:12px}
+</style></head>
+<body>
+<div class="grid">
+ <div class="cell f1"><div class="scr"><div class="bg"></div><div class="dim"></div><svg class="rain" viewBox="0 0 1280 720"></svg>
+  <div class="t h">INTERMISSIO</div><div class="t s">暂停</div><svg class="div"><use href="#dv"/></svg>
+  <ul><li class="sel"><span>继续</span></li><li>重新开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li></ul>
+  <div class="t foot">雨夜河岸街 · 封印 Ⅰ / Ⅲ　　用时 2:41</div></div>
+  <div class="label">① 铭刻：罗马大写标题 + 思源宋体粗<small>像维多利亚石碑、铜牌刻字。发布用 Cinzel + 思源宋体（都开源）</small></div></div>
+
+ <div class="cell f2"><div class="scr"><div class="bg"></div><div class="dim"></div><svg class="rain" viewBox="0 0 1280 720"></svg>
+  <div class="t h">暂停</div><div class="t s">INTERMISSIO</div><svg class="div"><use href="#dv"/></svg>
+  <ul><li class="sel"><span>继续</span></li><li>重新开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li></ul>
+  <div class="t foot">雨夜河岸街 · 封印 Ⅰ / Ⅲ　　用时 2:41</div></div>
+  <div class="label">② 中文大字：思源宋体特粗当标题，英文退成小字<small>最稳最清楚。发布用 思源宋体 Heavy + Cinzel（都开源）</small></div></div>
+
+ <div class="cell f3"><div class="scr"><div class="bg"></div><div class="dim"></div><svg class="rain" viewBox="0 0 1280 720"></svg>
+  <div class="t h">Intermissio</div><div class="t s">暂停</div><svg class="div"><use href="#dv"/></svg>
+  <ul><li class="sel"><span>继续</span></li><li>重新开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li></ul>
+  <div class="t foot">雨夜河岸街 · 封印 Ⅰ / Ⅲ　　用时 2:41</div></div>
+  <div class="label">③ 古典斜体：Garamond 斜体 + 方正小宋<small>像旧书扉页，细而冷。发布用 Cormorant 斜体（开源）；方正小宋商用要授权，可换思源宋体细</small></div></div>
+
+ <div class="cell f4"><div class="scr"><div class="bg"></div><div class="dim"></div><svg class="rain" viewBox="0 0 1280 720"></svg>
+  <div class="t h">暂停</div><div class="t s">INTERMISSIO</div><svg class="div"><use href="#dv"/></svg>
+  <ul><li class="sel"><span>继续</span></li><li>重新开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li></ul>
+  <div class="t foot">雨夜河岸街 · 封印 Ⅰ / Ⅲ　　用时 2:41</div></div>
+  <div class="label">④ 书法：粗书体标题 + 华文楷体<small>剑客味最重，但和哥特街景是两种文化。字体商用都要另查授权</small></div></div>
+</div>
+<svg width="0" height="0" style="position:absolute"><defs><symbol id="dv" viewBox="0 0 360 20"><path d="M0 10 H150 M210 10 H360" stroke="#8d96a8"/><circle cx="160" cy="10" r="2" fill="#aab2c0"/><circle cx="200" cy="10" r="2" fill="#aab2c0"/><path d="M180 1 L187 10 L180 19 L173 10Z" fill="none" stroke="#c8b0ff"/></symbol></defs></svg>
+<script>
+document.querySelectorAll('.rain').forEach((svg,k)=>{let seed=7+k,s='';const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+ for(let i=0;i<170;i++){const x=r()*1340-30,y=r()*740-20,l=10+r()*22,a=.15+r()*.35;
+  s+=`<line x1="${x}" y1="${y}" x2="${x-l*.22}" y2="${y+l}" stroke="rgba(200,212,232,${a})" stroke-width="${r()<.2?1.2:.7}"/>`}
+ svg.innerHTML=s;});
+</script>
+</body></html>

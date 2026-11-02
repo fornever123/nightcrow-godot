@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>UI 方向 AC</title>
+<style>
+/* UI 会话 10-31：A 铁艺 + C 刃锋 结合版。布局和动势取 C（斜切面板、斜向排列、大号评价），
+   字体和装饰取 A（衬线宋体、斜体衬线数字、哥特黑体评价字母、铸铁矛尖、鸦羽大招、菱形选中）。
+   用法：ui_mock_ac.html#combat / #pause / #result，Edge 无头 1280x720 截图。 */
+:root{--ink:#06080d;--steel:#7f8ba0;--silver:#d6dbe4;--bone:#ece8de;--violet:#9a6cff;--violet2:#c8b0ff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:#000}
+.frame{position:relative;width:1280px;height:720px;display:none;overflow:hidden;font-family:"Noto Serif SC",serif;color:var(--silver)}
+.frame.on{display:block}
+.bg{position:absolute;inset:0;background:url(bg.png) 0 0/1280px 720px}
+.abs{position:absolute}
+.serifH{font-family:"Source Han Serif SC","Source Han Serif SC Heavy","Noto Serif SC",serif;font-weight:900}
+.num{font-family:Georgia,serif;font-style:italic;font-weight:700}
+.bl{font-family:"Old English Text MT",serif;font-weight:400}
+.chrome{background:linear-gradient(172deg,#ffffff 0%,#d3d8e1 40%,#6b778b 52%,#eef1f5 68%,#98a2b3 100%);-webkit-background-clip:text;color:transparent}
+
+/* ---- 左上：生命 + 鸦羽大招 ---- */
+.plate{left:0;top:16px;width:470px;height:96px;background:linear-gradient(90deg,rgba(6,8,13,.9),rgba(6,8,13,.6) 70%,transparent);clip-path:polygon(0 0,100% 0,90% 100%,0 100%)}
+.vita{left:30px;top:24px;font-size:12px;letter-spacing:4px;color:var(--steel)}
+.vita b{font-family:Georgia,serif;font-style:italic;font-weight:400;letter-spacing:3px;margin-right:6px}
+.hpbar{left:44px;top:44px;width:330px;height:13px;transform:skewX(-24deg);background:rgba(255,255,255,.07);border:1px solid rgba(214,219,228,.6)}
+.hpbar i{position:absolute;left:0;top:0;bottom:0;width:74%;background:linear-gradient(#ffffff,#bcc3ce)}
+.hpbar u{position:absolute;left:0;top:0;bottom:0;width:84%;background:rgba(200,176,255,.28)}
+.hpbar s{position:absolute;top:0;bottom:0;width:2px;background:rgba(6,8,13,.85)}
+.finial{width:11px;height:26px}
+.hpnum{left:388px;top:36px;font-size:22px;color:var(--bone)}
+.feathers{left:40px;top:66px;display:flex;gap:4px}
+.feathers svg{width:15px;height:30px;transform:rotate(24deg)}
+.ultlab{left:150px;top:72px;font-size:14px;letter-spacing:2px;color:var(--violet2)}
+.ultlab .num{font-size:15px;margin-right:6px}
+.seal{left:30px;top:118px;font-size:13px;letter-spacing:3px;color:#9aa6ba;text-shadow:0 1px 3px #000}
+.seal em{font-style:normal;color:var(--bone)}
+
+/* ---- 右上：评价 + 连击 ---- */
+.rank{right:30px;top:0;width:420px;height:150px}
+.rank .L{position:absolute;right:6px;top:4px;font-size:118px;line-height:1;filter:drop-shadow(0 3px 0 rgba(6,8,13,.9)) drop-shadow(0 0 16px rgba(154,108,255,.45))}
+.rank .slash{position:absolute;right:30px;top:86px;width:250px;height:2px;background:linear-gradient(90deg,transparent,#e8ebf1 60%,transparent);transform:rotate(-12deg)}
+.rank .nm{position:absolute;right:118px;top:64px;font-size:26px;letter-spacing:8px;color:#f4f2ec;text-shadow:2px 2px 0 rgba(6,8,13,.9)}
+.rank .meter{position:absolute;right:120px;top:104px;width:150px;height:3px;transform:skewX(-30deg);background:rgba(255,255,255,.14)}
+.rank .meter i{position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--silver)}
+.combo{right:40px;top:150px;text-align:right}
+.combo .n{font-size:60px;color:var(--bone);text-shadow:3px 3px 0 rgba(6,8,13,.85)}
+.combo .u{font-size:16px;letter-spacing:5px;color:#aeb7c6;margin-left:8px}
+.combo .t{width:180px;height:4px;transform:skewX(-30deg);background:rgba(255,255,255,.12);margin:0 0 0 auto;position:relative}
+.combo .t i{position:absolute;right:0;top:0;bottom:0;width:55%;background:#e8ebf1}
+
+/* ---- 中间弹出字 ---- */
+.callout{left:0;right:0;top:206px;height:64px}
+.callout .band{position:absolute;left:350px;width:580px;top:6px;height:52px;background:linear-gradient(90deg,transparent,rgba(6,8,13,.82) 22%,rgba(6,8,13,.82) 78%,transparent);transform:skewX(-24deg)}
+.callout .rule{position:absolute;top:31px;width:110px;height:1px}
+.callout .tx{position:absolute;left:0;right:0;top:4px;text-align:center;font-size:38px;letter-spacing:16px;color:#fff;text-shadow:3px 3px 0 #06080d}
+.callout .cut{position:absolute;left:440px;top:46px;width:400px;height:2px;background:linear-gradient(90deg,transparent,#c8b0ff,transparent);transform:rotate(-3deg)}
+
+/* ---- 世界里：伤害数字、敌人条 ---- */
+.dmg{font-size:21px;color:#fff;text-shadow:2px 2px 0 #06080d,-1px -1px 0 #06080d,0 0 6px rgba(0,0,0,.6)}
+.dmg.big{font-size:29px}
+.ebar{height:3px;transform:skewX(-30deg);background:rgba(0,0,0,.65)} .ebar i{display:block;height:100%;background:#e3e7ee}
+
+/* ---- 底部提示 ---- */
+.hint{left:50%;top:600px;transform:translateX(-50%) skewX(-18deg);padding:9px 36px;background:rgba(6,8,13,.8);border:1px solid rgba(214,219,228,.5);outline:1px solid rgba(214,219,228,.16);outline-offset:3px}
+.hint span{display:inline-block;transform:skewX(18deg);font-size:16px;letter-spacing:3px;color:var(--bone)}
+.hint .num{color:var(--violet2);padding:0 3px}
+
+/* ---- 暂停 ---- */
+.dim{position:absolute;inset:0;background:rgba(6,8,13,.62)}
+.eye{position:absolute;right:-40px;top:0;width:760px;height:720px;background:url(eye.webp) 40% 30%/cover;clip-path:polygon(28% 0,100% 0,100% 100%,0 100%);filter:saturate(.8) brightness(.85)}
+.eye:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,8,13,.92),rgba(6,8,13,0) 45%)}
+.eyeedge{position:absolute;left:520px;top:0;width:2px;height:720px;background:linear-gradient(transparent,#d6dbe4 30%,#d6dbe4 70%,transparent);transform-origin:top;transform:skewX(-16.8deg);opacity:.7}
+.menu{left:92px;top:118px}
+.menu h1{font-size:72px;line-height:1;filter:drop-shadow(0 3px 0 rgba(6,8,13,.9))}
+.menu .sub{font-size:14px;letter-spacing:14px;color:#8e98aa;margin:6px 0 0 6px}
+.menu .div{display:block;width:330px;height:24px;margin:14px 0 18px}
+.menu ul{list-style:none}
+.menu li{position:relative;width:330px;height:46px;margin-bottom:10px;line-height:46px;padding-left:44px;font-size:20px;letter-spacing:8px;color:#9aa3b3;
+  background:linear-gradient(90deg,rgba(255,255,255,.06),transparent);clip-path:polygon(0 0,100% 0,93% 100%,0 100%)}
+.menu li.sel{color:#06080d;background:linear-gradient(90deg,#f2f4f8,#c3cad6);width:372px;font-weight:700}
+.menu li.sel:before{content:"◆";position:absolute;left:18px;top:0;font-size:12px;color:#7a4fe6}
+.menu .foot{margin-top:24px;font-size:13px;letter-spacing:3px;color:#7d8798}
+.menu .foot .num{font-weight:400;color:#aab3c2}
+
+/* ---- 结算 ---- */
+.rdim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,8,13,.94) 0,rgba(6,8,13,.88) 58%,rgba(6,8,13,.55))}
+.rpanel{position:absolute;left:-40px;top:0;width:880px;height:720px;background:linear-gradient(90deg,rgba(14,18,28,.0),rgba(14,18,28,.0));}
+.gradeL{right:150px;top:120px;font-size:300px;line-height:1;filter:drop-shadow(0 6px 0 rgba(6,8,13,.9)) drop-shadow(0 0 30px rgba(154,108,255,.5))}
+.gradeN{right:150px;top:450px;font-size:40px;letter-spacing:22px;color:#f4f2ec}
+.gradeS{right:120px;top:438px;width:330px;height:2px;background:linear-gradient(90deg,transparent,#e8ebf1 60%,transparent);transform:rotate(-12deg)}
+.rtitle{left:92px;top:96px}
+.rtitle .k{font-size:14px;letter-spacing:10px;color:#8e98aa}
+.rtitle h2{font-size:42px;letter-spacing:10px;color:#f4f2ec;margin-top:6px;text-shadow:3px 3px 0 #06080d}
+.rtitle svg{display:block;width:430px;height:20px;margin-top:12px}
+.stats{left:92px;top:236px;width:460px}
+.stats .row{display:flex;justify-content:space-between;align-items:baseline;height:42px;padding:0 18px 0 22px;border-bottom:1px solid rgba(214,219,228,.12);transform:skewX(-14deg)}
+.stats .row>*{transform:skewX(14deg)}
+.stats .row:nth-child(odd){background:linear-gradient(90deg,rgba(255,255,255,.05),transparent)}
+.stats .k{font-size:16px;letter-spacing:5px;color:#9aa6ba}
+.stats .v{font-size:24px;color:var(--bone)}
+.stats .v small{font-family:"Noto Serif SC";font-style:normal;font-size:13px;color:#8e98aa;margin-left:4px;font-weight:400}
+.btns{left:92px;top:566px;display:flex;gap:16px}
+.btns div{height:46px;line-height:46px;padding:0 34px 0 40px;font-size:18px;letter-spacing:6px;color:#9aa3b3;background:rgba(255,255,255,.06);clip-path:polygon(0 0,100% 0,92% 100%,0 100%);position:relative}
+.btns .sel{color:#06080d;background:linear-gradient(90deg,#f2f4f8,#c3cad6);font-weight:700}
+.btns .sel:before{content:"◆";position:absolute;left:16px;font-size:11px;color:#7a4fe6}
+.btns .num{font-weight:400;margin-left:8px}
+.rfoot{left:92px;top:632px;font-size:13px;letter-spacing:3px;color:#6f798b}
+
+.tag{position:absolute;left:0;bottom:0;padding:6px 14px;font:700 13px "Noto Sans SC";letter-spacing:2px;color:#fff;background:rgba(0,0,0,.7)}
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="finial" viewBox="0 0 11 26"><path d="M5.5 0 L10 8 L6.6 8 L6.6 13 L8.5 13 L8.5 15 L6.6 15 L6.6 26 L4.4 26 L4.4 15 L2.5 15 L2.5 13 L4.4 13 L4.4 8 L1 8Z" fill="#b3bbc8"/></symbol>
+  <symbol id="feather" viewBox="0 0 15 30"><path d="M7.5 1 C13 8 13 19 7.5 29 C2 19 2 8 7.5 1Z"/><path d="M7.5 4 V28" stroke="#ede4ff" stroke-width=".8"/></symbol>
+  <symbol id="divider" viewBox="0 0 330 24"><path d="M0 12 H140 M190 12 H330" stroke="#8d96a8" stroke-width="1"/><path d="M165 2 L173 12 L165 22 L157 12Z" fill="none" stroke="#c8b0ff"/><circle cx="148" cy="12" r="2" fill="#aab2c0"/><circle cx="182" cy="12" r="2" fill="#aab2c0"/></symbol>
+ </defs>
+</svg>
+
+<!-- ===== 战斗 HUD ===== -->
+<div class="frame" id="combat"><div class="bg"></div>
+ <div class="abs plate"></div>
+ <div class="abs vita"><b>Vita</b>生命</div>
+ <svg class="abs finial" style="left:22px;top:38px"><use href="#finial"/></svg>
+ <div class="abs hpbar"><u></u><i></i><s style="left:25%"></s><s style="left:50%"></s><s style="left:75%"></s></div>
+ <svg class="abs finial" style="left:372px;top:38px"><use href="#finial"/></svg>
+ <div class="abs hpnum num">74</div>
+ <div class="abs feathers" id="feat"></div>
+ <div class="abs ultlab"><span class="num">J+K</span>绝影</div>
+ <div class="abs seal">封印 <em>Ⅰ</em> / Ⅲ　·　第 <em>2</em> 波</div>
+
+ <div class="abs rank"><div class="L bl chrome">B</div><div class="slash"></div><div class="nm serifH">凌厉</div><div class="meter"><i></i></div></div>
+ <div class="abs combo"><span class="n num">23</span><span class="u serifH">连击</span><div class="t"><i></i></div></div>
+
+ <div class="abs callout"><div class="band"></div>
+  <div class="rule" style="left:430px;background:linear-gradient(90deg,transparent,#c9ced8)"></div>
+  <div class="rule" style="left:740px;background:linear-gradient(270deg,transparent,#c9ced8)"></div>
+  <div class="cut"></div><div class="tx serifH">挑飞</div></div>
+
+ <div class="abs" style="left:704px;top:440px;width:56px"><div class="ebar"><i style="width:60%"></i></div></div>
+ <div class="abs" style="left:748px;top:470px;width:40px"><div class="ebar"><i style="width:35%"></i></div></div>
+ <div class="abs dmg big num" style="left:706px;top:396px">42</div>
+ <div class="abs dmg num" style="left:764px;top:430px">21</div>
+ <div class="abs dmg num" style="left:868px;top:450px">13</div>
+
+ <div class="abs hint"><span>能量已满 —— <span class="num">J+K</span> 大招「绝影」</span></div>
+ <div class="tag">方向 A+C · 战斗 HUD</div>
+</div>
+
+<!-- ===== 暂停 ===== -->
+<div class="frame" id="pause"><div class="bg"></div><div class="dim"></div><div class="eye"></div>
+ <div class="abs menu">
+  <h1 class="bl chrome">Intermissio</h1><div class="sub">暂停 · 雨夜河岸街</div>
+  <svg class="div"><use href="#divider"/></svg>
+  <ul><li class="sel">继续</li><li>重新开始</li><li>操作说明</li><li>设置</li><li>回到标题</li></ul>
+  <div class="foot">封印 Ⅰ / Ⅲ　用时 <span class="num">2:41</span>　最高连击 <span class="num">37</span></div>
+ </div>
+ <div class="tag">方向 A+C · 暂停菜单</div>
+</div>
+
+<!-- ===== 结算 ===== -->
+<div class="frame" id="result"><div class="bg"></div><div class="rdim"></div>
+ <div class="abs gradeS"></div>
+ <div class="abs gradeL bl chrome">A</div>
+ <div class="abs gradeN serifH">华丽</div>
+ <div class="abs rtitle"><div class="k">雨街战斗试玩 · 完成</div><h2 class="serifH">三处封印　全部解除</h2><svg><use href="#divider"/></svg></div>
+ <div class="abs stats">
+  <div class="row"><span class="k">总用时</span><span class="v num">4:47</span></div>
+  <div class="row"><span class="k">最高连击</span><span class="v num">37</span></div>
+  <div class="row"><span class="k">挑飞 · 下砸 · 撞墙</span><span class="v num">12 · 5 · 3</span></div>
+  <div class="row"><span class="k">连锁 · 弹刀</span><span class="v num">4 · 6</span></div>
+  <div class="row"><span class="k">受击</span><span class="v num">3<small>次</small></span></div>
+ </div>
+ <div class="abs btns"><div class="sel">再试一次<span class="num">R</span></div><div>回到标题</div></div>
+ <div class="abs rfoot">方向键选择 · 回车确认</div>
+ <div class="tag">方向 A+C · 试玩结算</div>
+</div>
+
+<script>
+const f=document.getElementById('feat');
+for(let k=0;k<5;k++){f.insertAdjacentHTML('beforeend',
+ `<svg viewBox="0 0 15 30" style="fill:${k<5?'#9a6cff':'#3a4050'}"><use href="#feather"/></svg>`)}
+const id=(location.hash||'#combat').slice(1);
+document.getElementById(id).classList.add('on');
+</script>
+</body></html>

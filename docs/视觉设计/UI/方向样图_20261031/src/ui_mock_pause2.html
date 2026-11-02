@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>暂停菜单 v2</title>
+<style>
+/* UI 会话 10-31：A 版暂停菜单加料样图。尖拱窗框 + 左边封印进度 + 右边本局战绩 + 暂停时雨不停 + 背景虚化。
+   用法：ui_mock_pause2.html，Edge 无头 1280x720 截图。 */
+:root{--ink:#06080d;--steel:#7f8ba0;--silver:#d6dbe4;--bone:#ece8de;--idle:#8f99ab;--faint:#6d778a;--violet:#9a6cff;--violet2:#c8b0ff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:#000;font-family:"Noto Serif SC",serif;color:var(--silver)}
+.bg{position:absolute;inset:-12px;background:url(bg.png) 12px 12px/1280px 720px;filter:blur(3px) saturate(.75)}
+.dim{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(6,8,13,.66),rgba(6,8,13,.94))}
+.rain{position:absolute;inset:0;opacity:.5}
+.abs{position:absolute}
+.num{font-family:Georgia,serif;font-style:italic}
+.bl{font-family:"Old English Text MT",serif}
+.arch{left:390px;top:40px;width:500px;height:640px}
+.title{left:0;right:0;top:150px;text-align:center}
+.title h1{font-family:"Old English Text MT",serif;font-weight:400;font-size:60px;color:#e6e9ef;text-shadow:0 2px 0 #6b7486}
+.title .sub{font-size:14px;letter-spacing:12px;color:var(--steel);margin-top:2px}
+.items{left:0;right:0;top:318px;text-align:center;list-style:none}
+.items li{font-size:22px;letter-spacing:10px;line-height:52px;color:var(--idle);position:relative}
+.items li.sel{color:var(--bone);font-weight:700}
+.items li.sel:before,.items li.sel:after{content:"◆";font-size:10px;color:var(--violet);margin:0 18px;vertical-align:4px}
+.items li.sel .sweep{position:absolute;left:520px;width:240px;top:44px;height:1px;background:linear-gradient(90deg,transparent,#d6dbe4 40%,#c8b0ff 70%,transparent)}
+.side{width:250px}
+.side h3{font-weight:400;font-size:13px;letter-spacing:10px;color:var(--steel)}
+.side .rule{height:1px;margin:10px 0 18px;background:linear-gradient(90deg,#8d96a8,transparent)}
+.side.r .rule{background:linear-gradient(270deg,#8d96a8,transparent)}
+.seal{display:flex;align-items:center;gap:16px;height:54px}
+.seal svg{width:30px;height:38px;flex:none}
+.seal .t{font-size:16px;letter-spacing:4px}
+.seal .s{font-size:12px;letter-spacing:3px;color:var(--faint);margin-top:2px}
+.seal.done .t{color:#a9b2c2}
+.seal.now .t{color:var(--bone)}
+.seal.now .s{color:var(--violet2)}
+.seal.todo .t{color:#5b6475}
+.r{text-align:right}
+.grade{display:flex;justify-content:flex-end;align-items:flex-end;gap:14px;margin-bottom:10px}
+.grade .L{font-size:74px;line-height:1;color:#e6e9ef;text-shadow:0 2px 0 #6b7486,0 0 18px rgba(154,108,255,.35)}
+.grade .n{font-size:18px;letter-spacing:8px;color:var(--silver);padding-bottom:12px}
+.stat{display:flex;justify-content:space-between;height:34px;align-items:baseline;border-bottom:1px solid rgba(214,219,228,.08)}
+.stat .k{font-size:14px;letter-spacing:5px;color:#8a95a8}
+.stat .v{font-size:20px;color:var(--bone)}
+.foot{left:0;right:0;top:668px;text-align:center;font-size:12px;letter-spacing:4px;color:#5d6678}
+.note{position:absolute;padding:3px 8px;font:700 12px "Noto Sans SC";color:#06080d;background:#ffd84d;border-radius:2px}
+.tag{position:absolute;left:0;bottom:0;padding:6px 14px;font:700 13px "Noto Sans SC";letter-spacing:2px;color:#fff;background:rgba(0,0,0,.7)}
+</style></head>
+<body>
+<div class="bg"></div><div class="dim"></div>
+<svg class="rain" viewBox="0 0 1280 720" id="rain"></svg>
+
+<!-- 尖拱窗框：双细线尖拱 + 顶上玫瑰窗（里面一根鸦羽）+ 两边细柱 + 底座 -->
+<svg class="abs arch" viewBox="0 0 500 640">
+ <g fill="none" stroke="#9aa3b3" stroke-width="1.2">
+  <path d="M30 640 V230 Q30 70 250 10 Q470 70 470 230 V640"/>
+ </g>
+ <g fill="none" stroke="#9aa3b3" stroke-width=".7" opacity=".55">
+  <path d="M42 640 V234 Q42 84 250 24 Q458 84 458 234 V640"/>
+ </g>
+ <!-- 玫瑰窗 -->
+ <g transform="translate(250 92)">
+  <circle r="34" fill="rgba(6,8,13,.6)" stroke="#9aa3b3" stroke-width="1"/>
+  <circle r="28" fill="none" stroke="#9aa3b3" stroke-width=".6" opacity=".6"/>
+  <g stroke="#9aa3b3" stroke-width=".6" opacity=".55">
+   <line x1="0" y1="-28" x2="0" y2="28"/><line x1="-28" y1="0" x2="28" y2="0"/>
+   <line x1="-20" y1="-20" x2="20" y2="20"/><line x1="-20" y1="20" x2="20" y2="-20"/>
+  </g>
+  <path d="M0 -22 C9 -10 9 6 0 22 C-9 6 -9 -10 0 -22Z" fill="#9a6cff" transform="rotate(28)"/>
+  <path d="M0 -20 V20" stroke="#e7dcff" stroke-width=".8" transform="rotate(28)"/>
+ </g>
+ <!-- 顶尖矛头 -->
+ <path d="M250 -2 L256 12 L250 9 L244 12Z" fill="#b3bbc8"/>
+ <!-- 柱头 -->
+ <g fill="#b3bbc8"><rect x="24" y="226" width="12" height="4"/><rect x="464" y="226" width="12" height="4"/>
+  <path d="M30 210 L35 222 L25 222Z"/><path d="M470 210 L475 222 L465 222Z"/></g>
+ <!-- 分隔线 -->
+ <g transform="translate(250 228)">
+  <path d="M-170 0 H-30 M30 0 H170" stroke="#8d96a8"/>
+  <circle cx="-20" r="2" fill="#aab2c0"/><circle cx="20" r="2" fill="#aab2c0"/>
+  <path d="M0 -10 L8 0 L0 10 L-8 0Z" fill="none" stroke="#c8b0ff"/>
+ </g>
+ <!-- 底座 -->
+ <path d="M10 600 H490" stroke="#9aa3b3" stroke-width="1"/><path d="M22 608 H478" stroke="#9aa3b3" stroke-width=".6" opacity=".5"/>
+</svg>
+
+<div class="abs title"><h1>Intermissio</h1><div class="sub">暂停</div></div>
+<ul class="abs items">
+ <li class="sel">继续<span class="sweep"></span></li><li>重新开始</li><li>操作说明</li><li>设置</li><li>退出游戏</li>
+</ul>
+
+<!-- 左：封印进度 -->
+<div class="abs side" style="left:96px;top:300px">
+ <h3>封印</h3><div class="rule"></div>
+ <div class="seal done"><svg viewBox="0 0 30 38"><path d="M15 2 L28 19 L15 36 L2 19Z" fill="#a9b2c2"/><path d="M6 32 L24 6" stroke="#06080d" stroke-width="2"/></svg><div><div class="t">Ⅰ　钟楼广场</div><div class="s">已解除</div></div></div>
+ <div class="seal now"><svg viewBox="0 0 30 38"><path d="M15 2 L28 19 L15 36 L2 19Z" fill="none" stroke="#9a6cff" stroke-width="1.6"/><path d="M15 9 L22 19 L15 29 L8 19Z" fill="#9a6cff" opacity=".8"/></svg><div><div class="t">Ⅱ　廊桥</div><div class="s">第 2 / 3 波</div></div></div>
+ <div class="seal todo"><svg viewBox="0 0 30 38"><path d="M15 2 L28 19 L15 36 L2 19Z" fill="none" stroke="#4d5566" stroke-width="1.2"/></svg><div><div class="t">Ⅲ　河岸石阶</div><div class="s">未至</div></div></div>
+</div>
+
+<!-- 右：本局战绩 -->
+<div class="abs side r" style="left:934px;top:276px">
+ <h3>本局</h3><div class="rule"></div>
+ <div class="grade"><span class="n">凌厉</span><span class="L bl">B</span></div>
+ <div class="stat"><span class="k">用时</span><span class="v num">2:41</span></div>
+ <div class="stat"><span class="k">最高连击</span><span class="v num">37</span></div>
+ <div class="stat"><span class="k">受击</span><span class="v num">1</span></div>
+</div>
+
+<div class="abs foot">Esc 继续　·　方向键选择　·　回车确认</div>
+
+<!-- 标注 -->
+<div class="note" style="left:648px;top:56px">① 尖拱窗框 + 玫瑰窗鸦羽</div>
+<div class="note" style="left:96px;top:270px">② 封印进度</div>
+<div class="note" style="left:1086px;top:246px">③ 本局战绩</div>
+<div class="note" style="left:980px;top:120px">④ 雨不停、背景虚化</div>
+<div class="note" style="left:772px;top:376px">⑤ 选中时银线划过</div>
+<div class="tag">暂停菜单 v2 样图 · A 铁艺加料</div>
+
+<script>
+// 暂停时继续下的细雨（比游戏里慢、淡）
+const svg=document.getElementById('rain');let s='';
+let seed=7;const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+for(let i=0;i<170;i++){const x=r()*1340-30,y=r()*740-20,l=10+r()*22,a=.15+r()*.35;
+ s+=`<line x1="${x}" y1="${y}" x2="${x-l*.22}" y2="${y+l}" stroke="rgba(200,212,232,${a})" stroke-width="${r()<.2?1.2:.7}"/>`}
+svg.innerHTML=s;
+</script>
+</body></html>

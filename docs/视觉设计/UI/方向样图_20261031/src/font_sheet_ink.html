@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>墨风格时代字体</title>
+<!-- UI 会话 10-31：用户问“有没有这个背景时代写的字的风格”。维多利亚时代（1837–1901）的手写 / 印刷字体对比，全部是 Google Fonts 开源字体（OFL），能随游戏发布。 -->
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Mrs+Saint+Delafield&family=Playfair+Display:ital,wght@1,700&family=UnifrakturMaguntia&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&display=block" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;background:#000;overflow:hidden;color:#e9e4d8}
+.grid{display:grid;grid-template-columns:960px 960px;grid-template-rows:540px 540px}
+.cell{position:relative;overflow:hidden;background:url(bg.png) -40px -60px/1400px auto}
+.cell:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,6,10,.82),rgba(5,6,10,.55))}
+.in{position:absolute;inset:0;padding:70px 44px 0}
+.hp{display:flex;align-items:baseline;gap:8px}
+.big{font-size:84px;line-height:1}
+.small{font-size:30px;color:#c9cfda}
+.rule{height:2px;width:330px;margin:4px 0 18px;background:repeating-linear-gradient(110deg,#e9e4d8 0 2px,transparent 2px 5px);opacity:.85}
+.cn{font-size:34px}
+.ult{color:#b48cff}
+.A{position:absolute;right:60px;top:56px;font-size:150px;line-height:1}
+.rank{position:absolute;right:66px;top:230px;text-align:right}
+.rank .cn{font-size:42px}
+.combo{font-size:46px}
+.call{position:absolute;left:44px;top:330px;font-size:54px}
+.label{position:absolute;left:0;bottom:0;right:0;padding:10px 16px;background:rgba(0,0,0,.78);font:700 17px "Microsoft YaHei";color:#fff}
+.label small{display:block;font-weight:400;font-size:14px;color:#c9cfda;margin-top:3px}
+/* 1 铜版圆体 */
+.f1 .lat{font-family:"Pinyon Script"} .f1 .zh{font-family:"Long Cang"}
+/* 2 斯宾塞体 */
+.f2 .lat{font-family:"Mrs Saint Delafield"} .f2 .zh{font-family:"Liu Jian Mao Cao"}
+/* 3 维多利亚印刷 */
+.f3 .lat{font-family:"Playfair Display";font-style:italic;font-weight:700} .f3 .zh{font-family:"ZCOOL XiaoWei"}
+/* 4 哥特黑体 */
+.f4 .lat{font-family:"UnifrakturMaguntia"} .f4 .zh{font-family:"Ma Shan Zheng"}
+</style></head>
+<body><div class="grid">
+<div class="cell f1"><div class="in">
+ <div class="hp"><span class="lat big">75</span><span class="lat small">/ 100</span></div><div class="rule"></div>
+ <div class="zh cn">绝影 <span class="ult">◆◆◆</span>◇◇</div>
+ <div class="lat A">A</div><div class="rank"><div class="zh cn">华丽</div><div class="combo"><span class="lat">23</span> <span class="zh">连击</span></div></div>
+ <div class="zh call">弹刀！</div></div>
+ <div class="label">① 铜版圆体 Copperplate（英国 18–19 世纪标准书写体，蘸水钢笔粗细变化）+ 龙藏体（硬笔行书）<small>西文 Pinyon Script · 中文 Long Cang｜最像“侦探手记”，GPT 那张的 A 就接近这种</small></div></div>
+<div class="cell f2"><div class="in">
+ <div class="hp"><span class="lat big">75</span><span class="lat small">/ 100</span></div><div class="rule"></div>
+ <div class="zh cn">绝影 <span class="ult">◆◆◆</span>◇◇</div>
+ <div class="lat A">A</div><div class="rank"><div class="zh cn">华丽</div><div class="combo"><span class="lat">23</span> <span class="zh">连击</span></div></div>
+ <div class="zh call">弹刀！</div></div>
+ <div class="label">② 斯宾塞体 Spencerian（1850–1920 年代的商务 / 书信手写，更细更飘）+ 流江毛草（草书）<small>西文 Mrs Saint Delafield · 中文 Liu Jian Mao Cao｜最潦草最快，读起来最费劲</small></div></div>
+<div class="cell f3"><div class="in">
+ <div class="hp"><span class="lat big">75</span><span class="lat small">/ 100</span></div><div class="rule"></div>
+ <div class="zh cn">绝影 <span class="ult">◆◆◆</span>◇◇</div>
+ <div class="lat A">A</div><div class="rank"><div class="zh cn">华丽</div><div class="combo"><span class="lat">23</span> <span class="zh">连击</span></div></div>
+ <div class="zh call">弹刀！</div></div>
+ <div class="label">③ 维多利亚印刷 Didone 粗斜体（当时报纸、海报、戏单的铅字）+ 站酷小薇（民国老印刷味）<small>西文 Playfair Display · 中文 ZCOOL XiaoWei｜最清楚，但不是手写，和墨笔触搭配要靠笔画饰线</small></div></div>
+<div class="cell f4"><div class="in">
+ <div class="hp"><span class="lat big">75</span><span class="lat small">/ 100</span></div><div class="rule"></div>
+ <div class="zh cn">绝影 <span class="ult">◆◆◆</span>◇◇</div>
+ <div class="lat A">A</div><div class="rank"><div class="zh cn">华丽</div><div class="combo"><span class="lat">23</span> <span class="zh">连击</span></div></div>
+ <div class="zh call">弹刀！</div></div>
+ <div class="label">④ 哥特黑体 Blackletter（当时报纸刊头、教堂铭文，和暂停菜单标题同类）+ 马善政（毛笔楷书）<small>西文 UnifrakturMaguntia · 中文 Ma Shan Zheng｜和暂停菜单最统一，但数字用哥特体不好认</small></div></div>
+</div></body></html>
