@@ -313,8 +313,8 @@ def main():
         clips[key]['files'] = files
     for key, (fn, count, target, bus, jitter) in SPEC.items():
         old = clips.get(key, {})
-        if old.get('sourceVideo'):
-            continue   # 用户选的视频原声优先，不覆盖
+        if old.get('sourceVideo') or old.get('sourceRecording'):
+            continue   # 用户选的视频原声 / 录音（命中受击的 Bloody Blade）优先，不覆盖
         for f in os.listdir(OUT):
             if f.startswith(key + '_') and f.endswith('.ogg.b64') and f[len(key) + 1:-8].isdigit():
                 os.remove(os.path.join(OUT, f))

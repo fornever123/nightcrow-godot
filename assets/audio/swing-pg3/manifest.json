@@ -1,0 +1,81 @@
+{
+  "method": "Native 44.1kHz stereo PCM WAV; isolated source excerpts, gain and edge fades only",
+  "pitchChanges": false,
+  "synthesizedLayers": false,
+  "clips": [
+    {
+      "event": "swing_l1",
+      "source": "art/swing-pg3-audio/普攻三段.m4a",
+      "sourceSha256": "1b77036a34bc76b2e700517c1225aff60d570abf2b907b9a1c90beb9ae22286c",
+      "requestedRangeSeconds": [
+        0.22,
+        0.64
+      ],
+      "actualRangeSeconds": [
+        0.29374149659863946,
+        0.64
+      ],
+      "peakOffsetSeconds": 0.049909,
+      "gainDb": -5.123,
+      "fadeInSeconds": 0.00399092970521542,
+      "fadeOutSeconds": 0.024988662131519273,
+      "asset": "audio/swing-pg3/swing_l1.wav",
+      "sha256": "fe0d27541ebc22a62069d69e548e90a4389ac5d47ef71b73a91c3672b04eb30c",
+      "pcmSha256": "e452b6df224b8757ddb6d896e5150657814ee2ab50ddd04394c2722c9355a0bc",
+      "durationSeconds": 0.34625850340136055,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "event": "swing_l2",
+      "source": "art/swing-pg3-audio/普攻三段.m4a",
+      "sourceSha256": "1b77036a34bc76b2e700517c1225aff60d570abf2b907b9a1c90beb9ae22286c",
+      "requestedRangeSeconds": [
+        0.66,
+        1.17
+      ],
+      "actualRangeSeconds": [
+        0.7287528344671201,
+        1.17
+      ],
+      "peakOffsetSeconds": 0.050907,
+      "gainDb": -5.6002,
+      "fadeInSeconds": 0.00399092970521542,
+      "fadeOutSeconds": 0.04,
+      "asset": "audio/swing-pg3/swing_l2.wav",
+      "sha256": "ac3660f435e9e6ffb2cbed530d65dd43ddcd6f44ec4e62a03228f7400d23fbfb",
+      "pcmSha256": "9224e7c2ccca4a7272d9c17609f77f837a44273d59ba973430418a5a02981043",
+      "durationSeconds": 0.4412471655328798,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "event": "swing_l3",
+      "source": "art/swing-pg3-audio/普攻三段.m4a",
+      "sourceSha256": "1b77036a34bc76b2e700517c1225aff60d570abf2b907b9a1c90beb9ae22286c",
+      "requestedRangeSeconds": [
+        1.48,
+        2.4
+      ],
+      "actualRangeSeconds": [
+        1.5347845804988662,
+        2.4
+      ],
+      "peakOffsetSeconds": 0.051905,
+      "gainDb": -6.1178,
+      "fadeInSeconds": 0.00399092970521542,
+      "fadeOutSeconds": 0.08,
+      "asset": "audio/swing-pg3/swing_l3.wav",
+      "sha256": "687e301772e3e3844078e58b50453ac95554bafa635d663969ee6cb7839713ef",
+      "pcmSha256": "39e302c356f40ca135aabaabc76f3d3ef1f56938adc202751ce03d76c0a2af39",
+      "durationSeconds": 0.8652154195011338,
+      "sampleRate": 44100,
+      "channels": 2
+    }
+  ],
+  "replaces": {
+    "swing_l1": "../selected-video/swing_l1.wav (kept on disk)",
+    "swing_l2": "../selected-video/swing_l2.wav (kept on disk)",
+    "swing_l3": "../selected-video/swing_l3.wav (kept on disk)"
+  }
+}

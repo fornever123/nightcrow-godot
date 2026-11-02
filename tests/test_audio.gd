@@ -151,11 +151,11 @@ func run() -> void:
 	check(steps >= expect - 1 and steps <= expect + 1, "跑 %.0fpx 响 %d 步（按步幅应约 %d 步）" % [dist, steps, expect])
 	await step(30)
 
-	# ---- 变体不连续重复
+	# ---- 变体不连续重复（11-01 起命中 / 受击只用一条 Bloody Blade 原声，改用有 4 个变体的脚步测）
 	var picks: Array[int] = []
 	for i in 40:
-		audio._play_bank("hit_light")
-		picks.append(int(audio._last_pick["hit_light"]))
+		audio._play_bank("step")
+		picks.append(int(audio._last_pick["step"]))
 	var repeats := 0
 	var seen := {}
 	for i in picks.size():

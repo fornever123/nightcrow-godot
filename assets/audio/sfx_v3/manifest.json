@@ -55,45 +55,43 @@
   },
   "hit_light": {
    "files": [
-    "hit_light_0.ogg.b64",
-    "hit_light_1.ogg.b64",
-    "hit_light_2.ogg.b64"
+    "../hit-bloody-blade/hit_light.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.05
+   "pitchJitter": 0.0,
+   "sourceRecording": "Freesound #323525 Bloody Blade (Kreastricon62, CC0)"
   },
   "hit_heavy": {
    "files": [
-    "hit_heavy_0.ogg.b64",
-    "hit_heavy_1.ogg.b64",
-    "hit_heavy_2.ogg.b64"
+    "../hit-bloody-blade/hit_heavy.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.04
+   "pitchJitter": 0.0,
+   "sourceRecording": "Freesound #323525 Bloody Blade (Kreastricon62, CC0)"
   },
   "hit_finisher": {
    "files": [
-    "hit_finisher_0.ogg.b64",
-    "hit_finisher_1.ogg.b64"
+    "../hit-bloody-blade/hit_finisher.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceRecording": "Freesound #323525 Bloody Blade (Kreastricon62, CC0)"
   },
   "hurt": {
    "files": [
-    "hurt_0.ogg.b64",
-    "hurt_1.ogg.b64"
+    "../hit-bloody-blade/hurt.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.04
+   "pitchJitter": 0.0,
+   "sourceRecording": "Freesound #323525 Bloody Blade (Kreastricon62, CC0)"
   },
   "hurt_heavy": {
    "files": [
-    "hurt_heavy_0.ogg.b64",
-    "hurt_heavy_1.ogg.b64"
+    "../hit-bloody-blade/hurt_heavy.wav"
    ],
    "bus": "impact",
-   "pitchJitter": 0.03
+   "pitchJitter": 0.0,
+   "sourceRecording": "Freesound #323525 Bloody Blade (Kreastricon62, CC0)"
   },
   "parry": {
    "files": [
@@ -214,30 +212,30 @@
   },
   "swing_l1": {
    "files": [
-    "../selected-video/swing_l1.wav"
+    "../swing-pg3/swing_l1.wav"
    ],
    "bus": "motion",
    "pitchJitter": 0.0,
-   "sourceVideo": "mmh3_action_00014.m4a",
-   "peakOffsetSeconds": 0.05
+   "sourceVideo": "普攻三段.m4a",
+   "peakOffsetSeconds": 0.049909
   },
   "swing_l2": {
    "files": [
-    "../selected-video/swing_l2.wav"
+    "../swing-pg3/swing_l2.wav"
    ],
    "bus": "motion",
    "pitchJitter": 0.0,
-   "sourceVideo": "mmh3_action_00014.m4a",
-   "peakOffsetSeconds": 0.05
+   "sourceVideo": "普攻三段.m4a",
+   "peakOffsetSeconds": 0.050907
   },
   "swing_l3": {
    "files": [
-    "../selected-video/swing_l3.wav"
+    "../swing-pg3/swing_l3.wav"
    ],
    "bus": "motion",
    "pitchJitter": 0.0,
-   "sourceVideo": "mmh3_action_00014.m4a",
-   "peakOffsetSeconds": 0.05
+   "sourceVideo": "普攻三段.m4a",
+   "peakOffsetSeconds": 0.051905
   },
   "swing_charge": {
    "files": [

@@ -1,6 +1,6 @@
 extends SceneTree
 ## Focused regression checks for original-video audio routing.
-const NightStage := preload("res://scenes/night_trial.tscn")
+const NightStage := preload("res://scenes/rain_street.tscn")
 const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const Config := preload("res://scripts/core/configuration.gd")
 
@@ -11,7 +11,9 @@ const SOURCE_KEYS := [
 ]
 ## 2026-10-26: parry plays the chosen layered A2 instead of its video cut.
 const PARRY_FILE := "../parry/parry_a2.wav"
-const BANK_KEYS := ["step", "jump", "hit_light", "clear", "shade_swing", "launch"]
+const BANK_KEYS := ["step", "jump", "wall", "clear", "shade_swing", "launch"]
+## 2026-11-01: enemy hits and player hurts use the user's Freesound #323525 recording as is.
+const RECORDING_KEYS := ["hit_light", "hit_heavy", "hit_finisher", "hurt", "hurt_heavy"]
 
 var checks := 0
 var failures: Array[String] = []
@@ -35,8 +37,10 @@ func run() -> void:
 		var source_video: Variant = entry.get("sourceVideo", "")
 		var files: Array = entry.get("files", [])
 		var path := String(files[0]) if not files.is_empty() else ""
+		# 2026-11-01：地面三连改用 普攻三段.mp4 切出的 swing-pg3。
+		var folder := "../swing-pg3/" if key in ["swing_l1", "swing_l2", "swing_l3"] else "../selected-video/"
 		if String(source_video).is_empty() or not path.ends_with(".wav") \
-				or not path.begins_with("../selected-video/"):
+				or not path.begins_with(folder):
 			bad_manifest.append(key)
 	check(SOURCE_KEYS.size() == 15 and bad_manifest.is_empty(),
 		"all 15 replaced events identify a direct archived WAV and source video: %s" % [bad_manifest])
@@ -60,7 +64,7 @@ func run() -> void:
 				or float(bank_entry.get("jitter", -1.0)) != 0.0 \
 				or streams.size() != 1 or not streams[0] is AudioStreamWAV:
 			bad_loaded.append(key)
-		elif not streams[0].stereo or streams[0].mix_rate != 32000:
+		elif not streams[0].stereo or streams[0].mix_rate != (44100 if key in ["swing_l1", "swing_l2", "swing_l3"] else 32000):
 			bad_loaded.append(key + " (format)")
 	check(bad_loaded.is_empty(),
 		"source WAVs retain metadata, load once, stay stereo 32 kHz, and have no jitter: %s" % [bad_loaded])
@@ -84,6 +88,13 @@ func run() -> void:
 				or audio._bank.get(key, {}).has("source_video"):
 			bad_unmatched.append(key)
 	check(bad_unmatched.is_empty(), "unmatched events remain generated OGG: %s" % [bad_unmatched])
+	var bad_recording: Array[String] = []
+	for key in RECORDING_KEYS:
+		var files: Array = clips.get(key, {}).get("files", [])
+		if files != ["../hit-bloody-blade/%s.wav" % key] or float(clips[key].get("pitchJitter", 1.0)) != 0.0 \
+				or audio._bank.get(key, {}).get("streams", []).size() != 1:
+			bad_recording.append(key)
+	check(bad_recording.is_empty(), "hits and hurts play the Bloody Blade recording at its own pitch: %s" % [bad_recording])
 
 	# A second instance must reuse the static cache without dropping provenance.
 	var second := AudioFeedback.new()

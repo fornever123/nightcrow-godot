@@ -1,0 +1,109 @@
+{
+  "method": "Native 44.1kHz mono PCM WAV; 35 Hz high-pass (x2) for the DC offset, cut at the contact, gain and edge fades only",
+  "pitchChanges": false,
+  "synthesizedLayers": false,
+  "layered": false,
+  "license": "CC0 1.0 (https://freesound.org/people/Kreastricon62/sounds/323525/)",
+  "clips": [
+    {
+      "event": "hit_light",
+      "source": "art/hit-bloody-blade-audio/323525__kreastricon62__bloody-blade.wav",
+      "sourceSha256": "bb2b6b2f7eb523201b046d994b6b29364f4174a57d31ff7dafff6c3e2ff6bb0d",
+      "rangeSeconds": [
+        0.1,
+        0.35
+      ],
+      "gainDb": -28.8683,
+      "rms50Db": -33.0,
+      "peakDb": -28.87,
+      "fadeInSeconds": 0.00199546485260771,
+      "fadeOutSeconds": 0.06,
+      "asset": "audio/hit-bloody-blade/hit_light.wav",
+      "sha256": "1838783b7d97b3c3e9a45d61bd24612c7c2aedd8b53cfb47372abec209055df5",
+      "durationSeconds": 0.25,
+      "replaces": [
+        "../hit-bloody-blade/hit_light.wav"
+      ]
+    },
+    {
+      "event": "hit_heavy",
+      "source": "art/hit-bloody-blade-audio/323525__kreastricon62__bloody-blade.wav",
+      "sourceSha256": "bb2b6b2f7eb523201b046d994b6b29364f4174a57d31ff7dafff6c3e2ff6bb0d",
+      "rangeSeconds": [
+        0.1,
+        0.5
+      ],
+      "gainDb": -27.8683,
+      "rms50Db": -32.0,
+      "peakDb": -27.87,
+      "fadeInSeconds": 0.00199546485260771,
+      "fadeOutSeconds": 0.08,
+      "asset": "audio/hit-bloody-blade/hit_heavy.wav",
+      "sha256": "a794f6f1c97a57abf7e250ef54964380dd62c4bca1dab42c554a2822ed0b1e30",
+      "durationSeconds": 0.4,
+      "replaces": [
+        "../hit-bloody-blade/hit_heavy.wav"
+      ]
+    },
+    {
+      "event": "hit_finisher",
+      "source": "art/hit-bloody-blade-audio/323525__kreastricon62__bloody-blade.wav",
+      "sourceSha256": "bb2b6b2f7eb523201b046d994b6b29364f4174a57d31ff7dafff6c3e2ff6bb0d",
+      "rangeSeconds": [
+        0.1,
+        0.6597052154195011
+      ],
+      "gainDb": -26.8683,
+      "rms50Db": -31.0,
+      "peakDb": -26.87,
+      "fadeInSeconds": 0.00199546485260771,
+      "fadeOutSeconds": 0.1,
+      "asset": "audio/hit-bloody-blade/hit_finisher.wav",
+      "sha256": "4cf54f20d484d865f1552f4a7c998b8e001e8e7b6bc9f62d8afa5c8c8914f8af",
+      "durationSeconds": 0.5597052154195011,
+      "replaces": [
+        "../hit-bloody-blade/hit_finisher.wav"
+      ]
+    },
+    {
+      "event": "hurt",
+      "source": "art/hit-bloody-blade-audio/323525__kreastricon62__bloody-blade.wav",
+      "sourceSha256": "bb2b6b2f7eb523201b046d994b6b29364f4174a57d31ff7dafff6c3e2ff6bb0d",
+      "rangeSeconds": [
+        0.1,
+        0.39
+      ],
+      "gainDb": -28.8683,
+      "rms50Db": -33.0,
+      "peakDb": -28.87,
+      "fadeInSeconds": 0.00199546485260771,
+      "fadeOutSeconds": 0.06,
+      "asset": "audio/hit-bloody-blade/hurt.wav",
+      "sha256": "8f7f89e3083fbf48979999a867221ea0ef8920cb94e2c60bbeafe0027557def8",
+      "durationSeconds": 0.29,
+      "replaces": [
+        "../hit-bloody-blade/hurt.wav"
+      ]
+    },
+    {
+      "event": "hurt_heavy",
+      "source": "art/hit-bloody-blade-audio/323525__kreastricon62__bloody-blade.wav",
+      "sourceSha256": "bb2b6b2f7eb523201b046d994b6b29364f4174a57d31ff7dafff6c3e2ff6bb0d",
+      "rangeSeconds": [
+        0.1,
+        0.5
+      ],
+      "gainDb": -27.8683,
+      "rms50Db": -32.0,
+      "peakDb": -27.87,
+      "fadeInSeconds": 0.00199546485260771,
+      "fadeOutSeconds": 0.08,
+      "asset": "audio/hit-bloody-blade/hurt_heavy.wav",
+      "sha256": "a794f6f1c97a57abf7e250ef54964380dd62c4bca1dab42c554a2822ed0b1e30",
+      "durationSeconds": 0.4,
+      "replaces": [
+        "../hit-bloody-blade/hurt_heavy.wav"
+      ]
+    }
+  ]
+}

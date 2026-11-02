@@ -50,6 +50,9 @@ MANIFEST_OVERRIDES = {
     # 2026-10-26: user picked the layered parry A2; see assets/audio/parry/README.md.
     "parry": {"files": ["../parry/parry_a2.wav"], "bus": "impact", "pitchJitter": 0.0, "peakOffsetSeconds": 0.005},
 }
+# 2026-11-01: ground three-hit swings come from 普攻三段.mp4; rerun
+# apply_pg3_swing_audio.py after this script to restore that routing.
+PG3_SWINGS = ("swing_l1", "swing_l2", "swing_l3")
 
 
 def sha(data):
@@ -131,13 +134,15 @@ def main():
             old_file = (BANK / name).resolve()
             if old_file.parent == BANK.resolve() and old_file.name.startswith(key + "_") and old_file.name.endswith(".ogg.b64"):
                 obsolete.append(old_file)
-        manifest["clips"][key] = {
-            "files": [f"../selected-video/{key}.wav"],
-            "bus": "motion" if is_swing or key in ("draw", "sheathe") else "impact",
-            "pitchJitter": 0.0,
-            "sourceVideo": source.name,
-            "peakOffsetSeconds": round(peak_offset, 6),
-        }
+        # Keep the 普攻三段 routing; this cut stays on disk as an archive.
+        if not (key in PG3_SWINGS and (ROOT / f"assets/audio/swing-pg3/{key}.wav").exists()):
+            manifest["clips"][key] = {
+                "files": [f"../selected-video/{key}.wav"],
+                "bus": "motion" if is_swing or key in ("draw", "sheathe") else "impact",
+                "pitchJitter": 0.0,
+                "sourceVideo": source.name,
+                "peakOffsetSeconds": round(peak_offset, 6),
+            }
         rows.append({
             "event": key, "source": source.relative_to(ROOT).as_posix(),
             "sourceSha256": archive_hashes[source.name],
