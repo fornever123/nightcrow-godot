@@ -34,7 +34,7 @@ func run() -> void:
 	directory = "res://docs/ai-hd-visual/" + scene
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
 	root.content_scale_size = Vector2i(1280, 720)
-	stage = load("res://scenes/night_trial.tscn" if scene == "night" else "res://scenes/training.tscn").instantiate()
+	stage = load("res://scenes/rain_street.tscn" if scene == "night" else "res://scenes/training.tscn").instantiate()
 	root.add_child(stage)
 	current_scene = stage
 	stage.config.runtime.autoReload = false

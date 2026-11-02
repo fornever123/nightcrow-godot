@@ -2,13 +2,11 @@
 
 GitHub 公开仓库：[fornever123/nightcrow-godot](https://github.com/fornever123/nightcrow-godot)。双击根目录 `上传更新到GitHub.bat` 上传已保存的代码、素材与配置。操作说明见 [GitHub更新说明](docs/GitHub更新说明.md)。引擎安装文件、依赖缓存和本地备份不提交。
 
-**当前游戏素材（2026-10-18）**：[24组桌面手调原版帧独立归档](art/game-ready-sequences/desktop-actions-20261018/README.md)，共734张完整PNG与22份原动作说明，非3px版本。原图按原文件名单独保存，SHA256清单可核对；游戏运行副本另放在`assets/image/desktop-actions/`。已接入跑跳、双向转身、地面与空中三连、左右冲刺、格挡弹刀、拔收刀和死亡。[本次操作与接入说明](docs/桌面动作接入说明.md)。此前880帧素材作为历史归档保留。
+**项目进度和最新要求只看 [docs/项目进程.md](docs/项目进程.md)（2026-10-30 起的唯一入口，换 AI 接手也先读它）。** 本文件下面的操作说明写于 10-19 前后，部分已过时；早期开发记录在 [docs/历史/](docs/历史/README.md)。
 
-**2026-10-23**：三条开发线（手感/光影、特效与大招分镜、本机连续击退）已合并到 main，详见 [试玩版总交接](docs/HANDOFF-试玩版.md) §19。
+游戏是雨夜河岸街：双击 `OPEN_GAME.bat`（完整试玩），或 `PLAY_RAIN_RIGHT.bat`（出生在钟楼右侧）。月下堤岸场景已于 2026-10-30 删除。
 
-**换 AI 接手请先读 [docs/交接-给下一个AI.md](docs/交接-给下一个AI.md)。**
-
-这是现在要使用的正式工程。当前默认打开夜景试玩版，F3 可切换木桩训练场。最新试玩进度见 [试玩版总交接](docs/HANDOFF-试玩版.md)。
+角色动作素材：[24组桌面手调原版帧独立归档](art/game-ready-sequences/desktop-actions-20261018/README.md)，游戏运行副本在 `assets/image/desktop-actions/`。
 
 **选后视频音频**：[六段原始音频独立归档](art/selected-video-audio/README.md)，与源视频同名，直接提取、未重新压缩，已核对声音数据一致。
 
@@ -71,9 +69,9 @@ FrameBaker 手调结果仍可从修改器“动作工坊”的“导入 FrameBak
 
 本次挑飞、空中三段和弹刀已绑定桌面新动作；远射仍使用既有简图弹丸。跑步/转向保留源工程4FPS，起跳/落地17FPS，攻击24FPS；下坠无时序说明，采用现有预览60毫秒/帧并在审计中标明。
 
-开发交接细节见 `docs/开发交接.md`。
+开发交接细节见 `docs/历史/开发交接.md`。
 
-2026-10-11 已修复迁移遗漏的战斗反馈：真实命中顿帧、方向震屏、C 盘声音、命中/撞击/落地反馈与伤害数字。第一刀、第二刀、重击的命中时间已按 E 盘真实出刀帧重设，原刀光不变。说明见 `docs/战斗恢复说明.md`；音频授权文本见 `assets/audio/combat_v2/LICENSE.txt` 和 `assets/audio/street_fight/LICENSE.txt`。
+2026-10-11 已修复迁移遗漏的战斗反馈：真实命中顿帧、方向震屏、C 盘声音、命中/撞击/落地反馈与伤害数字。第一刀、第二刀、重击的命中时间已按 E 盘真实出刀帧重设，原刀光不变。说明见 `docs/历史/战斗恢复说明.md`；音频授权文本见 `assets/audio/combat_v2/LICENSE.txt` 和 `assets/audio/street_fight/LICENSE.txt`。
 
 ## 去绿边修复 · 2026-10-10
 

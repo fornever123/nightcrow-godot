@@ -1,15 +1,13 @@
 # Nightcrow Godot project
 
-Use Godot 4.7.2 and GDScript. This directory is independent of Maker; never invoke Maker tools or preview/build pipelines here.
+**Before doing anything, read `docs/项目进程.md`.** It is the single source of truth for project progress and the user's latest requirements. Newer requirements override older ones. After every step of work, update it: add an entry at the top of its 进程记录, update that line's status, and put new user requirements at the top of 最新要求. Do not create separate handoff documents.
 
-User art comes only from the E-drive Nightcrow character and associated feather slash. Keep source images unchanged; edits/imports create new assets. Do not use image/video generation unless the user changes this instruction.
+Always reply to the user in Simplified Chinese.
 
-Combat comes from the C-drive player/dummy/projectile implementation. Author tuning in assets/data/battle.json; configuration.gd derives animation-matched physical timings. Keep input buffering before per-actor hitstop. The main editor is tools/battle-editor, based on the E-drive Vue/Pixi app.
+Engine: Godot 4.7.2 (`engine/Godot_v4.7.2-stable_win64_console.exe`), GDScript, Forward+ renderer. This directory is independent of TapTap Maker; never invoke Maker tools or Maker preview/build pipelines here.
 
-Only character and wooden dummy in the training scene. Do not add enemies, background art or extra gameplay unless requested.
-
-Read docs/开发交接.md before changes. Use tests/test_training.gd for mechanics; tests/test_editor.mjs exercises editor/game integration and restores its changes. Inspect actual rendered images before art claims. User instructions take priority.
+Several work lines (background, lighting/FX, ultimate, rain trial, audio) share this working tree. Only edit files owned by your line; see `docs/项目进程.md` §4.
 
 ## GitHub version control
 
-This folder is an independent Git repository. Its GitHub origin is fornever123/nightcrow-godot (public by user request), separate from the parent Maker repository. Scope staging and commits to this folder. Do not change the parent remote or upload parent files. Use tools/github-sync.ps1 for user-requested GitHub updates; never force-push or overwrite unfinished merge/rebase work. Keep engine binaries, caches, backups and credentials excluded. See docs/GitHub更新说明.md.
+This folder is an independent Git repository. Its GitHub origin is fornever123/nightcrow-godot (public by user request), separate from the parent Maker repository. Commit only when the user asks, and keep commits scoped to one work line. Use `tools/github-sync.ps1` for user-requested GitHub updates; never force-push or overwrite unfinished merge/rebase work. Keep engine binaries, caches, backups and credentials excluded. See `docs/GitHub更新说明.md`.

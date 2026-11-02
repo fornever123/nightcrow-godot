@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sfx-audition",
+      "runtimeExecutable": "C:/Users/MECHREVO/AppData/Local/Programs/Python/Python310/python.exe",
+      "runtimeArgs": ["-I", "-m", "http.server", "4371", "--bind", "127.0.0.1", "--directory", "E:/00game/work/nightcrow-音效试听-20261029"],
+      "port": 4371
+    }
+  ]
+}
