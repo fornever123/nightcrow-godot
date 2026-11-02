@@ -6,6 +6,8 @@ extends SceneTree
 const Buffer := preload("res://scripts/core/input_buffer.gd")
 const Shade := preload("res://scripts/night/shade.gd")
 const Style := preload("res://scripts/night/style_meter.gd")
+const PlayerScript := preload("res://scripts/gameplay/player.gd")
+const Factory := preload("res://scripts/night/player_factory.gd")
 
 var stage
 var p
@@ -113,9 +115,9 @@ func launch_and_juggle(s: Node2D, ev: Dictionary) -> float:
 
 func run() -> void:
 	# --- 项目设置 ---
-	check(String(ProjectSettings.get_setting("application/run/main_scene")) == "res://scenes/night_trial.tscn", "主场景是试玩关卡")
+	check(String(ProjectSettings.get_setting("application/run/main_scene")) == "res://scenes/rain_trial.tscn", "主场景是雨街试玩关卡")
 	check(not String(ProjectSettings.get_setting("application/config/name")).contains("夜鸦"), "项目名不使用“夜鸦”")
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scripts/night/night_trial.gd").new()   # 战斗基类（不带背景），测通用机制；雨街本身见 test_rain_trial
 	root.add_child(stage)
 	await process_frame
 	p = stage.player
@@ -128,37 +130,21 @@ func run() -> void:
 	await test_drive_route()
 	await test_chain()
 	await test_parry_window()
+	await test_launch_rules()
+	test_control_schemes()
+	await test_dash_input()
+	await test_air_jump_refund()
+	await test_charge_feel()
+	await test_air_dash()
 	test_style_meter()
 	await test_encounter_flow()
 	print("NIGHT_COMBAT_TESTS: ", checks, " checks / ", failures.size(), " failures")
 	quit(0 if failures.is_empty() else 1)
 
 
+## 月下堤岸背景已删（2026-10-30），基类不带背景：确认没有背景也能照常开打。雨街背景的检查在 test_rain_trial。
 func test_backdrop() -> void:
-	var b: Node2D = stage.backdrop
-	check(b != null and b.ok, "夜景图层加载成功（webp + 着色器）")
-	if b == null:
-		return
-	check(b.tex.sky.get_width() >= 1376 and b.tex.moon.get_width() == int(b.meta.moon.size[0]), "星空比一屏宽（镜像接缝不进画面）、月亮单独一层")
-	var same := true
-	for n in ["clouds_low", "clouds", "sea", "mountains", "castle", "bridge", "near"]:
-		same = same and b.tex[n].get_width() == int(b.meta[n].period)
-	check(same, "云/海/山/城堡/桥/近景：贴图宽 = 无缝周期")
-	var order := [b._scroll("sky", -1), b._scroll("clouds_low", -1), b._scroll("clouds", -1), b._scroll("mountains", -1), b._scroll("castle", -1), b._scroll("bridge", -1)]
-	var inc := true
-	for i in range(1, order.size()):
-		inc = inc and order[i - 1] < order[i]
-	check(inc and order[-1] < 1.0, "视差由远到近递增：星空 < 下层云 < 上层云 < 山 < 城堡 < 桥 < 步道")
-	check(is_equal_approx(b.near_top() + b.NEAR_STAND_ROW, stage.floor_y), "近景石板顶面对齐脚下地面")
-	var lan: Vector2 = b.nearest_lantern(p.global_position.x)
-	check(is_finite(lan.x) and absf(lan.x - p.global_position.x) <= float(b.meta.near.period) * 0.5 + 1.0, "能找到最近的灯笼")
-	check(stage.get_child(0) == b, "夜景在最底层")
-	var spr: Sprite2D = p.get_node("Visual/ActorSprite")
-	check(stage.light_mat != null and spr.material == stage.light_mat, "角色挂上环境光材质（只在试玩关卡）")
-	var lan0: Vector2 = b.nearest_lantern(600.0)
-	var lit: Vector3 = b.lantern_light(lan0 + Vector2(-80.0, 20.0))
-	var dark: Vector3 = b.lantern_light(Vector2(lan0.x + float(b.meta.near.period) * 0.5, 520.0))
-	check(lit.x > 0.3 and lit.y > 0.9 and dark.x == 0.0, "灯笼暖光：近处强、方向朝灯，两灯中间为 0")
+	check(stage.backdrop == null and stage.terrain != null and p != null, "战斗基类不带背景也能搭好地形和角色")
 
 
 func test_slam_route() -> void:
@@ -214,13 +200,13 @@ func test_chain() -> void:
 	await hold(40, fr())
 	check(eb.chain_hit >= 1, "高速飞出的影撞到别的影 → 连锁击飞")
 	check(b.state == Shade.State.LAUNCHED or b.state == Shade.State.DOWN or b.state == Shade.State.DEAD, "被连锁的影卒被撞飞")
-	check(c.state != Shade.State.LAUNCHED, "甲影不会被普通连锁撞飞")
+	check(ec.chain_hit >= 1 and c.state == Shade.State.LAUNCHED, "甲影不出刀时也会被连锁撞飞（11-01 只在出刀时霸体）")
 	check(stage.style.stats.chain >= 1, "评价系统记到连锁")
 
 
-func parry_trial(lead: int) -> Dictionary:
+func parry_trial(lead: int, kind: int = Shade.Kind.GRUNT) -> Dictionary:
 	await fresh_player()
-	var s := make_shade(Shade.Kind.GRUNT, 700.0, true)
+	var s := make_shade(kind, 700.0, true)
 	var ev := record(s)
 	await hold(4, fr())
 	s.cooldown = 0
@@ -228,6 +214,8 @@ func parry_trial(lead: int) -> Dictionary:
 	var windup: int = int(s.spec.windup)
 	var pressed := false
 	var hp0: float = p.hp
+	var blast := Vector2.ZERO
+	var launched := false
 	for i in windup + 40:
 		var remain: int = windup - s.state_frames
 		if not pressed and s.state == Shade.State.WINDUP and remain <= lead:
@@ -235,7 +223,12 @@ func parry_trial(lead: int) -> Dictionary:
 			await hold(1, fr([&"parry"], [&"parry"]))
 			continue
 		await hold(1, fr([&"parry"]) if pressed else fr())
-	return {"parried": ev.parried, "landed": ev.strike_landed, "hp_lost": hp0 - p.hp, "state": p.state}
+		if is_instance_valid(s) and s.state == Shade.State.LAUNCHED:
+			launched = true
+			blast.x = maxf(blast.x, absf(s.velocity.x))
+			blast.y = minf(blast.y, s.velocity.y)
+	return {"parried": ev.parried, "landed": ev.strike_landed, "hp_lost": hp0 - p.hp, "state": p.state,
+			"launched": launched, "blast": blast, "broken": ev.broken}
 
 
 func test_parry_window() -> void:
@@ -250,6 +243,263 @@ func test_parry_window() -> void:
 	check(early.hp_lost > 0.0 and early.hp_lost < 4.0, "太早按 L 仍然格挡减伤（掉血 %.1f）" % early.hp_lost)
 	var none := await parry_trial(-100)
 	check(none.landed == 1 and none.hp_lost >= 6.0, "不防御会被砍中（掉血 %.1f）" % none.hp_lost)
+	# 11-01：弹刀直接把敌人炸飞（不再原地硬直）；甲影出刀被弹 = 霸体被炸破
+	check(on_cue.launched and on_cue.blast.x >= 800.0 and on_cue.blast.y <= -700.0,
+			"弹刀把影卒炸飞（vx %d / vy %d）" % [int(on_cue.blast.x), int(on_cue.blast.y)])
+	check(early.launched == false, "只是格挡（没弹到）不会把它炸飞")
+	var brute := await parry_trial(cue, Shade.Kind.BRUTE)
+	check(brute.parried == 1 and brute.broken == 1 and brute.launched and brute.blast.x >= 900.0,
+			"弹刀炸破甲影霸体（vx %d，broken %d）" % [int(brute.blast.x), brute.broken])
+
+
+## 11-01：所有敌人都能挑飞，甲影只在前摇 + 出刀时霸体；击退越连越远、越连越高
+func test_launch_rules() -> void:
+	await fresh_player()
+	var b := make_shade(Shade.Kind.BRUTE, 700.0)
+	b.hp = 600.0
+	var eb := record(b)
+	await hold(4, fr())
+	await tap([&"aim_up", &"jump", &"attack_light"], Vector2(0, -1), 4, 0)
+	var vy := [0.0]
+	await hold(30, fr(), func():
+		if is_instance_valid(b) and b.state == Shade.State.LAUNCHED:
+			vy[0] = minf(vy[0], b.velocity.y))
+	check(eb.launched_high >= 1 and vy[0] <= -Shade.LAUNCH_MIN_SPEED + 1.0, "甲影不出刀时 W+J 照样挑飞（vy %d）" % int(vy[0]))
+	await fresh_player()
+	var a := make_shade(Shade.Kind.BRUTE, 700.0)
+	a.hp = 600.0
+	await hold(4, fr())
+	a._begin_windup()
+	var hp0: float = a.hp
+	await tap([&"aim_up", &"jump", &"attack_light"], Vector2(0, -1), 4, 0)
+	await hold(8, fr())
+	check(a.hp < hp0 and a.state != Shade.State.LAUNCHED and a.state != Shade.State.HITSTUN,
+			"甲影出刀时霸体：照样掉血，但挑不飞、打不断（%s）" % a.debug_state_name())
+	var g := make_shade(Shade.Kind.GRUNT, 1000.0)
+	g.combo_taken = 1
+	var k1: float = g.knock_mul()
+	g.combo_taken = 11
+	var k11: float = g.knock_mul()
+	g.combo_taken = 30
+	check(is_equal_approx(k1, 1.0) and is_equal_approx(k11, Shade.COMBO_KNOCK_MAX) and is_equal_approx(g.knock_mul(), k11),
+			"连续命中击退倍率：第 1 下 1 倍 → 第 11 下封顶 %.1f 倍" % k11)
+
+
+
+func _bound(action: StringName) -> Array:
+	var out := []
+	for e in InputMap.action_get_events(action):
+		if e is InputEventKey:
+			out.append(e.physical_keycode)
+		elif e is InputEventMouseButton:
+			out.append("mouse%d" % e.button_index)
+	return out
+
+
+## 11-01 用户：“键鼠和键盘要二选一，默认键盘”
+func test_control_schemes() -> void:
+	check(Factory.scheme() == Factory.SCHEME_KEYBOARD, "默认键位方案是键盘")
+	check(_bound(&"attack_light") == [KEY_J] and _bound(&"parry") == [KEY_L] and _bound(&"attack_ranged") == [KEY_K]
+			and _bound(&"dash_modifier") == [KEY_SHIFT], "键盘方案：J / K / L / Shift，没有鼠标键 %s" % [_bound(&"attack_light")])
+	Factory.set_scheme(Factory.SCHEME_MOUSE, false)
+	stage.apply_control_scheme()
+	check(_bound(&"attack_light") == ["mouse%d" % MOUSE_BUTTON_LEFT] and _bound(&"parry") == [KEY_E]
+			and _bound(&"attack_ranged") == [KEY_Q] and _bound(&"dash_modifier").has(KEY_SHIFT)
+			and _bound(&"dash_modifier").has("mouse%d" % MOUSE_BUTTON_RIGHT), "键鼠方案：左键 / Q / E / 右键 + Shift，J / K / L 不起作用")
+	check(String(stage.hud.help_text).contains("左键 攻击") and not String(stage.hud.help_text).contains("J 攻击"), "键鼠方案的底部提示写左键")
+	var pad_ok := false
+	for e in InputMap.action_get_events(&"attack_light"):
+		pad_ok = pad_ok or e is InputEventJoypadButton
+	Factory.set_scheme(Factory.SCHEME_KEYBOARD, false)
+	stage.apply_control_scheme()
+	check(pad_ok and _bound(&"attack_light") == [KEY_J] and String(stage.hud.help_text).contains("J 攻击"), "切回键盘；手柄两种方案下都在")
+
+## 11-01（第二版）：Shift / 右键 / 手柄 B 单按 = 冲刺斩（按着 A / D 朝那边，否则朝面向）；
+## A / D + J 回到普通三连；W+J 仍是上挑；R 单按放大招
+func test_dash_input() -> void:
+	await fresh_player()
+	await tap([&"move_left", &"dash_modifier"], Vector2(-1, 0), 3)
+	check(p.current_move == p.dash_left_move and p.facing == -1, "按住 A 再按 Shift → 向左冲刺斩")
+	await hold(70, fr())
+	await fresh_player()
+	await tap([&"dash_modifier"], Vector2.ZERO, 3)
+	check(p.current_move == p.dash_move and p.facing == 1, "不按方向的 Shift → 朝面向冲刺斩")
+	await hold(70, fr())
+	await fresh_player()
+	await tap([&"move_right", &"attack_light"], Vector2(1, 0), 3)
+	check(p.current_move == p.light_combo[0], "按着 D 的 J → 普通第一刀，不再是冲刺斩")
+	await hold(40, fr())
+	await fresh_player()
+	await tap([&"move_right", &"aim_up", &"attack_light"], Vector2(1, -1), 3)
+	check(p.current_move == p.up_strike_move, "按着 D 的 W+J 仍是上挑")
+	await hold(90, fr())
+	await fresh_player()
+	await tap([&"attack_light"], Vector2.ZERO, 3, 13)
+	await tap([&"move_right", &"dash_modifier"], Vector2(1, 0), 3)
+	var t := 0
+	while p.current_move != p.dash_move and t < 20:
+		await hold(1, fr([&"move_right"], [], Vector2(1, 0)))
+		t += 1
+	check(p.current_move == p.dash_move, "连段里按 Shift 也出冲刺斩")
+	await hold(70, fr())
+	# 只加速中间那段大冲刺（burstFrameStart～End），起步和收尾原速；按动画时间变速，总距离不变
+	check(p.dash_move.total_frames() <= 49 and p.dash_left_move.total_frames() <= 46 and p.dash_move.startup_frames == 3,
+			"冲刺斩只加速中段：整招 %d / %d 帧（原 55 / 53）" % [p.dash_move.total_frames(), p.dash_left_move.total_frames()])
+	var whole := 0.0
+	var root_x: Array = p.dash_move.root_motion_x
+	await fresh_player()
+	var x0: float = p.global_position.x
+	await tap([&"dash_modifier"], Vector2.ZERO, 1)
+	await hold(70, fr())
+	whole = p.global_position.x - x0
+	check(absf(whole - float(root_x[-1])) < 20.0, "冲刺斩总距离不变（%.0f，动画根位移 %.0f）" % [whole, float(root_x[-1])])
+	await fresh_player()
+	p.ult_energy = 0.0
+	await tap([&"ult"], Vector2.ZERO, 3)
+	check(not p.is_ult(), "能量没满按 R 不放大招")
+	p.ult_energy = p.ult_max
+	await tap([&"ult"], Vector2.ZERO, 3)
+	check(p.is_ult() and p.ult_energy == 0.0, "能量满按 R → 放大招")
+	t = 0
+	while p.is_ult() and t < 600:
+		await hold(1, fr())
+		t += 1
+	check(not p.is_ult(), "R 放的大招正常放完（%d 帧）" % t)
+
+
+## 11-01：冲刺斩 / W+J / 空中 J 每打中敌人 2 次 → +1 次空中跳（最多存 2 次，落地清零）
+func test_air_jump_refund() -> void:
+	await fresh_player()
+	var a := make_shade(Shade.Kind.GRUNT, 700.0)
+	var b := make_shade(Shade.Kind.GRUNT, 760.0)
+	a.hp = 400.0
+	b.hp = 400.0
+	await hold(4, fr())
+	var refunds := [0]
+	var cb := func(_n: int): refunds[0] += 1
+	p.air_jump_refunded.connect(cb)
+	await tap([&"move_right", &"dash_modifier"], Vector2(1, 0), 3)
+	await hold(50, fr())
+	check(refunds[0] == 1 and p.bonus_air_jumps == 1, "冲刺斩连穿两只 → 返还 1 次空中跳（%d）" % p.bonus_air_jumps)
+	await tap([&"jump"], Vector2.ZERO, 3, 6)
+	await tap([&"jump"], Vector2.ZERO, 3, 6)
+	var air_before: bool = not p.is_on_floor()
+	check(air_before and p._can_jump(), "二段跳用完还能用返还的那一跳")
+	var t := 0
+	while not p.is_on_floor() and t < 180:
+		await hold(1, fr())
+		t += 1
+	await hold(2, fr())   # is_on_floor 在 move_and_slide 之后才变，落地结算在下一帧开头
+	check(p.is_on_floor() and p.bonus_air_jumps == 0, "落地清零返还的空中跳")
+	p.bonus_air_jumps = p.air_jump_refund_max
+	p._refund_hits = 0
+	p._count_air_jump_refund(p.dash_move)
+	p._count_air_jump_refund(p.dash_move)
+	check(p.bonus_air_jumps == p.air_jump_refund_max, "返还的空中跳最多存 %d 次" % p.air_jump_refund_max)
+	p._count_air_jump_refund(p.light_combo[0])
+	p._count_air_jump_refund(p.light_combo[0])
+	check(p._refund_hits == 0, "地面普通三连不算返还")
+	p.bonus_air_jumps = 0
+	p.air_jump_refunded.disconnect(cb)
+
+
+## 11-01：按住 J 就能蓄力（不用等普攻的接招点、松早了也出蓄力斩）；蓄力 / 蓄力斩霸体；出招减速；前摇快一倍
+func test_charge_feel() -> void:
+	await fresh_player()
+	var held := 0
+	await hold(1, fr([&"attack_light"], [&"attack_light"]))
+	while p.charge_frames < 0 and held < 30:
+		await hold(1, fr([&"attack_light"]))
+		held += 1
+	check(p.charge_frames >= 0 and held <= p.hold_to_charge_frames + 1, "按住 J %d 帧就进蓄力（不用等第一刀收招）" % (held + 1))
+	await hold(2, fr([&"attack_light"]))
+	await hold(1, fr())
+	check(p.current_move == p.charge_move, "刚进蓄力就松手 → 照样出蓄力斩，不会退回普攻")
+	check(p.charge_move.startup_frames <= 26, "蓄力斩前摇 %d 帧（原 48，快一倍）" % p.charge_move.startup_frames)
+	check(is_equal_approx(p.charge_attack_movement_scale, 0.3), "蓄力斩出招移速倍率 %.2f" % p.charge_attack_movement_scale)
+	var g := make_shade(Shade.Kind.GRUNT, 900.0)
+	var hp0: float = p.hp
+	p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g)
+	check(p.hp < hp0 and p.state == PlayerScript.State.ATTACK and p.current_move == p.charge_move, "蓄力斩出招时霸体：掉血但不被打断")
+	var w := 0
+	while p.current_move == p.charge_move and p.charge_move.phase_at(p.move_frame) != &"recovery" and w < 120:
+		await hold(1, fr([&"move_right"], [], Vector2(1, 0)))
+		w += 1
+	check(absf(p.velocity.x) <= p.speed * 0.35 + 1.0 or p.current_move != p.charge_move, "蓄力斩判定段走得很慢")
+	await hold(8, fr([&"move_right"], [], Vector2(1, 0)))
+	check(p.current_move == p.charge_move and absf(p.velocity.x) > p.speed * 0.9,
+			"蓄力斩后摇不减速（%.0f / %.0f）" % [absf(p.velocity.x), p.speed])
+	await hold(150, fr())
+	await fresh_player()
+	await hold(1, fr([&"attack_light"], [&"attack_light"]))
+	await hold(20, fr([&"attack_light"]))
+	g = make_shade(Shade.Kind.GRUNT, 900.0)
+	hp0 = p.hp
+	p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g)
+	await hold(1, fr([&"attack_light"]))
+	check(p.hp < hp0 and p.charge_frames >= 0 and p.state != PlayerScript.State.LAUNCHED, "蓄力中霸体：掉血但继续蓄")
+	await hold(1, fr())
+	await hold(150, fr())
+	await fresh_player()
+	await tap([&"attack_light"], Vector2.ZERO, 3)
+	check(p.current_move == p.light_combo[0] and p.charge_frames < 0, "点按 J 仍是普攻第一刀")
+	g = make_shade(Shade.Kind.GRUNT, 900.0)
+	p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g)
+	check(p.state == PlayerScript.State.LAUNCHED, "普攻没有霸体，照样被打断")
+	await hold(120, fr())
+	# 空中蓄力：按住 J 直接进蓄力，中间不出空中普攻
+	await fresh_player()
+	await tap([&"jump"], Vector2.ZERO, 3, 6)
+	var swung := [false]
+	var probe := func():
+		if p.air_combo.has(p.current_move):
+			swung[0] = true
+	await hold(1, fr([&"attack_light"], [&"attack_light"]), probe)
+	held = 0
+	while p.charge_frames < 0 and held < 30:
+		await hold(1, fr([&"attack_light"]), probe)
+		held += 1
+	check(not p.is_on_floor() and p.charge_frames >= 0 and not swung[0], "空中按住 J → 直接蓄力，没先出普攻（%d 帧）" % (held + 1))
+	await hold(3, fr([&"attack_light"]))
+	await hold(1, fr())
+	check(p.current_move == p.charge_move, "空中松手 → 蓄力斩")
+	await hold(200, fr())
+	await fresh_player()
+	await tap([&"jump"], Vector2.ZERO, 3, 6)
+	await tap([&"attack_light"], Vector2.ZERO, 3)
+	await hold(1, fr())
+	check(p.air_combo.has(p.current_move) and p.charge_frames < 0, "空中点按 J → 松手就出空中普攻")
+	await hold(120, fr())
+
+
+## 11-01：空中也能冲刺斩，每次腾空 1 次，冲刺段平着冲出去，落地回满
+func test_air_dash() -> void:
+	await fresh_player()
+	await tap([&"jump"], Vector2.ZERO, 3, 14)
+	check(not p.is_on_floor(), "起跳离地")
+	await tap([&"dash_modifier"], Vector2.ZERO, 1)
+	check(p.current_move == p.dash_move and p._dash_in_air, "空中按 Shift → 冲刺斩")
+	var y0: float = p.global_position.y
+	var drift := 0.0
+	while p.current_move == p.dash_move and p.dash_move.phase_at(p.move_frame) != &"recovery":
+		await hold(1, fr())
+		drift = maxf(drift, absf(p.global_position.y - y0))
+	check(drift < 2.0, "空中冲刺段不往下掉（偏 %.1f）" % drift)
+	await hold(70, fr())
+	await fresh_player()
+	await tap([&"jump"], Vector2.ZERO, 3, 10)
+	await tap([&"dash_modifier"], Vector2.ZERO, 1, 70)
+	check(not p.is_on_floor() or p._air_dash_left == p.air_dash_uses, "第一次空中冲刺斩放完")
+	if not p.is_on_floor():
+		await tap([&"dash_modifier"], Vector2.ZERO, 1)
+		check(p.current_move != p.dash_move, "同一次腾空第二下 Shift 不出冲刺斩")
+	var t := 0
+	while not p.is_on_floor() and t < 180:
+		await hold(1, fr())
+		t += 1
+	await hold(2, fr())
+	check(p._air_dash_left == p.air_dash_uses, "落地回满空中冲刺斩")
+	await hold(20, fr())
 
 
 func test_style_meter() -> void:

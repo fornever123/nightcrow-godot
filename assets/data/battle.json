@@ -29,19 +29,26 @@
       "SPACE"
     ],
     "attack": [
-      "J"
+      "J",
+      "MOUSE_LEFT"
     ],
     "skill": [
-      "K"
+      "K",
+      "Q"
     ],
     "parry": [
-      "L"
+      "L",
+      "E"
     ],
     "reset": [
+      "F5"
+    ],
+    "ult": [
       "R"
     ],
     "dashAttack": [
-      "SHIFT+J"
+      "SHIFT",
+      "MOUSE_RIGHT"
     ],
     "guard": [
       "L_HOLD"
@@ -36510,6 +36517,7 @@
       "heavyLandingHeight": 520,
       "heavyLandingLagFrames": 7,
       "chargeMovementScale": 0.85,
+      "chargeAttackMovementScale": 0.3,
       "airCombat": {
         "hitFallSlowFrames": 12,
         "hitFallSpeedScale": 0.45,
@@ -36756,7 +36764,7 @@
       "movementSpeedMultiplier": 0.85,
       "wallDamageFactor": 0.85,
       "effect": "",
-      "minHold": 0.35,
+      "minHold": 0,
       "maxHold": 2.5,
       "chargeDamageBonus": 1.9,
       "chargeKnockbackBonus": 1.7,
@@ -36780,7 +36788,7 @@
         "width": 200,
         "height": 136
       },
-      "startupSpeed": 1.0,
+      "startupSpeed": 2.0,
       "recoverySpeed": 1.0,
       "tailSpeed": 1.0,
       "moveCancelDelay": 0,
@@ -36802,7 +36810,7 @@
       "chainFrame": 21,
       "damage": 12,
       "knockbackX": 87.323,
-      "launchY": 760,
+      "launchY": 1150,
       "forcesLaunch": true,
       "hitstun": 0.2,
       "hitstop": 0.15,
@@ -37027,7 +37035,7 @@
       "chainFrame": 16,
       "damage": 12,
       "knockbackX": 122.021,
-      "launchY": 160,
+      "launchY": 300,
       "forcesLaunch": false,
       "hitstun": 0.13333333333333333,
       "hitstop": 0.1,
@@ -37090,7 +37098,7 @@
       "chainFrame": 10,
       "damage": 12,
       "knockbackX": 122.021,
-      "launchY": 160,
+      "launchY": 300,
       "forcesLaunch": false,
       "hitstun": 0.13333333333333333,
       "hitstop": 0.1,
@@ -37153,7 +37161,7 @@
       "chainFrame": 18,
       "damage": 18,
       "knockbackX": 122.021,
-      "launchY": 260,
+      "launchY": 420,
       "forcesLaunch": false,
       "hitstun": 0.13333333333333333,
       "hitstop": 0.16667,
@@ -37210,13 +37218,16 @@
       "chainOpen": 0.625,
       "animation": "dash_right_video",
       "animationSpeed": 1,
+      "burstFrameStart": 5,
+      "burstFrameEnd": 12,
+      "burstSpeed": 1.7,
       "syncAnimation": true,
       "activeFrameStart": 1,
       "activeFrameEnd": 12,
       "chainFrame": 15,
       "damage": 20,
-      "knockbackX": 379.667,
-      "launchY": 380,
+      "knockbackX": 520,
+      "launchY": 650,
       "forcesLaunch": true,
       "hitstun": 0.36666666666666664,
       "hitstop": 0.1,
@@ -37421,13 +37432,16 @@
       "chainOpen": 0.6666666666666666,
       "animation": "dash_left_video",
       "animationSpeed": 1,
+      "burstFrameStart": 3,
+      "burstFrameEnd": 11,
+      "burstSpeed": 1.7,
       "syncAnimation": true,
       "activeFrameStart": 1,
       "activeFrameEnd": 11,
       "chainFrame": 16,
       "damage": 20,
-      "knockbackX": 379.667,
-      "launchY": 380,
+      "knockbackX": 520,
+      "launchY": 650,
       "forcesLaunch": true,
       "hitstun": 0.36666666666666664,
       "hitstop": 0.1,

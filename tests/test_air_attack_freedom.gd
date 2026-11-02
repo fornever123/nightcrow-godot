@@ -67,8 +67,10 @@ func run() -> void:
 	key(KEY_J,false)
 	await ticks(2)
 	var budget_before: int = p._air_jumps_left
+	# 11-01 起空中按住 J = 蓄力；点按（松手）才是空中普攻
 	key(KEY_J,true)
 	await ticks()
+	key(KEY_J,false)
 	check(await wait_air_move(),"W+J can link into aerial normal J while W is still held")
 	check(jumps.size()==1 and p._air_jumps_left==budget_before,"Aerial normal J never spends a jump or re-launches the uppercut")
 	check(moves.count("up_strike")==1,"Holding W does not turn every later J into another uppercut")
@@ -87,6 +89,7 @@ func run() -> void:
 	p._air_jumps_left=0
 	key(KEY_J,true)
 	await ticks()
+	key(KEY_J,false)
 	check(await wait_air_move(),"Uppercut recovery accepts normal aerial J with no jumps left")
 	check(p._air_jumps_left==0,"Uppercut-to-air-normal transition leaves exhausted jump budget unchanged")
 
@@ -129,6 +132,7 @@ func run() -> void:
 	key(KEY_J,true)
 	await ticks()
 	key(KEY_J,false)
+	await ticks()
 	check(moves.size()==before+1 and p.air_combo.has(p.current_move),"Neutral airborne J can resume a previously started combo")
 	p._start_air_finisher(&"slam")
 	p._end_attack()
@@ -136,6 +140,7 @@ func run() -> void:
 	key(KEY_J,true)
 	await ticks()
 	key(KEY_J,false)
+	await ticks()
 	check(p.current_move==p.air_combo[0],"Aerial J can restart after a finisher without landing")
 
 	# Three rapid jump presses must still produce only two launches, even during coyote time.

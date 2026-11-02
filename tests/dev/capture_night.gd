@@ -122,7 +122,7 @@ func decide() -> Buffer.Frame:
 func run() -> void:
 	rng.seed = int(OS.get_environment("SEED") if OS.get_environment("SEED") != "" else "7")
 	skill = float(OS.get_environment("SKILL") if OS.get_environment("SKILL") != "" else "0.8")
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	p = stage.player

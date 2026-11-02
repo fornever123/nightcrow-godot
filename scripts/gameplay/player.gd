@@ -19,6 +19,8 @@ signal swing_cue(move: Resource, index: int)
 signal hit_confirmed(target: Node2D, move: Resource, point: Vector2)
 signal landed()
 signal jumped(is_double: bool)
+## 打中返还了一次空中跳（stock = 现在存着几次返还的空中跳）
+signal air_jump_refunded(stock: int)
 signal charge_started()
 signal charge_released(frames: int, charged: bool)
 signal ranged_fired(projectile: Node)
@@ -36,8 +38,8 @@ signal parry_success(attacker: Node, point: Vector2)
 signal block_success(attacker: Node, point: Vector2)
 ## 试玩版：S+J 下砸落地（表现层拿去放冲击尘土/震屏）
 signal plunge_landed(point: Vector2)
-## 大招「绝影 · 鸦羽止」（2026-10-26，样片 v4，见 docs/大招-鸦羽止-交接.md）：发动（全场定住、褪成黑白）→ 过场视频
-## → 一闪（ult_strike，三刀同时结算）→ 她已在敌群背后（ult_arrive）→ “咔”收剑（ult_reveal）→ 顿帧 → 影裂开 → 收（ult_finished）
+## 大招「绝影 · 鸦羽止」（10-31 按整段预览 13 改，见 docs/大招-全程过场-规划.md）：发动（全场定住）→ 开场领域展开
+## → 睁眼 + 挥刀视频 → 回到游戏地图斩（ult_arrive）→ 整条街沿线错开、影全部斩开（ult_strike）→ “咔”收刀（ult_reveal）→ 收（ult_finished）
 signal ult_started()
 ## 大招期间每帧（关卡据此推进定格 / 斩开；不依赖关卡自己的 _physics_process）
 signal ult_tick()
@@ -68,7 +70,7 @@ const ROOT_MOTION_CONTACT := 40.0
 
 const TRACKED_ACTIONS: Array[StringName] = [
 	&"jump", &"attack_light", &"attack_ranged", &"aim_up",
-	&"move_left", &"move_right", &"parry", &"dash_modifier",
+	&"move_left", &"move_right", &"parry", &"dash_modifier", &"move_down", &"ult",
 ]
 const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up", &"move_down"]
 ## J 连续按住多少帧才认定是"蓄力"而不是"点按"。
@@ -79,6 +81,8 @@ const AXIS_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"aim_up",
 ## 刹车 / 反向时的减速度（地面）。比加速度大，松手就停、不打滑。
 @export var deceleration: float = 4800.0
 @export_range(0.0, 1.0) var charge_movement_scale: float = 0.85
+## 蓄力斩出招（松手之后）前摇 + 判定时的移速倍率，后摇不减速。11-01 用户：“攻击的时候移速大幅降低”“后摇不要减速了”；蓄力姿态本身仍用上面那个。
+@export_range(0.0, 1.0) var charge_attack_movement_scale: float = 0.3
 @export_group("空中追击")
 @export var uppercut_input_frames: int = 12
 @export var hit_fall_slow_frames: int = 12
@@ -166,10 +170,14 @@ var input_source: Object = null
 @export var extra_air_jumps: int = 1
 ## 二段跳相对首跳的力度。略小一点，落地更干脆
 @export var double_jump_scale: float = 0.92
+## 打中返还空中跳（11-01 用户）：冲刺斩 / W+J / 空中 J（含下砸、横扫）每打中敌人这么多次 → +1 次空中跳
+@export var air_jump_refund_hits: int = 2
+## 返还的空中跳最多同时存几次（另算在 extra_air_jumps 之外；落地清零）
+@export var air_jump_refund_max: int = 2
 ## 出招期间的水平移速倍率。不是 0 —— 出招能走位是这个手感的关键
 @export var attack_move_scale: float = 0.62
 ## 单向平台所在的物理层（试玩关卡的多层地形，见 scripts/night/terrain.gd）。
-## 站在这种平台上【按住 S 再按跳】= 往下穿过平台（不消耗跳跃次数）。0 = 场景里没有单向平台
+## 站在这种平台上按 S（或 S + 跳）= 往下穿过平台（不消耗跳跃次数）。0 = 场景里没有单向平台
 @export var one_way_mask: int = 0
 
 @export_group("容错（设计文档 §2.4）")
@@ -224,24 +232,27 @@ var input_source: Object = null
 @export_group("空中攻击")
 ## 每次离地默认只能空中 J 一次；K 或第三段命中后返还一次。
 @export var air_light_uses: int = 1
+## 一次腾空能放几次冲刺斩（11-01 用户：“冲刺斩希望能在天上用”），落地回满
+@export var air_dash_uses: int = 1
 
 @export_group("大招（第四轮）")
 ## 能量满后 J、K 在 ult_chord_frames 帧内先后按下（或同时按）→ 大招。默认关（训练场 / PVP 不受影响）。
 @export var ult_enabled: bool = false
 @export var ult_max: float = 100.0
 @export var ult_chord_frames: int = 6
-## 「绝影 · 鸦羽止」（2026-10-26，样片 v4）。时间轴（60 帧 / 秒）：
-##   0～ult_vanish_frame：游戏里——全场定住、世界褪成黑白、上下黑边收进来，她摆出居合架势
-##   ult_vanish_frame～ult_calm_start：过场视频（推近眼睛 → 握剑 → 推开鲤口 → 白闪），这段她不在场上（ult_hidden）
-##   ult_cut_frames：一闪——白闪之后那几帧三刀同时结算（只扣血），发 ult_strike(i, 3)
-##   ult_calm_start：冲击帧，她已在敌群背后低位收势（关卡给 ult_stand_pos），发 ult_arrive；之后一切静止
-##   ult_final_frame：“咔”——跳切到收剑姿势，发 ult_reveal；顿帧 ult_freeze_frames 帧后影沿刀线裂开，到 ult_total_frames 结束
-@export var ult_total_frames: int = 248     ## 正常放完的总长；测试和无敌帧按它算
-@export var ult_vanish_frame: int = 8
-@export var ult_cut_frames := PackedInt32Array([124, 125, 126])
-@export var ult_calm_start: int = 124
-@export var ult_final_frame: int = 168
-@export var ult_freeze_frames: int = 6
+## 「绝影 · 鸦羽止」（10-31，整段预览 18）。时间轴（60 帧 / 秒，和 UltFullPreview18 一致）：
+##   0～ult_vanish_frame：开场领域展开（全场定住，镜头升起成墙角，墨铺满世界，黑屏），她原地居合架势
+##   ult_vanish_frame～ult_calm_start：睁眼 + 挥刀视频，这段她不在场上（ult_hidden）
+##   ult_calm_start：回到游戏地图斩，她还在原地（关卡给 ult_stand_pos），发 ult_arrive；斩线射出、时停
+##   ult_cut_frames：断开——整条街沿斩线错开，屏幕里的影全部斩开（发 ult_strike(i, n)）
+##   （11-01 预览 22c 进游戏：刀尖出画后的时停 16 → 6 帧，断开 188 → 178，“咔” 228 → 214，总长 282 → 270）
+##   ult_final_frame：“咔”——收刀，世界合回去，发 ult_reveal；影子退潮，到 ult_total_frames 结束
+@export var ult_total_frames: int = 276     ## 正常放完的总长；测试和无敌帧按它算（11-01 预览 26×2b：甩出慢放 2 倍，地图斩往后 4 帧）
+@export var ult_vanish_frame: int = 66
+@export var ult_cut_frames := PackedInt32Array([182])
+@export var ult_calm_start: int = 162
+@export var ult_final_frame: int = 222
+@export var ult_freeze_frames: int = 0
 @export var ult_damage: float = 50.0
 
 @export_group("手感表现")
@@ -289,6 +300,8 @@ var _guard_variant: int = 0
 var _parry_variant: int = 0
 var _dash_facing: int = 1
 var _pending_dash_direction: int = 1
+var _air_dash_left: int = 1
+var _dash_in_air: bool = false      ## 这一发冲刺斩是空中起手的：冲刺段不吃重力（平着冲出去）
 var _reaction_guard_held: bool = false
 var hp: float = 100.0
 var hitstop_frames: int = 0
@@ -340,6 +353,8 @@ var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
 var _air_jumps_left: int = 0
+var _refund_hits: int = 0           ## 离上一次返还空中跳又打中了几下
+var bonus_air_jumps: int = 0        ## 打中返还、还没用掉的空中跳
 var _ground_jump_used: bool = false
 var _uppercut_jump_pending: bool = false
 var _uppercut_used_light_seq: int = -1
@@ -479,6 +494,7 @@ func apply_movement_config(c: Dictionary, settings: Dictionary) -> void:
 	acceleration = float(c.get("acceleration", 4800))
 	deceleration = float(c.get("deceleration", acceleration))
 	charge_movement_scale = clampf(float(c.get("chargeMovementScale", 0.85)), 0.0, 1.0)
+	charge_attack_movement_scale = clampf(float(c.get("chargeAttackMovementScale", 0.3)), 0.0, 1.0)
 	var air_combat: Dictionary = c.get("airCombat", {})
 	uppercut_input_frames = maxi(1, int(air_combat.get("uppercutInputFrames", 12)))
 	hit_fall_slow_frames = maxi(0, int(air_combat.get("hitFallSlowFrames", 12)))
@@ -514,7 +530,7 @@ func _sample_keyboard() -> InputBuffer.Frame:
 	if action_suffix == "":
 		var sampled := InputBuffer.sample(TRACKED_ACTIONS, AXIS_ACTIONS)
 		# Space needs an independent edge when W already holds the jump action.
-		var space_held := Input.is_physical_key_pressed(KEY_SPACE)
+		var space_held := _pure_jump_down()
 		if space_held and not _space_was_held and not sampled.pressed_this_frame.has(&"jump"):
 			sampled.pressed_this_frame.append(&"jump")
 		_space_was_held = space_held
@@ -531,6 +547,12 @@ func _sample_keyboard() -> InputBuffer.Frame:
 	for i in f.pressed_this_frame.size():
 		f.pressed_this_frame[i] = _unsuffix(f.pressed_this_frame[i])
 	return f
+
+
+## “只是跳”的键按着吗：空格 / 手柄 A（InputMap 的 jump_pure）。W 同时是跳和上方向，不算——
+## 按着它说明玩家只想跳，不是要 W+J 上挑。没注册这个动作的场景（单元测试）一律当没按。
+func _pure_jump_down() -> bool:
+	return InputMap.has_action(&"jump_pure") and Input.is_action_pressed(&"jump_pure")
 
 
 func _unsuffix(a: StringName) -> StringName:
@@ -574,6 +596,8 @@ func _physics_process(delta: float) -> void:
 		# stores a delayed J/K/dash/ultimate to fire when defense ends.
 		_take_edge(&"attack_light")
 		_take_edge(&"attack_ranged")
+		_take_edge(&"dash_modifier")
+		_take_edge(&"ult")
 		_consumed_edge[&"attack_light_press"] = frame.seq
 		_ult_used_seq = maxi(_ult_used_seq, frame.seq)
 		_attack_hold_frames = 0
@@ -649,11 +673,15 @@ func _update_ground_air() -> void:
 		_air_jumps_left = extra_air_jumps
 		_ground_jump_used = false
 		_air_light_left = air_light_uses
+		_air_dash_left = air_dash_uses
 		_air_hit_slow_frames = 0
 		var landing_peak := _peak_y
 		# 站在地上时最高点 = 脚下，离地之后再往上记
 		_peak_y = global_position.y
 		if ground_frames == 1:
+			# 落地清零返还的空中跳（地面冲刺斩打中攒下的留到下一次落地）
+			_refund_hits = 0
+			bonus_air_jumps = 0
 			last_fall_height = maxf(global_position.y - landing_peak, 0.0)
 			last_landing_heavy = finisher_intent == &"slam" or last_fall_height >= heavy_landing_height
 			_landing_lag = heavy_landing_lag_frames if last_landing_heavy else 0
@@ -709,6 +737,10 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 		started_guard = true
 	if _guard_active and _process_guard(delta, frame, started_guard):
 		return
+	# S 单按 = 从单向平台往下穿（11-01 用户：“下楼梯改成 S 就行”；S + 跳 仍然可以）。
+	# 只认按下那一下：空中按住 S 下砸落到平台上，不会接着穿下去。
+	if frame.pressed_this_frame.has(&"move_down") and _try_drop_through():
+		return
 	if not locomotion_animation.is_empty() and not _turn_can_cancel():
 		_buffer_jump(frame)
 		_move_horizontal(delta, frame, 1.0)
@@ -722,7 +754,7 @@ func _process_neutral(delta: float, frame: InputBuffer.Frame) -> void:
 	# 只有在"攻击边沿存在"时才走，所以先判跳跃不会吃掉上挑。
 	# W 同时是跳跃和上方向；W+J 必须优先判成地面上挑，不能先跳起来。
 	var wants_up_attack := frame.actions.has(&"aim_up") and _has_edge(&"attack_light") \
-			and not (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE))
+			and not (_keyboard_frame and _pure_jump_down())
 	if not wants_up_attack and _try_buffered_jump(frame):
 		return
 
@@ -772,12 +804,12 @@ func _can_jump() -> bool:
 		return true
 	if not _ground_jump_used and air_frames > 0 and air_frames <= coyote_frames:
 		return true
-	return _air_jumps_left > 0
+	return _air_jumps_left > 0 or bonus_air_jumps > 0
 
 
 ## Either order forms one rising uppercut; W-first reuses its existing jump.
 func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
-	if charge_frames >= 0 or up_strike_move == null or (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)):
+	if charge_frames >= 0 or up_strike_move == null or (_keyboard_frame and _pure_jump_down()):
 		return false
 	if frame.actions.has(&"dash_modifier"):
 		return false
@@ -838,7 +870,7 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 			or _guard_active or not locomotion_animation.is_empty()
 	if not busy:
 		return false
-	var explicit_space := _keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE)
+	var explicit_space := _keyboard_frame and _pure_jump_down()
 	if frame.actions.has(&"aim_up") and _has_edge(&"attack_light") and not explicit_space:
 		return false  # W also means jump; preserve W+J uppercuts.
 	_buffer_jump(frame)
@@ -957,7 +989,7 @@ func _do_jump() -> void:
 	_last_jump_frame = _frame_counter
 	var jump_input := input_buffer.frame_at(0)
 	_last_jump_from_up = jump_input != null and jump_input.actions.has(&"aim_up") \
-			and not (_keyboard_frame and Input.is_physical_key_pressed(KEY_SPACE))
+			and not (_keyboard_frame and _pure_jump_down())
 	_last_jump_is_uppercut = false
 	if not locomotion_animation.is_empty():
 		_set_facing(input_direction if input_direction != 0 else _turn_target)
@@ -975,7 +1007,10 @@ func _do_jump() -> void:
 	_depenetrate()
 	velocity.x = horizontal_velocity
 	if is_double:
-		_air_jumps_left = maxi(_air_jumps_left - 1, 0)
+		if _air_jumps_left > 0:
+			_air_jumps_left -= 1
+		else:
+			bonus_air_jumps = maxi(bonus_air_jumps - 1, 0)
 		velocity.y = _jump_velocity * double_jump_scale
 		_jump_rising = true
 		_jump_cut = false
@@ -1030,7 +1065,8 @@ func _move_horizontal(delta: float, frame: InputBuffer.Frame, move_scale: float)
 	elif charge_frames >= 0:
 		move_scale = charge_movement_scale
 	elif state == State.ATTACK and current_move == charge_move and charge_move != null:
-		move_scale = charge_movement_scale
+		# 11-01 用户：出招时大幅减速，“后摇不要减速了”
+		move_scale = charge_attack_movement_scale if current_move.phase_at(move_frame) != &"recovery" else 1.0
 	elif not is_on_floor() and state == State.ATTACK and finisher_intent == &"" \
 			and current_move != dash_move and current_move != dash_left_move:
 		move_scale = 1.0
@@ -1074,10 +1110,13 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 	var airborne := not is_on_floor() and air_frames > coyote_frames
 	if not air_combo.is_empty():
 		airborne = not is_on_floor()
-	var light_edge := _unconsumed_edge_frame(&"attack_light")
-	if not airborne and dash_move != null and light_edge != null and light_edge.actions.has(&"dash_modifier"):
-		_pending_dash_direction = int(signf(light_edge.axis.x)) if absf(light_edge.axis.x) > 0.15 else facing
-		return &"dash"
+	var dash_dir := _dash_edge_direction(_unconsumed_edge_frame(&"dash_modifier"))
+	if dash_move != null and dash_dir != 0:
+		if _dash_allowed():
+			_pending_dash_direction = dash_dir
+			return &"dash"
+		# 空中次数用完：吃掉这一下，免得边沿留在缓冲里、落地后自己冲出去
+		_take_edge(&"dash_modifier")
 
 	if airborne and _has_edge(&"attack_light"):
 		var finisher := _wants_air_finisher()
@@ -1085,6 +1124,11 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 			return &"air_slam"
 		if finisher == &"drive":
 			return &"air_drive"
+		match _air_light_hold_state():
+			-1:
+				return &""
+			1:
+				return &"charge"
 		if not air_combo.is_empty():
 			return &"air_combo"
 		if _air_light_left > 0:
@@ -1149,14 +1193,19 @@ func _held_within(action: StringName, n: int) -> bool:
 func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 	match cmd:
 		&"dash":
-			_take_edge(&"attack_light")
+			_take_edge(&"dash_modifier")
 			var direction := _pending_dash_direction
+			_dash_in_air = not is_on_floor() and air_frames > coyote_frames
+			if _dash_in_air:
+				_air_dash_left = maxi(_air_dash_left - 1, 0)
 			_cancel_locomotion()
 			_set_facing(direction)
 			_start_move(dash_left_move if direction < 0 and dash_left_move != null else dash_move, false)
 		&"air_combo":
 			_take_edge(&"attack_light")
 			_start_air_combo_move()
+		&"charge":
+			_start_charge()
 		&"air_slam":
 			_start_air_finisher(&"slam")
 		&"air_drive":
@@ -1247,8 +1296,6 @@ func _start_charge() -> void:
 	if charge_move == null:
 		return
 	_take_edge(&"attack_light")
-	if not is_on_floor() and air_frames > coyote_frames:
-		return
 	_cancel_locomotion()
 	_stop_guard()
 	action_serial += 1
@@ -1390,6 +1437,14 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 	if mv == dash_move or mv == dash_left_move:
 		_process_dash_attack(delta, mv, phase, frame)
 		return
+	# 11-01 用户：“蓄力很容易按不出来，我需要轻松就能蓄力”。以前要等这一刀的接招点才看按没按住，
+	# 按住时间不够长就又出一刀普攻；现在地面普攻里 J 按住满 hold_to_charge_frames 帧就当场转蓄力。
+	if light_combo.has(mv) and is_on_floor() and _should_charge_on_hold():
+		_take_edge(&"attack_light")
+		_start_charge()
+		if charge_frames >= 0:
+			_process_charge(delta, frame)
+		return
 
 	if phase == &"startup":
 		# 前摇：能走位，但不能取消
@@ -1413,6 +1468,9 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		# normal air attacks without requiring another jump or waiting the long ground tail.
 		if not is_on_floor() and (mv == up_strike_move or mv == air_up_move) \
 				and not air_combo.is_empty() and _resolve_light_press():
+			if charge_frames >= 0:
+				_process_charge(delta, frame)
+				return
 			_move_horizontal(delta, frame, 1.0)
 			_apply_air_attack_gravity(delta, current_move)
 			_move_with_root_motion(delta, current_move)
@@ -1515,13 +1573,23 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 ##
 ## 另外两个例外：
 ##   · 当前招式就是蓄力斩本身 → 否则它自己的后摇里会不停续上蓄力，死循环
-##   · 空中且已过土狼时间 → 那种情况要出的是"空中向上打"，不是蓄力
+## 空中也能蓄力（11-01 用户：“跳起来的时候也能蓄力”），见 _air_light_hold_state。
 func _should_charge_on_hold() -> bool:
 	if charge_move == null or current_move == charge_move:
 		return false
-	if not is_on_floor() and air_frames > coyote_frames:
-		return false
 	return _attack_hold_frames >= hold_to_charge_frames
+
+
+## 空中的 J 先不出招，看是点按还是按住（11-01 用户：“空中蓄力最好不是先普攻再蓄力”）：
+## -1 = 还按着、不够 hold_to_charge_frames，再等等；0 = 已松手，出空中连段；1 = 按够了，进蓄力。
+## 代价：空中点按 J 要到松手那一帧才出刀（晚了按键时长那几帧）。
+## 提前按下、在上一刀里就松开的缓冲输入不受影响（松手了直接是 0）。
+func _air_light_hold_state() -> int:
+	if charge_move == null:
+		return 0
+	if _attack_hold_frames >= hold_to_charge_frames:
+		return 1
+	return -1 if _attack_hold_frames > 0 else 0
 
 
 ## 维护"J 按住了几帧"的计时器。每帧都必须调用一次。
@@ -1558,11 +1626,21 @@ func _update_attack_hold(frame: InputBuffer.Frame) -> void:
 func _resolve_light_press() -> bool:
 	if not air_combo.is_empty() and not is_on_floor():
 		if not _has_edge(&"attack_light"):
+			# 上一刀起手的那次按键一直没松：接招点到了也转蓄力
+			if _should_charge_on_hold():
+				_start_charge()
+				return true
 			return false
 		var finisher := _wants_air_finisher()
 		if finisher != &"":
 			_start_air_finisher(finisher)
 			return true
+		match _air_light_hold_state():
+			-1:
+				return false
+			1:
+				_start_charge()
+				return true
 		_take_edge(&"attack_light")
 		_start_air_combo_move()
 		return true
@@ -1663,6 +1741,7 @@ func _do_hit_check(mv: Resource) -> void:
 		if hp_before != null and float(owner_node.get(&"hp")) < float(hp_before) \
 				and (owner_node.is_in_group(&"shade") or owner_node.is_in_group(&"dummy")):
 			_on_melee_mobility_hit(mv)
+			_count_air_jump_refund(mv)
 		last_swing_hit = true
 		swing_hit_count += 1
 		# Apply the attacker's pause on a real hit, not only when this actor receives damage.
@@ -1683,6 +1762,22 @@ func _on_melee_mobility_hit(mv: Resource) -> void:
 		_air_hit_slow_frames = hit_fall_slow_frames
 		if velocity.y > 0.0:
 			velocity.y *= hit_fall_speed_scale
+
+
+## 冲刺斩 / W+J / 空中 J（空中三连、下砸、横扫都用 air_combo 里的招）每打中 air_jump_refund_hits 下 → +1 次空中跳。
+func _count_air_jump_refund(mv: Resource) -> void:
+	if air_jump_refund_hits <= 0:
+		return
+	if not (mv == dash_move or mv == dash_left_move or mv == up_strike_move or mv == air_up_move or air_combo.has(mv)):
+		return
+	_refund_hits += 1
+	if _refund_hits < air_jump_refund_hits:
+		return
+	_refund_hits = 0
+	if bonus_air_jumps >= air_jump_refund_max:
+		return
+	bonus_air_jumps += 1
+	air_jump_refunded.emit(bonus_air_jumps)
 
 
 func _is_light_move(mv: Resource) -> bool:
@@ -1844,6 +1939,19 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 		else:
 			_do_block(attacker, _point)
 		return true
+	if has_super_armor():
+		# 霸体：照样掉血，但不打断、不击飞（只给一下受击形变）
+		hp -= mv.damage * damage_mul
+		_set_visual_scale(Vector2(1.08, 0.94))
+		_squash_timer = 2
+		if hp <= 0.0:
+			charge_frames = -1
+			_charge_accum = 0.0
+			if can_die:
+				_die()
+			else:
+				_enter_down()
+		return false
 	_interrupt_action_flow()
 	hitstop_frames = maxi(hitstop_frames, mv.victim_hitstop_frames)
 	# damage_mul 让"怪物原型倍率 / PVP 全局伤害缩放 / 突然死亡"三者能在
@@ -1864,6 +1972,15 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 	# 被击退时朝向攻击者
 	_set_facing(-from_facing)
 	return false
+
+
+## 霸体（11-01 用户）：蓄力中、以及蓄力斩整招（前摇到收招）里挨打只掉血，不被打断。
+func has_super_armor() -> bool:
+	if state == State.DEAD:
+		return false
+	if charge_frames >= 0:
+		return true
+	return state == State.ATTACK and charge_move != null and current_move == charge_move
 
 
 ## 现在处于"招架判定帧"吗 —— 弹刀唯一的**时间**条件。
@@ -1996,15 +2113,18 @@ func reset_state(pos: Vector2) -> void:
 	ground_frames = 0
 	air_frames = 0
 	_air_jumps_left = extra_air_jumps
+	_refund_hits = 0
+	bonus_air_jumps = 0
 	_ground_jump_used = false
 	_air_light_left = air_light_uses
+	_air_dash_left = air_dash_uses
 	_jump_buffer_counter = 0
 	_uppercut_jump_pending = false
 	_uppercut_used_light_seq = -1
 	_last_jump_frame = -1000
 	_last_jump_from_up = false
 	_last_jump_is_uppercut = false
-	_space_was_held = Input.is_physical_key_pressed(KEY_SPACE)
+	_space_was_held = _pure_jump_down()
 	_air_hit_slow_frames = 0
 	_air_slow_hit_tick = -1
 	_jump_buffer_tick = -1
@@ -2242,7 +2362,10 @@ func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: 
 	velocity.x = (after - before) * float(_dash_facing) / maxf(delta, 0.000001)
 	velocity.x += _root_motion_step(mv) * float(_dash_facing) / maxf(delta, 0.000001)
 	_set_facing(_dash_facing)
-	_apply_gravity(delta, _air_gravity())
+	if _dash_in_air and phase != &"recovery" and not is_on_floor():
+		velocity.y = 0.0    # 空中冲刺斩：冲刺段平着冲出去，后摇再开始下落
+	else:
+		_apply_gravity(delta, _air_gravity())
 	move_and_slide()
 	move_frame += 1
 	if move_frame >= mv.total_frames():
@@ -2254,7 +2377,7 @@ func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame)
 	if _has_edge(&"parry"):
 		_link_into(&"parry")
 		return true
-	if is_on_floor() and _try_buffered_jump(frame):
+	if _try_buffered_jump(frame):
 		_end_attack()
 		return true
 	if not link_open and move_frame >= mv.startup_frames + mv.active_frames + mv.cancel_frame:
@@ -2265,6 +2388,9 @@ func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame)
 			return true
 		if _has_edge(&"attack_ranged"):
 			_link_into(&"attack_ranged")
+		# 空中冲刺斩之后的 J 接空中连段
+		if not is_on_floor() and _has_edge(&"attack_light") and _resolve_light_press():
+			return true
 		if _has_edge(&"attack_light") and not light_combo.is_empty():
 			# 冲刺斩之后的 J 从第一刀起（W+J 仍是上挑）
 			combo_index = -1
@@ -2276,16 +2402,31 @@ func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame)
 	return false
 
 
-## 后摇里的 Shift+J：直接接一次冲刺斩（方向以按键那一帧为准）。
+## 后摇里按 Shift：直接接一次冲刺斩（方向以按键那一帧为准）。
 func _try_dash_cancel() -> bool:
-	if dash_move == null or not is_on_floor():
+	if dash_move == null:
 		return false
-	var f := _unconsumed_edge_frame(&"attack_light")
-	if f == null or not f.actions.has(&"dash_modifier"):
+	var f := _unconsumed_edge_frame(&"dash_modifier")
+	var dir := _dash_edge_direction(f)
+	if dir == 0 or not _dash_allowed():
 		return false
-	_pending_dash_direction = int(signf(f.axis.x)) if absf(f.axis.x) > 0.15 else facing
+	_pending_dash_direction = dir
 	_begin_command(&"dash", f)
 	return true
+
+
+## 现在能不能放冲刺斩：地上（含土狼时间）随时；空中每次腾空 air_dash_uses 次。
+func _dash_allowed() -> bool:
+	return is_on_floor() or air_frames <= coyote_frames or _air_dash_left > 0
+
+
+## 冲刺斩键（Shift / 右键 / 手柄 B，动作名沿用 dash_modifier）这一下朝哪边：按着 A / D 就朝那边，
+## 没按方向就朝面向；f 为空 = 没按（0）。11-01 用户：“冲刺斩改成 Shift 就行”，不再要 J。
+func _dash_edge_direction(f: InputBuffer.Frame) -> int:
+	if f == null:
+		return 0
+	var dir := int(signf(f.axis.x)) if absf(f.axis.x) > 0.15 else 0
+	return dir if dir != 0 else facing
 
 
 ## 收招尾巴的"方向键取消"：接招点之后再过 move_cancel_delay 帧，
@@ -2296,7 +2437,7 @@ func _try_move_cancel(mv: Resource) -> bool:
 		return false
 	if move_frame < mv.startup_frames + mv.active_frames + mv.cancel_frame + mv.move_cancel_delay:
 		return false
-	if _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"parry"):
+	if _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"parry") or _has_edge(&"dash_modifier"):
 		return false
 	var index := light_combo.find(mv)
 	if last_swing_hit and index >= 0:
@@ -2426,7 +2567,7 @@ func is_guarding() -> bool:
 	return latest != null and latest.actions.has(&"parry")
 
 func _process_guard(delta: float, frame: InputBuffer.Frame, started: bool = false) -> bool:
-	if not frame.actions.has(&"parry") and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged")):
+	if not frame.actions.has(&"parry") and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier")):
 		_stop_guard()
 		return false
 	if not started:
@@ -2463,7 +2604,7 @@ func _process_guard(delta: float, frame: InputBuffer.Frame, started: bool = fals
 func _process_guard_reaction(delta: float, frame: InputBuffer.Frame, mv: Resource) -> void:
 	var held := frame.actions.has(&"parry")
 	_reaction_guard_held = held
-	if not held and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged")):
+	if not held and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier")):
 		_end_attack()
 		_process_neutral(delta, frame)
 		return
@@ -2556,12 +2697,18 @@ func ult_move() -> Resource:
 	return _ult_move
 
 
-## J + K：两个按键都在最近 ult_chord_frames 帧里按下过，而且这一对还没用过
+## R（手柄 RT）单按；或 J + K：两个按键都在最近 ult_chord_frames 帧里按下过，而且这一对还没用过
 func _try_ult() -> bool:
 	if not ult_ready():
 		return false
 	if state != State.NEUTRAL and state != State.ATTACK:
 		return false
+	var key := _unconsumed_edge_frame(&"ult")
+	if key != null and key.seq > _ult_used_seq:
+		_take_edge(&"ult")
+		_ult_used_seq = key.seq
+		_start_ult()
+		return true
 	var sj := -1
 	var sk := -1
 	for i in mini(ult_chord_frames, input_buffer.frame_count()):
@@ -2675,8 +2822,8 @@ func _move_ult() -> void:
 	ult_hidden = false
 
 
-## 姿势：居合架势 → （过场视频）→ 低位收势 → “咔”跳切到收剑。定格图由表现层画（ult_body），
-## ult_clip / ult_pose 给 character_view 兜底（表现层没接上时也有个像样的姿势）
+## 姿势：开场居合架势 → （视频）→ 地图斩和收刀的姿势由表现层画（ult_fx / ult_map_slash.gd）。
+## ult_clip / ult_pose 给 character_view 兜底（表现层没接上时也有个像样的姿势），大招结束后从收刀接着收
 func _update_ult_pose() -> void:
 	if ult_frame < 0:
 		ult_clip = ""

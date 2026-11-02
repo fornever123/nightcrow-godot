@@ -61,7 +61,8 @@ func run() -> void:
 		var clip_seconds: float = Timeline.ticks_before(clip.frames, clip.frames.size()) / m.animation_fps
 		check(absf(m.anim_seconds(float(m.total_frames()))-clip_seconds)<=1.0/60+0.00001,id+" 按完整动作时长出招（支持原片长短帧）")
 		if id == "charge_1":
-			check(not m.phase_timed and absf(float(m.total_frames())/60.0-clip_seconds)<0.02,id+" 新蓄力下劈保持原片动作时长")
+			# 11-01 用户：前摇快一倍，判定和后摇保持原片
+			check(m.phase_timed and m.startup_frames == 24 and absf(float(m.total_frames() + 24)/60.0-clip_seconds)<0.02,id+" 蓄力下劈前摇减半、其余保持原片时长")
 		else:
 			check(m.phase_timed and float(m.total_frames())/60.0 < clip_seconds,id+" 前后摇加速后整招更短")
 	var faster: Dictionary = raw.duplicate(true)

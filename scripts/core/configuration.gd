@@ -13,6 +13,47 @@ static func character(config: Dictionary, id: String) -> Dictionary:
 			return c
 	return {}
 
+## 分段变速再叠一段局部加速：断点 = 前摇 / 判定 / 接招点 / 结束（动画秒）+ 加速段起止，
+## 每小段的物理帧数 = 动画时长 ÷（所在阶段速度 × 是否在加速段里）。
+static func _apply_burst(m: Move, base_t: Array, speeds: Array, b0: float, b1: float, k: float) -> void:
+	var ts: Array = [0.0]
+	for t in base_t + [b0, b1]:
+		var tc := clampf(float(t), 0.0, float(base_t[-1]))
+		if not ts.has(tc):
+			ts.append(tc)
+	ts.sort()
+	var frame_ends := PackedInt32Array()
+	var anim_ends := PackedFloat64Array()
+	var at_base := {}
+	var acc := 0.0
+	var last := 0
+	for i in range(1, ts.size()):
+		var t0: float = ts[i - 1]
+		var t1: float = ts[i]
+		var mid := (t0 + t1) * 0.5
+		var seg := base_t.size() - 1
+		for j in base_t.size():
+			if mid < float(base_t[j]):
+				seg = j
+				break
+		acc += (t1 - t0) / (float(speeds[seg]) * (k if mid > b0 and mid < b1 else 1.0)) * 60.0
+		last = maxi(last, ceili(acc - 0.0001))
+		frame_ends.append(last)
+		anim_ends.append(t1)
+		at_base[t1] = last
+	var s_f: int = at_base.get(float(base_t[0]), 0)
+	var e_f: int = maxi(s_f + 1, int(at_base.get(float(base_t[1]), s_f + 1)))
+	var c_f: int = maxi(e_f, int(at_base.get(float(base_t[2]), e_f)))
+	var t_f: int = maxi(e_f + 1, int(at_base.get(float(base_t[3]), c_f)))
+	m.phase_timed = true
+	m.startup_frames = s_f
+	m.active_frames = e_f - s_f
+	m.recovery_frames = t_f - e_f
+	m.cancel_frame = c_f - e_f
+	m.phase_frame_ends = frame_ends
+	m.phase_anim_ends = anim_ends
+
+
 static func moves(config: Dictionary) -> Dictionary:
 	var result: Dictionary = {}
 	var actor := character(config, "player")
@@ -63,6 +104,18 @@ static func moves(config: Dictionary) -> Dictionary:
 			m.active_frames = end_tick - m.startup_frames
 			m.recovery_frames = maxi(1, ceili(duration * 60.0 - 0.0001) - end_tick)
 			m.cancel_frame = maxi(0, ceili(chain * 60.0 - 0.0001) - end_tick)
+		# 局部加速（11-01 冲刺斩）：只把动画第 burstFrameStart～burstFrameEnd 帧这一段放快 burstSpeed 倍，
+		# 其余照常。按动画时间变速，根位移跟着动画走，总距离不变。
+		var burst_speed := maxf(float(source.get("burstSpeed", 1.0)), 0.05)
+		if absf(burst_speed - 1.0) > 0.0001 and source.has("burstFrameStart") and animations.has(m.animation):
+			var bframes: Array = animations[m.animation].get("frames", [])
+			var b0 := Timeline.ticks_before(bframes, int(source.get("burstFrameStart", 0))) / m.animation_fps
+			var b1 := Timeline.ticks_before(bframes, int(source.get("burstFrameEnd", bframes.size()))) / m.animation_fps
+			var speeds: Array = [startup_speed, active_speed, recovery_speed, tail_speed] if m.phase_timed else [1.0, 1.0, 1.0, 1.0]
+			end = maxf(end, start)
+			chain = clampf(chain, end, maxf(duration, end))
+			duration = maxf(duration, chain)
+			_apply_burst(m, [start, end, chain, duration], speeds, b0, b1, burst_speed)
 		m.move_cancel_delay = int(source.get("moveCancelDelay", -1))
 		m.damage = float(source.get("damage", 10))
 		var x := float(source.get("knockbackX", 200))

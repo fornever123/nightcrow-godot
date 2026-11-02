@@ -16,7 +16,7 @@ func run() -> void:
 	if dir == "":
 		dir = ProjectSettings.globalize_path("res://.runtime/shots")
 	DirAccess.make_dir_recursive_absolute(dir)
-	var stage = load("res://scenes/night_trial.tscn").instantiate()
+	var stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	if OS.get_environment("NOLIGHT") == "1":   # 对比用：关掉角色环境光

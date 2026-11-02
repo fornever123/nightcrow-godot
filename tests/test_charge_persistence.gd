@@ -136,8 +136,10 @@ func run() -> void:
 	p._start_charge()
 	await ticks(5)
 	p.invuln_frames = 0
+	var hp_before: float = p.hp
 	p.take_hit(p.light_combo[0], -p.facing, p.global_position)
-	check(not p.is_charging(), "real incoming damage still interrupts charge; no accidental armor")
+	# 11-01 用户：蓄力和蓄力斩霸体——挨打照样掉血，但不打断
+	check(p.is_charging() and p.hp < hp_before, "incoming damage hurts but does not interrupt charge (11-01 super armor)")
 	key(KEY_J, false)
 	stage._reset()
 	check(not p.is_charging(), "reset clears charge normally")

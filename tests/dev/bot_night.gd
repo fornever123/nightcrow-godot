@@ -124,15 +124,19 @@ func decide() -> Buffer.Frame:
 			return plan.pop_front()
 	if absf(dy) > 40.0:
 		return fr([mv], [], Vector2(dir, 0))
-	# 3) 眩晕 → W+J 挑飞
-	if nearest.state == Shade.State.STUNNED and absf(dx) < 170:
+	# 3) 11-01 起任何敌人都能挑飞（甲影只在出刀时霸体）：贴身时常常 W+J 挑飞接空连
+	if not nearest.is_armored() and nearest.state != Shade.State.DOWN and absf(dx) < 170 \
+			and p.state == 0 and tick - last_j > 10 and rng.randf() < 0.3:
 		if p.facing != int(dir):
 			return fr([mv], [], Vector2(dir, 0))
-		if tick - last_j > 10:
-			last_j = tick
-			tap([&"aim_up", &"jump", &"attack_light"], Vector2(0, -1), 4)
-			return plan.pop_front()
-		return fr()
+		last_j = tick
+		tap([&"aim_up", &"jump", &"attack_light"], Vector2(0, -1), 4)
+		return plan.pop_front()
+	# 3.5) 中距离：按住方向 + Shift = 冲刺斩冲过去
+	if absf(dx) > 150 and absf(dx) < 330 and p.state == 0 and tick - last_j > 30 and rng.randf() < 0.08:
+		last_j = tick
+		tap([mv, &"dash_modifier"], Vector2(dir, 0), 3)
+		return plan.pop_front()
 	if absf(dx) > 120:
 		return fr([mv], [], Vector2(dir, 0))
 	if p.facing != int(dir):
@@ -161,7 +165,7 @@ func _jump_toward(d: float, jumps: int) -> void:
 func run() -> void:
 	rng.seed = int(OS.get_environment("SEED") if OS.get_environment("SEED") != "" else "7")
 	skill = float(OS.get_environment("SKILL") if OS.get_environment("SKILL") != "" else "0.8")
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	p = stage.player

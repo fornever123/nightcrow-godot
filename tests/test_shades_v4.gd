@@ -79,7 +79,7 @@ func move_named(id: StringName) -> Resource:
 
 
 func run() -> void:
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	p = stage.player
@@ -344,23 +344,27 @@ func test_ult() -> void:
 	var php: float = p.hp
 	var ok_inv: bool = p.take_hit(g.strike_move, -1, p.global_position, 0.0, false, 1.0, g) == false and is_equal_approx(p.hp, php)
 	check(ok_inv, "大招中无敌")
+	# 绝影（10-31 整段预览 13）：开场 → 视频（她不在场上）→ 地图斩，断开那一刻（ult_cut_frames）全部斩开 → “咔”收刀
 	var brute_flew := false
 	var hidden_seen := false
-	var g_alive_at_reveal := true
-	var freeze_held := true
+	var g_alive_before_split := true
+	var start_x: float = p.global_position.x
+	var max_dx := 0.0
+	var split_at: int = p.ult_cut_frames[0]
 	for i in p.ult_total_frames + 10:
 		await hold(1)
 		hidden_seen = hidden_seen or bool(p.ult_hidden)
-		if p.is_ult() and p.ult_frame == p.ult_final_frame + 2:
-			g_alive_at_reveal = is_instance_valid(g) and g.is_alive()
-		if p.is_ult() and p.ult_frame > p.ult_final_frame + 8 and p.ult_frame < p.ult_final_frame + p.ult_freeze_frames - 1:
-			freeze_held = freeze_held and (not is_instance_valid(b) or b.state != Shade.State.LAUNCHED)
+		if p.is_ult():
+			max_dx = maxf(max_dx, absf(p.global_position.x - start_x))
+			if p.ult_frame == split_at - 1:
+				g_alive_before_split = is_instance_valid(g) and g.is_alive()
 		brute_flew = brute_flew or (is_instance_valid(b) and b.state == Shade.State.LAUNCHED)
 	await hold(2)
-	check(hits.strike == 3 and hits.arrive == 1, "三刀 + 站定（strike %d / arrive %d）" % [hits.strike, hits.arrive])
-	check(hits.reveal == 1, "终结横断一次")
-	check(hidden_seen, "三刀之间她会消失（瞬身）")
-	check(g_alive_at_reveal and freeze_held, "终结那一刀后先定格，影还没断开、甲影还没被震飞")
+	check(hits.strike == 1 and hits.arrive == 1, "地图斩断开一次 + 回到场上（strike %d / arrive %d）" % [hits.strike, hits.arrive])
+	check(hits.reveal == 1, "“咔”收刀一次")
+	check(hidden_seen, "睁眼 + 挥刀视频那段她不在场上")
+	check(g_alive_before_split, "断开之前影卒还活着")
+	check(max_dx < 1.0, "她原地出招、不位移（%.1f）" % max_dx)
 	check(g_dmg.n >= 80.0 and b.hp < hp.b, "屏幕里的影卒和甲影都被砍中（霸体扛不住；影卒 %.0f）" % g_dmg.n)
 	check(not is_instance_valid(g) or not g.is_alive(), "影卒被斩开")
 	check(is_instance_valid(b) and b.is_alive() and brute_flew, "甲影扛住终结，被震飞")

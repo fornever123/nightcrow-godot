@@ -190,8 +190,8 @@ func run() -> void:
 	p.dash_move = dash
 	p._set_facing(1)
 	var x: float = p.position.x
-	await step(1, input([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.RIGHT))
-	check(p.current_move == dash, "Shift J selects dash")
+	await step(1, input([&"dash_modifier"], [&"dash_modifier"], Vector2.RIGHT))
+	check(p.current_move == dash, "Shift selects dash")
 	await step(8, input([&"move_left"], [], Vector2.LEFT))
 	check(p.position.x > x + 80 and p.facing == 1, "dash timeline moves in fixed direction despite reverse input")
 	var wall := StaticBody2D.new()
@@ -203,23 +203,23 @@ func run() -> void:
 	wall.position = Vector2(160, 0)
 	world.add_child(wall)
 	await reset_at()
-	await step(1, input([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.RIGHT))
+	await step(1, input([&"dash_modifier"], [&"dash_modifier"], Vector2.RIGHT))
 	await step(20)
 	check(p.position.x < 116, "dash displacement uses physical wall collision")
 	p.dash_left_move = move("dash_left")
 	p.dash_left_move.recovery_frames = 5
 	p.dash_left_move.dash_distance = 80
 	await reset_at()
-	await step(1, input([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.LEFT))
+	await step(1, input([&"dash_modifier"], [&"dash_modifier"], Vector2.LEFT))
 	check(p.current_move == p.dash_left_move, "left dash uses independent source move and duration")
 	await step(10)
 	check(p.current_move == null and p.position.x < -60, "left dash completes its own timeline")
 	await reset_at()
 	p._set_facing(1)
 	p.hitstop_frames = 3
-	await step(1, input([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.LEFT))
+	await step(1, input([&"dash_modifier"], [&"dash_modifier"], Vector2.LEFT))
 	await step(3)
-	check(p.current_move == p.dash_left_move and p.facing == -1, "hitstop buffers Shift J modifier and direction after release")
+	check(p.current_move == p.dash_left_move and p.facing == -1, "hitstop buffers Shift press and direction after release")
 	await reset_at()
 	p.hitstop_frames = 3
 	await step(1, input([&"attack_light"], [&"attack_light"]))

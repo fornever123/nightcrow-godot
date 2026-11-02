@@ -85,8 +85,8 @@ func run() -> void:
 	check(absf(p.get_node("Visual").scale.x*view.scale.x)>0.0,"转身没有无效翻面倍率")
 	stage._reset()
 	await step(4)
-	await step(1,frame([&"dash_modifier",&"attack_light"],[&"attack_light"],Vector2.RIGHT))
-	check(p.current_move==p.dash_move,"Shift+J真实输入启动右冲刺")
+	await step(1,frame([&"dash_modifier"],[&"dash_modifier"],Vector2.RIGHT))
+	check(p.current_move==p.dash_move,"Shift 启动右冲刺")
 	var x: float=p.position.x
 	await step(20)
 	check(p.position.x>x and view.clip_name=="dash_right_video","冲刺位移和右向素材同步推进")

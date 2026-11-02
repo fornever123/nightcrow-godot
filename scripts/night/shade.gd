@@ -19,6 +19,9 @@ extends Node2D
 ##   · 连击击退：第一下就有明确推力，连续命中按 combo_taken 逐步增强；落地后清零。
 ##   · 连段伤害递增：同一套连段里越往后越疼，落地站起清零。
 ##   · 会误伤：影卒 / 甲影的刀、影矢、炸弹都会打到挡在路上的同伴。
+##
+## 11-01（战斗线，用户定方向）：不做失衡。任何敌人任何时候都能被挑飞；甲影只在前摇 + 出刀时霸体；
+##   弹刀直接把敌人炸飞（on_parried）；击退 / 击飞整体加高、越连越高（BASE_KNOCKBACK_SCALE、COMBO_KNOCK_*）。
 
 const MoveDefinition := preload("res://scripts/core/move_definition.gd")
 const Bolt := preload("res://scripts/night/shade_bolt.gd")
@@ -77,9 +80,17 @@ const WALL_DAMAGE_SCALE := 0.045
 const POISE_REGEN_DELAY := 90
 const POISE_REGEN := 0.55          ## 每帧
 const PARRY_CUE := 10              ## 出刀前多少帧亮"刀尖白星"（配合试玩场景 12 帧弹刀窗口）
-const BASE_KNOCKBACK_SCALE := 1.35 ## 格斗游戏式基础推力：第一下也能读出位移
-const COMBO_KNOCK_STEP := 0.24     ## 每次连续命中额外 +24% 推力
-const COMBO_KNOCK_MAX := 2.5
+const BASE_KNOCKBACK_SCALE := 2.0  ## 格斗游戏式基础推力：第一下也能读出位移（11-01：1.35 → 2.0，整体打得更远）
+const COMBO_KNOCK_STEP := 0.35     ## 每次连续命中额外 +35% 推力（第 11 下封顶 4.5 倍：越连越远、越连越高）
+const COMBO_KNOCK_STEPS := 10
+const COMBO_KNOCK_MAX := 4.5
+const COMBO_LIFT_SHARE := 0.6      ## 竖直方向吃连击倍率的比例（0.35 → 0.6：越连越高）
+const GROUND_KNOCK_CAP := 1400.0   ## 地面击退速度上限（760 → 1400）
+const LAUNCH_MIN_SPEED := 1250.0   ## W+J 挑飞的最低起飞速度（900 → 1250，够跳起来追着空连）
+## 弹刀 = 直接炸飞（11-01 用户：不做失衡，弹刀就把它炸开）。甲影出刀被弹 = 霸体被炸破，横向更远、更重。
+const PARRY_BLAST := Vector2(950.0, -850.0)
+const PARRY_BLAST_ARMORED := Vector2(1100.0, -700.0)
+const PARRY_WALL_FACTOR := 0.35    ## 被弹飞撞墙的伤害系数（撞墙 / 连锁照常结算）
 const COMBO_DMG_STEP := 0.05       ## 同一套连段每多挨一下，伤害 +5%（最多 +50%）
 const ROLL_FRAMES := 18
 const ROLL_IFRAMES := 14
@@ -268,7 +279,7 @@ func is_ranged_kind() -> bool:
 
 ## 现在挨打会飞多远：基础推力 × 体重 × 连续命中倍率。
 func knock_mul() -> float:
-	var combo_step := clampi(combo_taken - 1, 0, 6)
+	var combo_step := clampi(combo_taken - 1, 0, COMBO_KNOCK_STEPS)
 	return clampf(float(spec.get("weight", 1.0)) * (1.0 + COMBO_KNOCK_STEP * float(combo_step)), 0.3, COMBO_KNOCK_MAX)
 
 
@@ -970,9 +981,10 @@ func take_chain(source: Node2D, vel: Vector2, level: int, shock: bool) -> void:
 		_die(int(signf(vel.x)) if absf(vel.x) > 1.0 else facing)
 		velocity = Vector2(vel.x * 0.8, minf(-420.0, vel.y * 0.5))
 		return
-	if bool(spec.armor) and state != State.STUNNED and not shock:
-		# 甲影不会被普通的连锁撞飞，只是被撞得一个踉跄
-		_flinch(int(signf(vel.x)), 28, absf(vel.x) * 0.25)
+	if is_armored() and not shock:
+		# 甲影只在前摇 + 出刀时霸体：这时被同伴撞到也不倒，只闪一下霸体白光
+		armor_flash = 8
+		velocity.x += signf(vel.x) * 30.0
 		return
 	_cancel_stun_into_launch()
 	state = State.LAUNCHED
@@ -1041,16 +1053,10 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 	if airborne and not is_ult:
 		_juggle(mv, from_facing, from_up, intent)
 		return false
-	# ---- 甲影霸体：没破防时普通攻击打不断它 ----
-	if bool(spec.armor) and not stunned and state != State.DOWN and not is_ult:
-		if is_armored():
-			armor_flash = 8
-			velocity.x += float(from_facing) * 30.0
-			return false
-		if launches or charge_t > 0.3:
-			_flinch(from_facing, 22, minf(mv.knockback * 0.5 * km, 420.0))
-		else:
-			_flinch(from_facing, 14, minf(mv.knockback * 0.35 * km, 220.0))
+	# ---- 甲影霸体：只在前摇 + 出刀时打不断（照样掉血），其余时间和影卒一样能打飞、挑飞、空连 ----
+	if is_armored() and not is_ult:
+		armor_flash = 8
+		velocity.x += float(from_facing) * 30.0
 		return false
 	if state == State.DOWN:
 		# 倒地追击：只有挑飞类能把它重新挑起来
@@ -1061,12 +1067,12 @@ func take_hit(mv: MoveDefinition, from_facing: int, point: Vector2,
 		_launch(mv, from_facing, from_up, stunned, charge_t)
 	elif stunned:
 		# 兼容显式硬直状态；普通连击仍按连续命中推力移动。
-		velocity.x = float(from_facing) * minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, 760.0)
+		velocity.x = float(from_facing) * minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, GROUND_KNOCK_CAP)
 	else:
-		# 格斗游戏式击退：第一下就明显，连续命中逐步增加，挥空不触发。
-		_flinch(from_facing, 14 + mv.victim_hitstop_frames, minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, 760.0))
+		# 格斗游戏式击退：第一下就明显，连续命中逐步增加（越连越远、越连越往上蹦），挥空不触发。
+		_flinch(from_facing, 14 + mv.victim_hitstop_frames, minf(mv.knockback * BASE_KNOCKBACK_SCALE * km, GROUND_KNOCK_CAP))
 		if on_ground():
-			velocity.y = -minf(120.0 * km, 260.0)
+			velocity.y = -minf(130.0 * km, 480.0)
 	return false
 
 
@@ -1136,16 +1142,16 @@ func _flinch(from_facing: int, frames: int, push: float) -> void:
 func _launch(mv: MoveDefinition, from_facing: int, from_up: bool, stunned: bool, charge_t: float) -> void:
 	var kb_mul := 1.0 + (mv.charge_knockback_bonus - 1.0) * charge_t
 	var v := mv.knockback_velocity(from_facing) * kb_mul
-	# 连续命中倍率主要让人横着飞得更远；竖直只加一点（挑飞高度要稳定，空中连段才接得上）
+	# 连续命中倍率让人横着飞得更远，竖直也跟着涨（越连越高）；W+J 挑飞的高度另算、保持稳定，空中连段才接得上
 	var km := knock_mul()
 	v.x *= km
 	if not from_up:
-		v.y *= lerpf(1.0, km, 0.35)
+		v.y *= lerpf(1.0, km, COMBO_LIFT_SHARE)
 	if from_up:
 		v.y = minf(v.y, -absf(mv.launch_speed))
 		v.x *= 0.45
 		# 挑飞要能跳起来追：保证够高（≈ 一段跳的高度）
-		v.y = minf(v.y * 1.25, -900.0)
+		v.y = minf(v.y * 1.25, -LAUNCH_MIN_SPEED)
 	if stunned:
 		v.y *= 1.12
 	if (from_up and state != State.LAUNCHED) or stunned:
@@ -1186,12 +1192,12 @@ func _juggle(mv: MoveDefinition, from_facing: int, from_up: bool, intent: String
 		# 衰减到头：不再托起，往下掉（“滑脱”）
 		velocity = Vector2(float(from_facing) * 160.0, maxf(velocity.y, 260.0))
 		return
-	var hover := maxf(110.0, 430.0 - 34.0 * float(juggle_count))
+	var hover := maxf(180.0, 560.0 - 28.0 * float(juggle_count))
 	if from_up or mv.forces_launch:
 		hover = maxf(hover, absf(mv.launch_speed) * maxf(0.35, 1.0 - 0.07 * float(juggle_count)))
 	if mv.id == &"air_light_3":
 		# 空中第三刀不带方向：斜着挑开，可以二段跳追
-		velocity = Vector2(float(from_facing) * 420.0, -maxf(hover, 360.0))
+		velocity = Vector2(float(from_facing) * 420.0, -maxf(hover, maxf(absf(mv.launch_speed), 360.0)))
 		chain_armed = true
 		return
 	velocity = Vector2(float(from_facing) * (60.0 + mv.knockback * 0.12 * knock_mul()), -hover)
@@ -1367,17 +1373,33 @@ func on_parried(cause: Node = null) -> void:
 	var dir := -facing
 	if cause != null and is_instance_valid(cause) and cause is Node2D:
 		dir = 1 if global_position.x > (cause as Node2D).global_position.x else -1
-	flash = 5
-	flash_color = Color(0.6, 0.95, 1.0)
-	hitstop_frames = maxi(hitstop_frames, roundi(14 * hitstop_multiplier))
+	# 弹刀直接把它炸飞（不再原地硬直）：进浮空，能接挑飞 / 空连，飞出去撞墙、撞同伴照常结算。
+	# 甲影出刀被弹 = 霸体被炸破：横向更远、顿帧更长，发 broken 让关卡放大震屏。
+	var armored := is_armored()
+	var blast := PARRY_BLAST_ARMORED if armored else PARRY_BLAST
+	flash = 6 if armored else 5
+	flash_color = Color(1.0, 0.86, 0.4) if armored else Color(0.6, 0.95, 1.0)
+	hitstop_frames = maxi(hitstop_frames, roundi((18 if armored else 14) * hitstop_multiplier))
+	squash = Vector2(0.72, 1.28)
 	parried.emit(cause, global_position)
-	_add_poise(PARRY_POISE)
-	if state == State.STUNNED:
-		velocity.x = float(dir) * 120.0
-		return
-	state = State.HITSTUN
-	state_frames = 40 if kind == Kind.GRUNT else 34
-	velocity.x = float(dir) * 300.0
+	if armored:
+		broken.emit(global_position + Vector2(0.0, -half_h - 18.0))
+	_cancel_stun_into_launch()
+	guard_frames = 0
+	roll_frames = 0
+	_strike_done = true
+	facing = -dir
+	state = State.LAUNCHED
+	bounces = 0
+	slammed = false
+	driven_frames = 0
+	juggle_count = maxi(juggle_count, 1)
+	combo_taken += 1
+	_wall_factor = PARRY_WALL_FACTOR
+	chain_armed = true
+	chain_level = 0
+	_chained.clear()
+	velocity = Vector2(float(dir) * blast.x, blast.y)
 
 
 func _enter_down() -> void:
@@ -1419,7 +1441,7 @@ func _death_fling(mv: MoveDefinition, from_facing: int, from_up: bool, intent: S
 	var v := mv.knockback_velocity(from_facing) * 1.3 * maxf(1.0, knock_mul())
 	v.y = minf(v.y, -420.0)
 	if from_up:
-		v.y = minf(v.y, -900.0)
+		v.y = minf(v.y, -LAUNCH_MIN_SPEED)
 		v.x *= 0.5
 	velocity = v
 	chain_armed = absf(v.x) >= 300.0
@@ -1758,12 +1780,6 @@ func _paint(cv: CanvasItem) -> void:
 			cv.draw_set_transform(Vector2(0, -h - 34.0), 0.0, Vector2(ui_scale, ui_scale))
 			cv.draw_string(_font, Vector2(-5, 0), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, ring)
 			cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	# 眩晕：头顶转圈的星
-	if state == State.STUNNED:
-		for i in 3:
-			var a := t * 4.0 + float(i) * TAU / 3.0
-			var p := Vector2(cos(a) * 20.0 * ui_scale, -h - 22.0 * ui_scale + sin(a) * 6.0 * ui_scale)
-			_draw_star(cv, p, 5.0 * ui_scale, GOLD)
 	cv.draw_set_transform(Vector2(0, -half_h), 0.0, Vector2(ui_scale, ui_scale))
 	if cv == self:
 		_draw_bars(fade)

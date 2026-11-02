@@ -23,7 +23,7 @@ func run() -> void:
 	if folder.is_empty():
 		folder = ProjectSettings.globalize_path("res://.runtime/charge-20261026/shots")
 	DirAccess.make_dir_recursive_absolute(folder)
-	var stage = load("res://scenes/night_trial.tscn").instantiate()
+	var stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	current_scene = stage
 	await process_frame

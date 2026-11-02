@@ -9,6 +9,7 @@ const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
+const Factory := preload("res://scripts/night/player_factory.gd")
 var config: Dictionary
 var moves: Dictionary
 var player: CharacterBody2D
@@ -151,18 +152,20 @@ func _floor(rect: Rect2) -> void:
 	body.add_child(shape)
 	add_child(body)
 
+## 操作说明按当前键位方案（键盘 / 键鼠）写
+func apply_control_scheme() -> void:
+	if help_label == null:
+		return
+	var a := Factory.key_label("attack")
+	help_label.text = ("A / D 跑动与转身   空格 / W 二段跳   S 下平台   {a} 地面 / 空中三连   按住 {a} 蓄力（空中也行）   W + {a} 挑飞
+"
+			+ "{d} 冲刺斩（空中也行）   {k} 远射   {l} 弹刀 · 按住格挡   R 大招   F2 测试来袭开关   F5 重置   F1 判定框   F3 返回试玩"
+			).format({"a": a, "k": Factory.key_label("ranged"), "l": Factory.key_label("parry"), "d": Factory.key_label("dash")})
+
+
+## 和雨街试玩共用一套键位（键盘 / 键鼠二选一 + 手柄，见 player_factory.gd），训练场只多一个 F2
 func _register_input() -> void:
-	var bindings := {"move_left":[KEY_A,KEY_LEFT],"move_right":[KEY_D,KEY_RIGHT],"jump":[KEY_W,KEY_SPACE],
-		"aim_up":[KEY_W,KEY_UP],"move_down":[KEY_S,KEY_DOWN],"attack_light":[KEY_J],"attack_ranged":[KEY_K],
-		"parry":[KEY_L],"dash_modifier":[KEY_SHIFT],"reset":[KEY_R],"debug_toggle":[KEY_F1],"training_attack_toggle":[KEY_F2]}
-	for name in bindings:
-		if not InputMap.has_action(name):
-			InputMap.add_action(name)
-		InputMap.action_erase_events(name)
-		for key in bindings[name]:
-			var event := InputEventKey.new()
-			event.physical_keycode = key
-			InputMap.action_add_event(name,event)
+	Factory.register_input({"training_attack_toggle": [KEY_F2]})
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -185,12 +188,12 @@ func _build_hud() -> void:
 	panel.add_child(hud)
 	help_label = Label.new()
 	help_label.position = Vector2(28,622)
-	help_label.text = "A / D 跑动与转身   空格 / W 二段跳   J 地面 / 空中三连   按住 J 蓄力\nShift + J 冲刺斩   K 远射   W + J 挑飞   L 弹刀 / 按住格挡   F2 测试来袭开关   R 重置   F1 判定框   F3 返回试玩"
 	help_label.add_theme_font_size_override("font_size",16)
 	help_label.visible = bool(config.ui.get("showMoveHints",true))
 	panel.add_child(help_label)
+	apply_control_scheme()
 	var reset := Button.new()
-	reset.text = "重置训练  R"
+	reset.text = "重置训练  F5"
 	reset.position = Vector2(990,26)
 	reset.size = Vector2(122,38)
 	reset.pressed.connect(_reset)
@@ -308,8 +311,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_toggle"):
 		debug_boxes = not debug_boxes
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
-		# 试玩版：F3 回到月下堤岸试玩关卡
-		get_tree().change_scene_to_file.call_deferred("res://scenes/night_trial.tscn")
+		# 试玩版：F3 回到雨夜河岸街试玩关卡
+		get_tree().change_scene_to_file.call_deferred("res://scenes/rain_trial.tscn")
 	if event.is_action_pressed("training_attack_toggle"):
 		training_attacks = not training_attacks
 		training_attack_clock = 0.0

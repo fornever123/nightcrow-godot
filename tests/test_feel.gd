@@ -150,8 +150,8 @@ func run() -> void:
 	await step(1, frame([&"attack_light"], [&"attack_light"]))
 	while p.current_move == l1 and p.move_frame < l1.startup_frames + l1.active_frames:
 		await step(1)
-	await step(1, frame([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.RIGHT))
-	check(p.current_move == p.dash_move, "后摇里 Shift+J 冲刺取消")
+	await step(1, frame([&"dash_modifier"], [&"dash_modifier"], Vector2.RIGHT))
+	check(p.current_move == p.dash_move, "后摇里 Shift 冲刺取消")
 
 	await fresh()
 	await step(1, frame([&"attack_light"], [&"attack_light"]))
@@ -173,7 +173,7 @@ func run() -> void:
 
 	# 冲刺斩：后摇可以跳取消（带着冲刺的速度起跳）
 	await fresh()
-	await step(1, frame([&"dash_modifier", &"attack_light"], [&"attack_light"], Vector2.RIGHT))
+	await step(1, frame([&"dash_modifier"], [&"dash_modifier"], Vector2.RIGHT))
 	var dm: Resource = p.dash_move
 	while p.current_move == dm and p.move_frame < dm.startup_frames + dm.active_frames + 1:
 		await step(1)

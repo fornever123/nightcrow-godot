@@ -48,7 +48,8 @@ func run() -> void:
 	check(release.get("sourceFacing", 0) == 1 and release.rootMotionX.size() == 85 and release.rootMotionY.size() == 85, "release has calibrated facing and complete body motion")
 	var cm: Resource = Config.moves(data).charge_1
 	check(cm.animation == "charge_slash" and cm.direction == 0, "release binds to charge action rather than rising uppercut")
-	check(cm.total_frames() == 212 and cm.startup_frames == 48, "release and impact clock match actual imported action")
+	# 11-01 用户：蓄力斩前摇快一倍（startupSpeed 2），判定和后摇仍按原片
+	check(cm.total_frames() == 212 - 24 and cm.startup_frames == 24, "release startup is twice as fast; impact and recovery keep the imported clock")
 	check(cm.max_charge_frames == 150, "charge power timing stays 2.5 seconds independently of visual looping")
 	stage = load("res://scenes/training.tscn").instantiate()
 	root.add_child(stage)

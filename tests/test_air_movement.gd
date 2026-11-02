@@ -153,7 +153,8 @@ func run() -> void:
 	for phase in ["rise", "apex", "fall"]:
 		var at := phase_frame(base, phase)
 		var attacked := await capture_jump(at)
-		var attack_move: Variant = attacked[at].move if at >= 0 and at < attacked.size() else null
+		# 11-01 起空中 J 在松手那一帧出刀（按住 = 蓄力），这里按一帧就松，所以看下一帧
+		var attack_move: Variant = attacked[at + 1].move if at >= 0 and at + 1 < attacked.size() else null
 		var attack_id := String(attack_move.get("id")) if attack_move is Resource else ""
 		check(attack_id == "air_light_1",
 			"normal J actually starts an airborne attack during %s" % phase)
