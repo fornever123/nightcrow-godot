@@ -69,6 +69,16 @@ func ensure_section(index: int, center: float) -> void:
 		nodes.append(add_block(center + float(b[0]), center + float(b[1]), float(b[2]), String(b[3]), index))
 	for p in lay.platforms:
 		nodes.append(add_platform(center + float(p[0]), center + float(p[1]), float(p[2]), String(p[3]), index))
+	# 这一段已经换成成图（雨夜河岸街 art）：成图范围里的灰盒部件只留碰撞、不画
+	var art: Dictionary = lay.get("art", {})
+	if not art.is_empty():
+		var a0 := center + float(art.x0)
+		var a1 := a0 + float(art.width)
+		for n in nodes:   # 大半落在成图里就不画（钟楼环廊左右各伸出成图一点）
+			var nx0 := float(n.data.x0)
+			var nx1 := float(n.data.x1)
+			if minf(nx1, a1) - maxf(nx0, a0) >= 0.5 * (nx1 - nx0):
+				n.visible = false
 	_built[index] = nodes
 
 
@@ -198,7 +208,7 @@ func push_out(x: float, hw: float, feet_y: float) -> Vector2:
 	return Vector2(x, side)
 
 
-## 亭子檐下灯笼的暖光照到 p 点的强度和方向（和 night_backdrop.lantern_light 同一格式：x 强度，(y,z) 指向灯笼）
+## 亭子檐下灯笼的暖光照到 p 点的强度和方向（和 street_backdrop.lantern_light 同一格式：x 强度，(y,z) 指向灯笼）
 const LANTERN_REACH := 300.0
 func lantern_light(p: Vector2) -> Vector3:
 	var best := Vector3.ZERO

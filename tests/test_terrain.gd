@@ -75,7 +75,7 @@ func make_shade(x: float, surface: float, active := false, kind := 0) -> Node2D:
 
 
 func run() -> void:
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scripts/night/night_trial.gd").new()   # 战斗基类（不带背景），测通用机制；雨街本身见 test_rain_trial
 	root.add_child(stage)
 	await process_frame
 	p = stage.player
@@ -98,7 +98,7 @@ func run() -> void:
 # ---------------------------------------------------------------- 布局 / 查询
 
 func test_layout() -> void:
-	check(t != null and t.z_index > stage.backdrop.PIXEL_Z, "地形画在背景像素化那层之后（不被像素化）")
+	check(t != null and t.z_index == -70, "地形在背景之后、和角色一样清楚（z −70）")
 	check(Terrain.SECTIONS.size() == stage.ROUND.size(), "每处封印一段地形布局")
 	check(stage.ARENA_HALF >= 1100.0, "竞技场变宽（半宽 %d）" % int(stage.ARENA_HALF))
 	var ok_reach := true
