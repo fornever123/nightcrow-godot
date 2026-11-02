@@ -45,13 +45,17 @@ void fragment() {
 	if (lines > 0.0) {
 		vec2 d = (SCREEN_UV - lines_center) * vec2(aspect, 1.0);
 		float ang = atan(d.y, d.x);
-		// 细线：720 份里只亮约 9%，每根线中间亮、两边收；离中心越远越亮
-		float u = (ang + 3.14159265) / 6.2831853 * 720.0;
+		// 漫画集中线：角度上等宽 = 画面上是楔形（靠中心细、往外粗）；160 份里亮约三成，每根宽度和起点随机，
+		// 硬边（两色，不做软渐变），只在外圈
+		float u = (ang + 3.14159265) / 6.2831853 * 160.0;
 		float id = floor(u);
 		float h = hash(vec2(id, lines_seed));
-		float thin = 1.0 - smoothstep(0.0, 0.5, abs(fract(u) - 0.5));
-		float on = step(0.91, h) * thin * smoothstep(0.30 + 0.25 * h, 0.75, length(d));
-		col = mix(col, vec3(0.92, 0.9, 1.0), on * lines);
+		float h2 = hash(vec2(id * 1.7, lines_seed + 3.1));
+		float half_w = 0.08 + 0.32 * h2;
+		float wedge = 1.0 - smoothstep(half_w - 0.04, half_w, abs(fract(u) - 0.5));
+		float start = 0.34 + 0.3 * h;
+		float on = step(0.68, h) * wedge * smoothstep(start, start + 0.08, length(d));
+		col = mix(col, vec3(0.95, 0.93, 1.0), on * lines);
 	}
 	vec2 v = (SCREEN_UV - 0.5) * vec2(1.0, 1.25);
 	col *= 1.0 - vignette * smoothstep(0.32, 0.85, length(v));

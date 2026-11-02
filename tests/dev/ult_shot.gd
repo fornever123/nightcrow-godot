@@ -29,7 +29,7 @@ func run() -> void:
 	if dir == "":
 		dir = ProjectSettings.globalize_path("res://.runtime/shots")
 	DirAccess.make_dir_recursive_absolute(dir)
-	var stage = load("res://scenes/night_trial.tscn").instantiate()
+	var stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	stage.set_physics_process(false)
@@ -37,7 +37,7 @@ func run() -> void:
 	stage.hud._banner = ""        # 截图不要开场横幅
 	stage.hud._banner_life = 0.0
 	var p = stage.player
-	var x := 1400.0
+	var x := float(OS.get_environment("ULT_X")) if OS.get_environment("ULT_X") != "" else 1400.0   # 换个地方试（不同的街段）
 	p.reset_state(Vector2(x, stage.floor_y - p.foot_offset))
 	p._set_facing(1)
 	p.set_injected_frame(fr())
@@ -67,19 +67,25 @@ func run() -> void:
 	await physics_frame
 	p.set_injected_frame(fr())
 	print("ready=", p.ult_ready(), " ult=", p.ult_frame, " state=", p.state, " en=", p.ult_enabled)
-	# 绝影冷峻版（2026-10-25）：发动 / 刀缝张开 / 题字 / 三刀冲击帧 / 斩线 / 静 / 终结冲击帧 / 横断 / 定格 / 斩开 / 收。SHOTS="12,27,..." 可改
-	var want := {4: "ult_01_flash", 14: "ult_02_slit", 26: "ult_03_title", 42: "ult_04_cut1_impact", 46: "ult_05_cut1", 58: "ult_06_cut2", 68: "ult_07_cut3", 86: "ult_08_calm", 100: "ult_09_final_impact", 103: "ult_10_split", 118: "ult_11_freeze", 140: "ult_12_apart", 165: "ult_13_after"}
+	# 绝影（11-01 整段预览 22）：开场 / 视频 / 地图斩切进 / 刀尖出画 / 时停 / 断开 / 错开 / 推近收刀 / 咔 / 退回 / 收。SHOTS="12,27,..." 可改
+	var want := {2: "ult_00_open", 10: "ult_01_rise", 18: "ult_02_fold", 26: "ult_03_spread", 36: "ult_04_crows", 48: "ult_05_fade", 110: "ult_06_movie", 156: "ult_06b_burn", 162: "ult_07_white", 164: "ult_08_whip", 168: "ult_08b_cutin", 174: "ult_09_tip", 179: "ult_10_stop", 183: "ult_11_split", 189: "ult_12_apart", 209: "ult_13_sheathe", 223: "ult_14_click", 236: "ult_15_tide", 256: "ult_16_back", 273: "ult_17_end"}
 	p.ult_reveal.connect(func(): print("reveal at f=", p.ult_frame))
 	if OS.get_environment("SHOTS") != "":
 		want = {}
 		for v in OS.get_environment("SHOTS").split(","):
-			want[int(v)] = "ult_f%03d" % int(v)
+			want[int(v)] = "ult_f%03d" % int(v)    # 负数 = 大招结束后第几帧（-1 是结束后第 0 帧）
 	# 按主角的 ult_frame 截（截图本身会多走物理帧，不能按循环次数算）
 	var done := {}
+	var tail := int(OS.get_environment("TAIL")) if OS.get_environment("TAIL") != "" else 0   ## 大招结束后再录多少帧（看结束后接的收刀）
 	for i in 400:
 		await physics_frame
 		var f: int = p.ult_frame
 		if f < 0 and i > 10:
+			for k in tail:
+				await physics_frame
+				if want.has(-1 - k) and not done.has(-1 - k):
+					done[-1 - k] = true
+					await shot(dir, "ult_after_%02d" % k)
 			break
 		if want.has(f) and not done.has(f):
 			done[f] = true
