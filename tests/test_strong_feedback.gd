@@ -70,7 +70,7 @@ func test_input_time_contract() -> void:
 
 func run() -> void:
 	test_input_time_contract()
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = Night.new()   # 战斗基类（不带背景），镜头缩放等用基类默认值
 	root.add_child(stage)
 	current_scene = stage
 	await physics_frame

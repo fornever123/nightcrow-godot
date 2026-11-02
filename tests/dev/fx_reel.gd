@@ -111,7 +111,7 @@ func run() -> void:
 	if reel == "":
 		reel = "light,charge,launch,dash,ranged,jump,fx"
 	var every := maxi(1, int(OS.get_environment("EVERY")) if OS.get_environment("EVERY") != "" else 1)
-	stage = load("res://scenes/night_trial.tscn").instantiate()
+	stage = load("res://scenes/rain_street.tscn").instantiate()
 	root.add_child(stage)
 	await process_frame
 	stage.set_physics_process(false)

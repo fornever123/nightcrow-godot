@@ -39,8 +39,14 @@ const WARM := Color("ffb25a")
 const HURT := Color("ff5a48")
 const SMOKE_L := Color("5f6378")
 const SMOKE := Color("3b3d4e")
+## 雨街溅水（wet = true 时代替尘土）：冷灰蓝，比弹刀的钢蓝暗一档，只有最亮的水珠沾一点辉光
+const WATER_L := Color("a6b8d2")
+const WATER := Color("7d91b0")
+const WATER_D := Color("4f5f7c")
 
 var enabled: bool = true
+## 湿地面（雨夜河岸街）：落地 / 起跳 / 跑步 / 冲刺 / 出场不扬干土，改成溅水 + 压扁的小涟漪
+var wet: bool = false
 var damage_numbers_enabled: bool = true
 var max_effects: int = 64            ## 同时最多几个伤害数字
 var last_hit_plan: Array[Dictionary] = []
@@ -76,8 +82,12 @@ var _last_feet := Vector2.INF
 var _dissolving: Array = []
 var rng := RandomNumberGenerator.new()
 var _frame_seen := {}
-## 刀光辉光（§16.10）：跟着主角精灵的“影子精灵”，只让帧里亮紫的刀光发光
-var glow_base: float = 0.55
+var _hit_frame: int = -1
+var _hit_n: int = 0                  ## 这一物理帧已经打中几只（第 3 只起不画斩痕，免得一排竖线 / 横线）
+## 刀光辉光（§16.10）：跟着主角精灵的“影子精灵”，只让帧里亮紫的刀光发光。
+## 10-31 刀光改硬边（tools/art/recolor_slash_hard.py）后收紧：平时很淡、半径小，只在打中时亮一下，不再把硬边糊成一团雾
+var glow_base: float = 0.18
+const GLOW_PX := 3.5                  ## 光晕半径（屏幕像素，原来 7）
 var _glow_src: Sprite2D
 var _glow: Sprite2D
 var _glow_mat: ShaderMaterial
@@ -350,6 +360,11 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	if not enabled:
 		return
 	var main := _first_this_frame(&"hit")
+	var fr := Engine.get_physics_frames()
+	if fr != _hit_frame:
+		_hit_frame = fr
+		_hit_n = 0
+	_hit_n += 1
 	var p := clampf(strength, 0.0, 1.6)
 	if dir.length_squared() < 0.01:
 		dir = Vector2.UP if up else Vector2.RIGHT
@@ -363,9 +378,6 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 	var v := rng.randi() % 3 if debug_variant < 0 else debug_variant
 	last_hit_variant = v
 	var back := Vector2(-side, 0.0)
-	var life := 0.13 + 0.05 * p
-	var ln := (110.0 + 80.0 * p) * k
-	var wd := (12.0 + 7.0 * p) * k
 	var w := _w()
 	var cut := a
 	match fam:
@@ -386,117 +398,121 @@ func spawn_hit(point: Vector2, strength: float, up: bool = false, dir := Vector2
 			cut = a + _r(-0.35, 0.35)
 	var t := Vector2.from_angle(cut)
 	var nrm := Vector2(-t.y, t.x)
-	# ---- 闪光（§16.10 有了辉光以后金色爆闪收小一号）
-	var star_r := (22.0 + 13.0 * p) * k
-	if fam == &"ranged" or (fam == &"dash" and v == 1):
-		star_r *= 0.75
+	# ---- 10-31 攻击特效 B：一次命中 = 一道清楚的硬边斩痕（白芯 / 浅紫 / 紫，和帧里的硬边刀光同一种画法）
+	#      + 小白闪 + 少量大颗火花。不再用细刺爆闪、放射速度线（多目标时会糊成一团彩纸屑）。
+	var L := (95.0 + 75.0 * p) * k * (1.0 if main else 0.7)   # 同时打中好几只：后面的只给短的一道
+	var W := (6.0 + 4.0 * p) * k
+	var cl := 0.16 + 0.08 * p
 	if main:
 		_disc(point, (9.0 + 9.0 * p) * k, WHITE, 0.035)
-	if fam == &"ranged" and v == 0:
-		_star(point, star_r * 0.9, cut, 1.6, VIO_L, WHITE, 0.1)
+		_star(point, (20.0 + 12.0 * p) * k, cut, 2.6, VIO_L, WHITE, 0.09, 0.0, 0.5)
 	else:
-		_burst(point, star_r, cut, (8 if p < 0.55 else 10) - (2 if fam == &"ranged" else 0), GOLD, WHITE, AMBER, 0.1 + 0.04 * p)
-	_plan("flash", 0.0, 0.1 + 0.04 * p)
-	# ---- 斩痕：一道道小月牙，消失方式随机
+		_disc(point, 7.0 * k, WHITE, 0.03)
+	_plan("flash", 0.0, 0.09)
+	var echo := func(o: float, lk: float, wk: float, dl: float) -> void:
+		_cut(point + nrm * o * k * w + t * _r(-6, 6) * w, cut + _r(-0.04, 0.04), L * lk, W * wk, cl * 0.9, dl)
+	if _hit_n > 2:
+		fam = &"none"
 	match fam:
-		&"down", &"rise", &"steep":
-			_hit_arc(point, cut, ln, wd, life, 0.0, 1.4, back)
-			if main and v == 1:
-				_hit_arc(point - nrm * _bend(cut, back) * 13.0 * k * w, cut, ln * 0.6, wd * 0.45, life * 0.9, 0.03, 1.6, back)
-			elif main and v == 2:
-				var q := point + t * ln * 0.22 * w
-				var g := cut + _r(0.3, 0.5) * (1.0 if rng.randf() < 0.5 else -1.0)
-				_hit_arc(q + Vector2.from_angle(g) * ln * 0.18 * w, g, ln * 0.42, wd * 0.5, life * 0.85, 0.04, 1.2, back)
+		&"none":
+			pass
 		&"heavy":
 			if v == 0 or not main:
-				_hit_arc(point, cut, ln * 1.3, wd * 1.2, life * 1.1, 0.0, 1.0, back)
+				_cut(point, cut, L * 1.25, W * 1.2, cl * 1.1)
 				if main:
-					var g := cut - side * _r(0.35, 0.55)
-					_hit_arc(point + t * ln * 0.3 * w + Vector2.from_angle(g) * ln * 0.2 * w, g, ln * 0.5, wd * 0.55, life, 0.04, 1.3, back)
+					echo.call(-_bend(cut, back) * 13.0, 0.55, 0.4, 0.035)
 			elif v == 1:
-				var g1 := cut - side * _r(0.45, 0.65)
-				var g2 := cut + side * _r(0.45, 0.65)
-				_hit_arc(point, g1, ln * 0.9, wd * 0.9, life, 0.0, 1.5, back)
-				_hit_arc(point, g2, ln * 0.85, wd * 0.85, life, 0.035, 1.5, back)
+				for sg: float in [-1.0, 1.0]:
+					echo.call(sg * 9.0, 1.05, 0.85, 0.0 if sg < 0.0 else 0.035)
 			else:
-				var bd := _bend(cut, back)
 				var lk := [0.8, 1.0, 0.72]
 				for i in 3:
-					var o := float(i - 1) * 15.0 * k
-					_hit_arc(point + nrm * bd * o * w + t * _r(-8, 8) * w, cut, ln * float(lk[i]), wd * 0.7, life,
-						0.02 * float(i), 1.2, back)
+					echo.call(float(i - 1) * 14.0, float(lk[i]), 0.65, 0.02 * float(i))
 		&"charge":
-			_hit_arc(point, cut, ln * 1.5, wd * 1.35, life * 1.15, 0.0, 0.9, back)
+			_cut(point, cut, L * 1.5, W * 1.5, cl * 1.2)
 			if main:
-				if v == 0:
-					_hit_arc(point - nrm * _bend(cut, back) * 18.0 * k * w, cut, ln * 0.7, wd * 0.5, life, 0.035, 1.1, back)
-				elif v == 1:
-					var g := cut - side * _r(0.9, 1.2)
-					_hit_arc(point + t * 10.0 * w, g, ln * 0.85, wd * 0.8, life, 0.05, 1.4, back)
-				else:
-					var g := cut + _r(0.3, 0.45) * (1.0 if rng.randf() < 0.5 else -1.0)
-					_hit_arc(point + t * ln * 0.3 * w + Vector2.from_angle(g) * ln * 0.3 * w, g, ln * 0.75, wd * 0.6, life, 0.04, 1.2, back)
+				echo.call(-_bend(cut, back) * 18.0, 0.7, 0.45, 0.035)
+				if v == 2:
 					_ring(point, 10.0, 44.0 + 20.0 * p, 7.0, 0.0, VIO_L, 0.14, 0.05)
-		&"up":
-			if v == 1 and main:
-				for sgn: float in [-1.0, 1.0]:
-					var g := cut + sgn * _r(0.28, 0.42)
-					_hit_arc(point + Vector2.from_angle(g) * ln * 0.38 * w, g, ln * 0.85, wd * 0.85, life, 0.0 if sgn < 0.0 else 0.03,
-						1.6, Vector2(sgn, 0.0))
-			else:
-				_hit_arc(point, cut, ln * 1.15, wd, life, 0.0, 1.3, back)
-				if v == 2 and main:
-					var g := cut + _r(0.35, 0.5) * (1.0 if rng.randf() < 0.5 else -1.0)
-					_hit_arc(point + t * ln * 0.25 * w + Vector2.from_angle(g) * ln * 0.18 * w, g, ln * 0.45, wd * 0.5, life, 0.04, 1.2, back)
 		&"dash":
-			if v == 0:
-				_hit_arc(point, cut - 0.42, ln * 1.1, wd * 0.5, life, 0.0, 2.2, back)
-				_hit_arc(point, cut + 0.42, ln * 1.05, wd * 0.5, life, 0.025, 2.2, back)
-			elif v == 2:
-				for sgn: float in [-1.0, 1.0]:
-					_hit_arc(point + t * sgn * ln * 0.2 * w + nrm * sgn * 8.0 * w, cut + sgn * 0.5, ln * 0.45, wd * 0.6, life,
-						0.0 if sgn < 0.0 else 0.03, 0.6, back)
-			else:
-				_hit_arc(point, cut, ln * 1.4, wd * 0.3, life * 0.7, 0.0, 4.0, back)
+			_cut(point, cut, L * 0.6, W * 0.6, cl * 0.8)
+		&"ranged":
+			_cut(point, cut, L * 0.5, W * 0.6, cl * 0.8)
 		_:
-			if v == 0:
-				_hit_arc(point, cut, ln * 0.45, wd * 0.5, life * 0.8, 0.0, 1.4, back)
-			elif v == 1:
-				_arc_cut(point, cut, ln * 0.6, wd * 0.55, life, 0.0, 1.0, _bend(cut, back), 1)
-			else:
-				_hit_arc(point, cut, ln * 0.55, wd * 0.6, life, 0.0, 1.2, back)
-	_plan("cut", 0.0, life)
-	# ---- 火花 / 墨点
-	var ns := (6 + int(8.0 * p)) if main else 3
-	var spread := 0.75
-	if fam == &"ranged":
-		ns = maxi(ns - 2, 3) + (4 if v != 1 else 0)
-		spread = 0.55
-	elif fam == &"up":
-		spread = 0.6
-	_sparks(point, ns, a, spread, 260.0, 520.0 + 380.0 * p, 0.14, 0.26 + 0.1 * p, [WHITE, GOLD, AMBER], 700.0, 3.0 if p >= 0.5 else 2.0)
+			_cut(point, cut, L * (1.1 if v == 2 else 1.0), W, cl)
+			if main and v == 1:
+				echo.call(-_bend(cut, back) * 11.0, 0.55, 0.4, 0.03)
+	_plan("cut", 0.0, cl)
+	# ---- 火花 / 墨点：少而大颗
+	var ns := (4 + int(5.0 * p)) if main else 2
+	var spread := 0.6 if fam == &"up" else 0.75
+	_sparks(point, ns, a, spread, 260.0, 520.0 + 380.0 * p, 0.14, 0.26 + 0.1 * p, [WHITE, GOLD, AMBER], 700.0, 3.0)
 	_plan("spark", 0.0, 0.26 + 0.1 * p)
-	_chunks(point, (3 + int(5.0 * p)) if main else 2, a, 1.0, 120.0, 280.0 + 180.0 * p, 2.0, 5.0, [INK, INK, INK_RIM], 1000.0, 0.3, 0.55)
+	_chunks(point, (2 + int(3.0 * p)) if main else 1, a, 1.0, 120.0, 280.0 + 180.0 * p, 2.0, 5.0, [INK, INK, INK_RIM], 1000.0, 0.3, 0.55)
 	_plan("ink", 0.0, 0.55)
+	if wet:
+		_wet_hit(point, dir, t, p, main, L)
 	if not main:
 		return
 	glow_hit(p)
 	if p >= 0.6:
 		impact_frame(p)
-	# ---- 断环（2–4 段）+ 只往前撒的速度线
-	if p >= 0.3 and not slim and fam != &"ranged":
+	# ---- 重的才给断环；放射速度线只留给蓄力斩
+	if p >= 0.6 and not slim and fam != &"ranged":
 		_ring(point, 10.0, 28.0 + 26.0 * p, 8.0 + 4.0 * p, 0.0, VIO_L, 0.1 + 0.03 * p)
 	_plan("ring", 0.0, 0.1 + 0.03 * p)
-	if p >= 0.55 and not slim:
-		_lines(point, 9, 18.0, 72.0 + 36.0 * p, 4.0, 26.0, WHITE, 0.15, 0.0, a, 0.8 if fam != &"up" else 0.55)
-		_plan("lines", 0.0, 0.15)
 	if p >= 0.9 and not slim:
+		_lines(point, 9, 18.0, 72.0 + 36.0 * p, 4.0, 26.0, WHITE, 0.15, 0.0, a, 0.8 if fam != &"up" else 0.55)
 		_disc(point, 15.0 + 6.0 * p, WHITE, 0.05)
-		_ring(point, 10.0, 40.0 + 26.0 * p, 8.0, 0.0, VIO_L, 0.16, 0.04)
+		_plan("lines", 0.0, 0.15)
 	if up:
 		for i in 3:
 			_streak(point + Vector2(_r(-16, 16), _r(-10, 10)) * w, _r(40, 64), 4.0, -PI * 0.5, VIO_L, WHITE, 0.2,
 				0.03 + 0.03 * float(i), 0.0, Vector2(0, -520))
+
+
+## 雨街命中水花（10-31 攻击特效 C，wet 时）：淋湿的斗篷被砍中，水从身上往打击方向甩出去；
+## 主目标再沿斩痕方向甩一串小水珠（刀把水带出去）+ 一片往前滑的薄水幕；重击在脚下溅一圈。
+## dir = 打击方向，t = 斩痕方向，L = 斩痕长（屏幕像素）
+func _wet_hit(point: Vector2, dir: Vector2, t: Vector2, p: float, main: bool, L: float) -> void:
+	var w := _w()
+	var a := dir.angle()
+	_drops(point, (7 + int(8.0 * p)) if main else 3, a, 0.8, 200.0, 480.0 + 300.0 * p, 0.3, 0.5 + 0.1 * p)
+	if not main:
+		return
+	var sweep := t if t.dot(dir) >= 0.0 else -t
+	var i0 := pfx.items.size()
+	for i in 4 + int(3.0 * p):
+		var q := point + sweep * _r(-0.35, 0.45) * L * w + Vector2(0, _r(-4, 4)) * w
+		var f := pfx.add(K.SPARK, q, _r(0.22, 0.36), _r(0.0, 0.05))
+		f.vel = (sweep * _r(320, 620) + Vector2(0, _r(-60, 40))) * w
+		f.grav = 1500.0 * w; f.drag = 2.0; f.b = 3.5 * w; f.d = 0.04; f.floor_y = _floor(q)
+		f.c0 = WHITE; f.c1 = WATER_L; f.c2 = WATER
+	for i in range(i0, pfx.items.size()):
+		pfx.items[i].mode = 2
+	_streak(point, 34.0 + 20.0 * p, 7.0 + 3.0 * p, a, WATER_L, WHITE, 0.16 + 0.04 * p, 0.0, 0.3, Vector2.from_angle(a) * 260.0)
+	if p >= 0.6:
+		var fy := _floor(point)
+		if is_finite(fy) and fy - point.y < 200.0 * w:
+			_splash(Vector2(point.x, fy), 0.5 + 0.6 * p)
+
+
+## 一把水珠（会落地、缩成点消失，和 _splash 一样不走网点淡出）；刚甩出来那下被闪光照亮
+func _drops(point: Vector2, n: int, ang: float, spread: float, v0: float, v1: float, life0: float, life1: float,
+		width: float = 4.5) -> void:
+	var i0 := pfx.items.size()
+	_sparks(point, n, ang, spread, v0, v1, life0, life1, [WHITE, WATER_L, WATER], 1500.0, width, true, 0.0, 0.04, 2.0)
+	for i in range(i0, pfx.items.size()):
+		pfx.items[i].mode = 2
+
+
+## 硬边斩痕（K.SLIT）：穿过 p、沿 ang 的一道细长针形，白芯 / 浅紫 / 紫三层实色；亮着停 hold，再从尾巴往刀尖收。
+## length / width 屏幕像素
+func _cut(p: Vector2, ang: float, length: float, width: float, life: float, delay: float = 0.0, hold: float = 0.3) -> void:
+	var w := _w()
+	var f := pfx.add(K.SLIT, p, life, delay)
+	f.a = length * w; f.b = width * w; f.c = hold; f.ang = ang
+	f.c0 = WHITE; f.c1 = VIO_L; f.c2 = VIO
 
 
 ## 招式 id → 斩痕家族
@@ -534,12 +550,6 @@ func _bend(ang: float, back: Vector2) -> float:
 	return signf(d)
 
 
-## 命中斩痕：曲率小抖、消失方式随机
-func _hit_arc(p: Vector2, ang: float, length: float, width: float, life: float, delay: float, curve: float,
-		back: Vector2, cols: Array = [WHITE, VIO_L, VIO]) -> void:
-	_arc_cut(p, ang, length, width, life, delay, curve * _r(0.85, 1.2), _bend(ang, back), rng.randi() % 3, cols)
-
-
 ## 同一物理帧里第一次出这种特效吗（多目标同时命中时减量）
 func _first_this_frame(kind: StringName) -> bool:
 	var f := Engine.get_physics_frames()
@@ -563,7 +573,8 @@ func spawn_hurt(point: Vector2, dir := Vector2.ZERO, heavy: bool = false) -> voi
 	_ring(point, 4.0, 26.0 * k, 7, 0.0, HURT, 0.18)
 
 
-## 弹刀：最爽的一下 —— 白爆闪 + 一道横向的长“镲”光 + 一大把会落地弹跳的金属火星（不用同心圆，免得像准星）
+## 弹刀：最爽的一下 —— 白爆闪 + 两道交叉的长“镲”光（两把刀相撞的 X，10-31 攻击特效 F）
+## + 一大把会落地弹跳的金属火星。不画圆弧、不画横竖十字（像准星）
 func spawn_parry(point: Vector2, dir: Vector2) -> void:
 	last_kind = "parry"
 	if not enabled:
@@ -572,14 +583,17 @@ func spawn_parry(point: Vector2, dir: Vector2) -> void:
 		dir = Vector2.RIGHT
 	var a := dir.normalized().angle()
 	var side := 1.0 if dir.x >= 0.0 else -1.0
-	_disc(point, 16.0, WHITE, 0.05)
-	_burst(point, 40.0, _r(0.2, 0.5), 12, STEEL_L, WHITE, STEEL, 0.15)
-	_streak(point, 230.0, 9.0, _r(-0.08, 0.08), STEEL, WHITE, 0.2, 0.0, 0.45)
-	_streak(point, 90.0, 6.0, PI * 0.5 + _r(-0.15, 0.15), STEEL, WHITE, 0.13, 0.0, 0.45)
-	_ring(point, 12.0, 58.0, 14.0, 0.0, STEEL_L, 0.16)
+	_disc(point, 18.0, WHITE, 0.05)
+	_burst(point, 30.0, _r(0.2, 0.5), 8, STEEL_L, WHITE, STEEL, 0.12)
+	var x := _r(0.5, 0.62)
+	_streak(point, 210.0, 9.0, -x * side, STEEL, WHITE, 0.2, 0.0, 0.45)
+	_streak(point, 170.0, 7.0, x * side, STEEL, WHITE, 0.17, 0.02, 0.45)
 	_sparks(point, 18, a - 0.35 * side, 1.25, 320.0, 820.0, 0.28, 0.55, [WHITE, GOLD, AMBER], 1500.0, 3.0, true)
 	_sparks(point, 6, a + PI, 0.9, 200.0, 420.0, 0.2, 0.35, [WHITE, GOLD, AMBER], 1500.0, 2.0, true)
 	_burst(point + Vector2(side * 10.0, -10.0) * _w(), 12.0, 0.0, 4, WHITE, WHITE, GOLD, 0.16, 0.12)
+	if wet:   # 雨街：两把刀上的水被震成一圈细水珠，往两边上方甩开
+		for sg: float in [-1.0, 1.0]:
+			_drops(point, 7, -PI * 0.5 + sg * 0.9, 0.55, 280.0, 640.0, 0.3, 0.48, 3.5)
 
 
 ## 刀砍在敌人的格挡上（或者主角举刀挡住）：小一号的金属碰撞，火星往回弹
@@ -648,10 +662,14 @@ func spawn_ground_slam(point: Vector2, strength: float = 1.0) -> void:
 	_ring(point, 10.0, 80.0 + 40.0 * s, 14, 0.0, WARM_L, 0.3, 0.0, 0.26)
 	_ring(point, 6.0, 56.0, 7, 0.0, WHITE, 0.22, 0.05, 0.26)
 	_chunks(point, 8 + int(8.0 * s), -PI * 0.5, 1.3, 220.0, 560.0, 3.0, 7.0, [STONE_L, STONE, STONE_D], 1400.0, 0.6, 1.0, true, true)
+	if wet:   # 雨街：不扬干土，砸出一大圈水 + 往上崩的水柱
+		_splash(point, 1.5)
+		_drops(point, 10 + int(6.0 * s), -PI * 0.5, 0.5, 300.0, 700.0, 0.35, 0.55, 3.0)
 	for side in [-1.0, 1.0]:
-		for i in 3:
-			_puff(point + Vector2(side * _r(4, 18), _r(-6, 0)) * w, Vector2(side * _r(90, 220), _r(-40, -10)),
-				6.0, 15.0 + 8.0 * s, _r(0.45, 0.7), 0.02 * float(i))
+		if not wet:
+			for i in 3:
+				_puff(point + Vector2(side * _r(4, 18), _r(-6, 0)) * w, Vector2(side * _r(90, 220), _r(-40, -10)),
+					6.0, 15.0 + 8.0 * s, _r(0.45, 0.7), 0.02 * float(i))
 		_crack(point, side, s)
 
 
@@ -692,18 +710,40 @@ func spawn_launch(point: Vector2) -> void:
 	if not enabled:
 		return
 	var w := _w()
-	for i in 4:
+	# 一下挑飞好几只：只有第一只给满 4 道，后面的 1 道（10-31，原来每只 4 道，竖线糊成一片）
+	var n := 4 if _first_this_frame(&"launch") else 1
+	for i in n:
 		_streak(point + Vector2(_r(-24, 24), _r(-20, 20)) * w, _r(40, 70), _r(3, 4), -PI * 0.5, VIO_L, WHITE, 0.22,
 			0.02 * float(i), 0.0, Vector2(0, -640))
 
 
-## 击杀：一圈白环 + 放射线（终结那一下要读得出来）
+## 击杀终结（10-31 攻击特效 D）：背景压暗一下 + 一道贯穿全身的长斩线（顺着主角朝向）+ 影卒崩成往外飘的墨羽。
+## 和普通命中拉开差距：普通命中是短斩痕，击杀是整条贯穿。
 func spawn_kill(point: Vector2) -> void:
 	if not enabled or not _first_this_frame(&"kill"):
 		return
-	_disc(point, 18.0, WHITE, 0.05)
-	_burst(point, 34.0, _r(0, 1), 10, VIO_L, WHITE, VIO, 0.14)
-	_lines(point, 12, 20.0, 110.0, 5.0, 34.0, WHITE, 0.18)
+	var w := _w()
+	var facing := float(_player.get("facing")) if is_instance_valid(_player) and _player.get("facing") != null else 1.0
+	var ang := (0.0 if facing > 0.0 else PI) + _r(-0.32, 0.32)
+	var t := Vector2.from_angle(ang)
+	var nrm := Vector2(-t.y, t.x)
+	impact_frame(0.95)
+	_disc(point, 20.0, WHITE, 0.05)
+	_star(point, 30.0, ang, 3.0, VIO_L, WHITE, 0.1, 0.0, 0.5)
+	_cut(point + t * 20.0 * w, ang, 240.0, 11.0, 0.28, 0.0, 0.45)
+	_cut(point + nrm * 11.0 * w + t * 40.0 * w, ang + _r(-0.05, 0.05), 150.0, 4.0, 0.22, 0.04, 0.35)
+	# 墨羽：细长的羽片（烟灰边 + 浅灰羽轴；纯黑在夜景里看不见），从斩线上往外、往上飘开
+	for i in 8:
+		var along := t * _r(-60, 60) * w
+		var off := nrm * _r(-18, 18) * w
+		var out := (nrm * signf(off.dot(nrm) + 0.001) * _r(60, 160) + Vector2(0, -_r(40, 120)) + t * facing * _r(-30, 90))
+		_streak(point + along + off, _r(26, 40), _r(7, 10), out.angle() + _r(-0.6, 0.6), SMOKE_L, DUST_L, _r(0.45, 0.7),
+			_r(0.0, 0.06), 0.25, out)
+	if wet:   # 雨街：身上的水整个炸开，倒下的地方溅一圈
+		_drops(point, 12, -PI * 0.5, 1.5, 200.0, 560.0, 0.3, 0.5)
+		var fy := _floor(point)
+		if is_finite(fy) and fy - point.y < 200.0 * w:
+			_splash(Vector2(point.x, fy), 1.1)
 
 
 ## 远射出手：枪口小闪
@@ -716,9 +756,35 @@ func spawn_muzzle(point: Vector2, dir: Vector2) -> void:
 
 # ---------------------------------------------------------------- 尘土
 
+## 溅水（wet）：s 力度 0.2..1.5；back ≠ 0 = 水往身后那一边甩（跑步 / 冲刺）。
+## 水珠是会落回地面的短线（缩成点消失，不走网点淡出）；地上一圈压得很扁的断环涟漪。
+func _splash(point: Vector2, s: float, back: float = 0.0) -> void:
+	var n := 2 + int(8.0 * s)
+	var up := -PI * 0.5
+	var w := _w()
+	var i0 := pfx.items.size()
+	if back == 0.0:
+		for side in [-1.0, 1.0]:
+			_sparks(point + Vector2(side * 4.0, -1.0) * w, n / 2 + 1, up + side * 0.7, 0.42, 160.0, 260.0 + 240.0 * s,
+				0.22, 0.32 + 0.14 * s, [WATER_L, WATER, WATER_D], 1500.0, 2.5, true, 0.0, 0.03, 2.0)
+		if s >= 0.5:   # 贴地往两边甩开的一片水：短、扁、往外滑
+			for side in [-1.0, 1.0]:
+				_streak(point + Vector2(side * 10.0, -3.0) * w, 16.0 + 16.0 * s, 4.0, -0.3 if side > 0.0 else PI + 0.3,
+					WATER, WATER_L, 0.16 + 0.04 * s, 0.0, 0.4, Vector2(side * 200.0 * s, -30.0))
+	else:
+		_sparks(point, n, up + back * 0.95, 0.4, 120.0, 220.0 + 160.0 * s, 0.18, 0.28 + 0.1 * s,
+			[WATER_L, WATER, WATER_D], 1500.0, 2.0, true, 0.0, 0.03, 2.0)
+	for i in range(i0, pfx.items.size()):
+		pfx.items[i].mode = 2
+	_ring(point, 3.0, 16.0 + 22.0 * s, 2.0 + 1.5 * s, 0.0, WATER, 0.24 + 0.12 * s, 0.0, 0.2)
+
+
 ## 通用的一小团尘土（敌人出现、翻滚……）
 func spawn_dust(point: Vector2, strength: float = 0.45) -> void:
 	if not enabled:
+		return
+	if wet:
+		_splash(point, clampf(strength, 0.2, 1.5) * 0.8)
 		return
 	var s := clampf(strength, 0.2, 1.5)
 	var w := _w()
@@ -731,6 +797,11 @@ func spawn_dust(point: Vector2, strength: float = 0.45) -> void:
 ## 落地：两边各滚出几团；重落地再加一圈贴地的环和小石子
 func spawn_land(point: Vector2, heavy: bool = false) -> void:
 	if not enabled:
+		return
+	if wet:
+		_splash(point, 1.3 if heavy else 0.75)
+		if heavy:
+			_ring(point, 6.0, 60.0, 3.0, 0.0, WATER_L, 0.32, 0.04, 0.18)
 		return
 	var w := _w()
 	var n := 3 if heavy else 2
@@ -755,6 +826,8 @@ func spawn_jump(point: Vector2, is_double: bool = false) -> void:
 			_streak(point + Vector2(side * 14.0, 4.0) * w, 34.0, 4.0, PI * 0.5 - side * 0.5, VIO_L, WHITE, 0.16, 0.0, 0.4,
 				Vector2(side * 160.0, 260.0))
 		_sparks(point, 5, PI * 0.5, 1.3, 60.0, 160.0, 0.18, 0.3, [WHITE, VIO_L, VIO], -100.0, 2.0)
+	elif wet:
+		_splash(point, 0.5)
 	else:
 		for side in [-1.0, 1.0]:
 			_puff(point + Vector2(side * 6.0, -2.0) * w, Vector2(side * _r(30, 70), _r(-20, -8)), 3.0, 8.0, _r(0.28, 0.36))
@@ -767,7 +840,10 @@ func spawn_dash(point: Vector2, facing: int) -> void:
 	var w := _w()
 	var back := -float(facing)
 	# 尘土帧里已经烘焙了（浅灰蓝），这里只补一小团贴地的，免得抖动点糊成一片
-	_puff(point + Vector2(back * 6.0, -2.0) * w, Vector2(back * 90.0, -10.0), 3.0, 8.0, 0.3)
+	if wet:
+		_splash(point, 0.6, back)
+	else:
+		_puff(point + Vector2(back * 6.0, -2.0) * w, Vector2(back * 90.0, -10.0), 3.0, 8.0, 0.3)
 	for i in 4:
 		var h := _r(16, 70)
 		_streak(point + Vector2(back * _r(0, 30), -h) * w, _r(40, 72), 2.0, 0.0, VIO_L, WHITE, _r(0.16, 0.24),
@@ -816,6 +892,9 @@ func spawn_dash_hit(point: Vector2, facing: int) -> void:
 ## 跑步脚步扬起的一点点灰
 func spawn_step(point: Vector2, facing: int) -> void:
 	if not enabled:
+		return
+	if wet:
+		_splash(point, 0.25, -float(facing))
 		return
 	_puff(point + Vector2(-float(facing) * 6.0, -1.0) * _w(), Vector2(-float(facing) * _r(20, 50), _r(-18, -6)), 2.0, 6.0, _r(0.22, 0.3))
 
@@ -914,7 +993,7 @@ func track_glow(src: Sprite2D) -> void:
 
 ## 打中时刀光亮一下（力度越大越亮）
 func glow_hit(p: float) -> void:
-	_glow_pulse = maxf(_glow_pulse, 0.45 + 0.45 * clampf(p, 0.0, 1.0))
+	_glow_pulse = maxf(_glow_pulse, 0.2 + 0.3 * clampf(p, 0.0, 1.0))   # 10-31 硬边刀光：脉冲收小，打中不再整条发白
 
 
 func _sync_glow() -> void:
@@ -928,9 +1007,9 @@ func _sync_glow() -> void:
 	var tex := src.texture
 	var tsize := tex.get_size()
 	var rect := src.region_rect if src.region_enabled else Rect2(Vector2.ZERO, tsize)
-	# 光晕约 7 个屏幕像素：换算成贴图像素；四周多留一圈给光晕
+	# 光晕约 GLOW_PX 个屏幕像素：换算成贴图像素；四周多留一圈给光晕
 	var spp := absf(src.get_global_transform_with_canvas().get_scale().x)
-	var radius := clampf(7.0 / maxf(spp, 0.01), 4.0, 64.0)
+	var radius := clampf(GLOW_PX / maxf(spp, 0.01), 3.0, 64.0)
 	var pad := ceilf(radius + 2.0)
 	_glow.texture = tex
 	_glow.centered = src.centered

@@ -25,6 +25,17 @@ uniform float ol_width = 0.0;       // 描边宽度（屏幕像素），0 = 不�
 uniform vec3 ol_col = vec3(0.008, 0.008, 0.012);
 uniform float punch_con = 1.0;      // 对比
 uniform float punch_sat = 1.0;      // 饱和
+// 第五轮（光线线 2026-10-30，雨夜河岸街）：角色跟着所在位置变亮变暗，身体内部也有明暗。默认值 = 不起作用（月下堤岸不变）。
+uniform float exposure = 1.0;       // 环境明暗：暗处 < 1，灯下 ≈ 1（脚本按受光每帧给）
+uniform float hi_knee = 1.0;        // 高光压缩：亮度超过这里的部分按 hi_slope 收（白衣、皮肤别比灯还亮）
+uniform float hi_slope = 1.0;
+uniform float form_amt = 0.0;       // 体积感：用轮廓透明度的梯度当“枕头法线”，背光的一侧压暗（不需要法线贴图，逐帧不闪）
+uniform float form_warm = 0.0;      // 灯那一侧额外的暖光（按法线朝向灯的程度）
+uniform vec2 form_px = vec2(8.0, 8.0);  // 法线取样半径（贴图像素，脚本按屏幕像素换算）
+uniform float form_z = 0.7;         // 越小越“圆”（边上法线越斜）
+// 刀光自发光（10-31 攻击特效 A）：帧里的亮紫刀光不吃环境光 / 月光边缘光 / 压暗，保持 recolor_slash_hard.py 的四阶硬边颜色。
+// 只认亮紫（和 fx_glow_sprite 同一套判断：蓝高、绿低、够亮）；头发的紫蓝偏暗，不算。0 = 关
+uniform float slash_emissive = 0.0;
 
 // 轮廓取样：某点“算不算身体”（刀光：亮且偏蓝白、或亮紫（紫刀光/紫晕，见 tools/art/recolor_slash.py）→ 不算，所以刀光外面不描边）
 #define OL_TAP(ACC, ALPHA, UVV) { \
@@ -45,6 +56,9 @@ uniform float punch_sat = 1.0;      // 饱和
 float inside(vec2 uv) {
 	return step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
 }
+
+// 不能把 TEXTURE 传进函数（见 char_hq.gdshaderinc），取透明度写成宏
+#define A_AT(UVV) (texture(TEXTURE, (UVV)).a * inside(UVV))
 
 vec3 screen(vec3 a, vec3 b) {
 	return vec3(1.0) - (vec3(1.0) - a) * (vec3(1.0) - b);
@@ -72,12 +86,35 @@ void fragment() {
 		float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
 		vec3 amb = mix(ambient, vec3(1.0), warm * 0.45);
 		vec3 col = mix(c.rgb, vec3(lum), desat * (1.0 - warm * 0.5)) * amb + shadow_lift * (1.0 - lum) * (1.0 - lum);
+		float lk = dot(col, vec3(0.299, 0.587, 0.114));
+		if (lk > hi_knee) {
+			col *= (hi_knee + (lk - hi_knee) * hi_slope) / lk;
+		}
+		col *= exposure;
+		if (form_amt > 0.0 || form_warm > 0.0) {
+			// 枕头法线：两种半径的透明度梯度平均，指向轮廓外；身体中间梯度为 0 → 法线朝屏幕外
+			vec2 g = vec2(0.0);
+			vec2 fr = TEXTURE_PIXEL_SIZE * form_px;
+			for (int k = 0; k < 2; k++) {
+				vec2 r = fr * (k == 0 ? 0.5 : 1.0);
+				g += vec2(A_AT(UV - vec2(r.x, 0.0)) - A_AT(UV + vec2(r.x, 0.0)), A_AT(UV - vec2(0.0, r.y)) - A_AT(UV + vec2(0.0, r.y)));
+			}
+			vec3 n = normalize(vec3(g * 0.5, form_z));
+			float lm = max(dot(n, normalize(vec3(md, 0.75))), 0.0);
+			col *= mix(1.0 - form_amt, 1.0 + form_amt * 0.35, lm);
+			float lw = max(dot(n, normalize(vec3(wd, 0.45))), 0.0);
+			col += c.rgb * warm_col * warm * lw * form_warm;
+		}
 		col += c.rgb * warm_col * warm * (0.22 + 0.6 * wide);
 		col = screen(col, moon_col * clamp(rim, 0.0, 1.0) * moon_amt * (1.0 - warm * 0.4));
 		col = screen(col, warm_col * clamp(wrim, 0.0, 1.0) * warm * 0.9);
 		float l2 = dot(col, vec3(0.299, 0.587, 0.114));
 		col = mix(vec3(l2), col, punch_sat);
 		col = clamp(0.5 + (col - 0.5) * punch_con, 0.0, 1.0);
+		if (slash_emissive > 0.0) {
+			float vio = step(0.6, c.b) * step(c.g + 0.15, c.b) * step(c.r + 0.05, c.b);
+			col = mix(col, c.rgb, vio * smoothstep(0.3, 0.5, lum) * slash_emissive);
+		}
 		c.rgb = col;
 	}
 	vec4 o = vec4(c.rgb * c.a, c.a);
