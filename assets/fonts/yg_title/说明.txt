@@ -1,0 +1,7 @@
+[YG-MARK] 由 YG 新增（11-05 首页适配：字体打包进游戏，不再依赖玩家电脑装没装）。
+NotoSerifSC-VF.ttf —— Noto Serif SC（思源宋体的 Google 发行版）可变字体，字重 200～900。
+来源：本机 C:\Windows\Fonts\NotoSerifSC-VF.ttf，原始发布 https://github.com/notofonts/noto-cjk
+许可：SIL Open Font License 1.1（可随游戏免费分发，不能单独出售字体本身）。正式发布时请附上 OFL 全文：
+      https://openfontlicense.org/open-font-license-official-text/
+首页用 400（正文）/ 300（细字），拉丁字母（LUX SCISSA、罗马数字、按键名）也用它。
+删除：随首页一起删，见 docs/YG-首页断光-删除清单.md。

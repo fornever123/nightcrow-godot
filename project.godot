@@ -1,8 +1,12 @@
+; ===== [YG-MARK] 首页「断晓 · 断光」（YG 新增，全部改动都可以按 docs/YG-首页断光-删除清单.md 撤回）=====
+; [YG-MARK] run/main_scene 指向 YG 新做的首页场景 res://scenes/yg_title_duanguang.tscn。
+; [YG-MARK] 撤回：把下面 run/main_scene 改回 "res://scenes/rain_trial.tscn"，再删掉三处 yg_title 资源目录和首页场景、截图脚本。
+; =====================================================================================================
 config_version=5
 
 [application]
 config/name="雨夜河岸街 · 试玩版"
-run/main_scene="res://scenes/rain_trial.tscn"
+run/main_scene="res://scenes/yg_title_duanguang.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
