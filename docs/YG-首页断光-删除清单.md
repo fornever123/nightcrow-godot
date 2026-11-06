@@ -22,7 +22,7 @@
 | `scripts/ui/yg_title/yg_title_stage.gd` | 渲染：SubViewport 链 + 全部 uniform |
 | `scripts/ui/yg_title/yg_title_ui.gd` | 界面：章节铭文、副标题、菜单、设置面板、确认、提示、结束卡 |
 | `scripts/ui/yg_title/yg_cut_half.gd` | 菜单字的斜切半片图层 |
-| `scripts/ui/yg_title/yg_title_audio.gd` | 声音：启动时合成雨声床和几个音效（删掉本文件后其余代码不会报错，只是没声音） |
+| `scripts/ui/yg_title/yg_title_audio.gd` | 声音：真实录音的雨声床 + 刀鸣 / 斩 / 冲击 / 收刀 / 界面音；运行时建总线 `YgTitleRain`，离开首页自动删（删掉本文件后其余代码不会报错，只是没声音） |
 
 ### 着色器（网页版 7 个 pass 的逐行翻译）
 | 路径 | 对应网页版 |
@@ -51,6 +51,17 @@
 | `assets/fonts/yg_title/NotoSerifSC-VF.ttf` | Noto Serif SC 可变字体（25 MB，SIL OFL 1.1），首页中文和拉丁字都用它 |
 | `assets/fonts/yg_title/说明.txt` | 来源与许可说明 |
 
+### 声音（11-05 加，全部 CC0）
+| 路径 | 作用 |
+|---|---|
+| `assets/audio/yg_title/rain_bed.ogg` | 主雨声循环（OpenGameArt · Ylmir「Rain loopable」3 号） |
+| `assets/audio/yg_title/rain_near.ogg` | 近处屋檐 / 水沟滴水循环（OpenGameArt · Ogrebane） |
+| `assets/audio/yg_title/ui_move.ogg`、`ui_back.ogg` | 换选项 / 返回（Kenney Interface Sounds） |
+| `assets/audio/yg_title/LICENSE.txt` | 来源与授权 |
+| `assets/audio/yg_title/*.import` | Godot 导入配置 |
+
+刀鸣、斩、冲击、碎裂、推鲤口、收刀**直接引用**大招线的 `assets/audio/ult/*.ogg`，没复制；删首页时**别动** `assets/audio/ult/`。
+
 ### 首页运行时写的存档（在 `user://`，不在工程里）
 | 文件 | 内容 |
 |---|---|
@@ -61,6 +72,7 @@
 | 路径 | 作用 |
 |---|---|
 | `tests/dev/yg_title_shot.gd` | 定步快进截图脚本（`fast_forward(秒)`，和网页版 `?at=秒` 对齐） |
+| `tests/test_title_pad.gd` | 11-06 手柄测试（headless，只发手柄事件走完整流程，38 项；跑前备份 user:// 设置，跑完放回） |
 | `docs/YG-首页断光-删除清单.md` | 本文件 |
 
 > `.runtime/` 下的一次性东西（`yg-ref/`网页版对照截图、`yg-title-shots/` 实机截图、`yg-title-dbg/` 分量诊断、
@@ -103,7 +115,9 @@ Remove-Item scripts/ui/yg_title -Recurse -Force
 Remove-Item assets/shaders/yg_title -Recurse -Force
 Remove-Item assets/image/yg_title -Recurse -Force
 Remove-Item assets/fonts/yg_title -Recurse -Force
+Remove-Item assets/audio/yg_title -Recurse -Force
 Remove-Item tests/dev/yg_title_shot.gd -Force
+Remove-Item tests/test_title_pad.gd, tests/test_title_pad.gd.uid -Force -ErrorAction SilentlyContinue
 Remove-Item docs/YG-首页断光-删除清单.md -Force
 Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) '断晓 · 启动游戏.lnk') -Force
 # 3) 收尾：删掉 project.godot 顶部 4 行 [YG-MARK] 注释
@@ -120,11 +134,12 @@ Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) '断晓 · 启�
 - **矢量字标分支**：网页版 `?logo=vec` 那套矢量骨架（`GLYPH` / `strokePolys`）没搬；这里只用 GPT 那两张 webp，也就是网页版的默认样子。
 - **`uTitle`**：网页版拿它做白瓷倒角高度图，GPT 模式下它其实是全黑、所有相关项恒为 0，所以这里直接去掉了。
 - **dpr**：~~这里用 1.0~~ → 11-05 起按窗口真实像素渲染（1080p 全屏 = 1.5 倍，开 F7 超采样再 ×2，上限 3 倍），泛光链仍按 1280×720 算，光晕大小不变。
-- **声音**：网页版 WebAudio 现场合成，这里是启动时合成成 WAV 再播，音色接近但不完全一样。
+- **声音**：~~网页版 WebAudio 现场合成，这里是启动时合成成 WAV 再播~~ → 11-05 起全换真实录音（见第 1 节「声音」）。网页版的低频 drone 没做（用户否过低频嗡）；雨停在半空时改成低通把雨声抽走 + 一声刀鸣。
 - **存档**：~~「继续」看 `user://yg_title_save.dat`~~ → 11-05 拿掉了「继续」（没有存档系统，点了等于重新开局），换成「操作说明」。
 - **「退出」**：网页版是显示结束卡（网页关不掉自己），这里直接退出游戏。
 - **F7 超采样**：11-05 起首页跟着生效（设置页也能开关，存 `user://graphics.cfg`）。
 - **11-05 改好看**（没加新文件，改的都是上面列过的 YG 文件，改处带 `[YG-MARK] 11-05 改好看` 注释）：去掉四角框线 / 章节铭文 / 右上快捷键 / 底部玩法提示 / DEMO 版本号；字标中心 0.42H → 0.385H、字标略缩，菜单挂到副标题下 7.5u、字放大加粗、底下垫羽化暗底，选中改成两侧紫菱 + 字下银线；设置 / 说明 / 确认页去掉方框，改成羽化暗底 + 上下渐隐细线；昼光层去掉同心圆光环和悬空碎石、残碑描边压到 1/4、灰雾减半、两侧压暗、刀口以下压暗，开场光从光源处由暖金一圈圈铺开；影层倒影描边 .22 → .04、离刀口越远越暗、字倒影收短减弱；悬珠冻住后淡出的比例 42% → 60%，远处小珠更暗。
+- **11-05 更高级**（没加新文件，改处带 `[YG-MARK] 11-05 更高级`）：断碑描边 / 光柱星点 / 字标倒影去掉，光聚到字标后，影层加刀口漏光和水中光柱倒影，最终调色改成上冷银下墨蓝黑并加对比暗角，刀口两头收细，悬珠分三层并减量，菜单暗底改成平滑渐变（修划刀灰圈），副标题用系统哥特字 Old English Text MT（同暂停菜单，**不随游戏分发**，发布前要换开源字），去罗马数字。网页版没有这些。
 - **11-05 适配另加**：手柄（十字键 / 左摇杆选，A / Start 确认，B 返回，提示随设备换）；字体打包；设置页加主音量 / 全屏 / 超采样 / 操作方式并存盘；菜单出来就后台加载试玩，收黑后换场景、root 下挂 `YgTitleFadeIn` 黑幕 0.6 秒淡出自删；同一次运行第二次进首页跳过开场；菜单字斜切改用本地坐标（非 16:9 窗口不再切偏）；设置页鼠标点哪行改哪行（原来点了没反应）。
 
 ---

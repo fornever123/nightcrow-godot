@@ -41,6 +41,7 @@ var _serif: Font
 var _serif_light: Font
 var _gothic: Font
 var _menu_font: Font
+var _blackletter: Font     # [YG-MARK] 11-05：副标题的哥特字，和暂停菜单「Intermissio」、战斗评价字母同一款
 var pad_mode := false       ## [YG-MARK] 最近一次用的是手柄 → 提示换成手柄键名
 
 var _halves: Array = []
@@ -55,14 +56,14 @@ var MENU := [
 
 ## [YG-MARK] 11-05：加主音量（总线 0，和暂停菜单同一个）、全屏、超采样、操作方式；值都问 app.row_value()
 var ROWS := [
-	{"k": "quality", "label": "画 面 品 质", "type": "choice", "opts": ["低", "中", "高"]},
-	{"k": "rain", "label": "雨 　 　 量", "type": "slider"},
-	{"k": "shake", "label": "镜 头 震 动", "type": "toggle"},
-	{"k": "master", "label": "主 音 量", "type": "slider"},
-	{"k": "fullscreen", "label": "全 　 　 屏", "type": "toggle"},
-	{"k": "ssaa", "label": "超 采 样", "type": "toggle"},
-	{"k": "scheme", "label": "操 作 方 式", "type": "choice", "opts": ["键盘", "键鼠"]},
-	{"k": "back", "label": "返 　 　 回", "type": "back"},
+	{"k": "quality", "label": "画面品质", "type": "choice", "opts": ["低", "中", "高"]},
+	{"k": "rain", "label": "雨量", "type": "slider"},
+	{"k": "shake", "label": "镜头震动", "type": "toggle"},
+	{"k": "master", "label": "主音量", "type": "slider"},
+	{"k": "fullscreen", "label": "全屏", "type": "toggle"},
+	{"k": "ssaa", "label": "超采样", "type": "toggle"},
+	{"k": "scheme", "label": "操作方式", "type": "choice", "opts": ["键盘", "键鼠"]},
+	{"k": "back", "label": "返回", "type": "back"},
 ]
 
 const ROW_H := 3.1
@@ -81,6 +82,10 @@ func setup(s: RefCounted, view: Vector2) -> void:
 	# 现在用同一份字体里的拉丁字形，字重 500 让细小的大写字母站得住
 	_gothic = _font(500)
 	_menu_font = _font(500)
+	# 和 pause_menu.gd / combat_hud.gd 一样先找系统的 Old English；发布前三处一起换成能打包的开源哥特字
+	var bl := SystemFont.new()
+	bl.font_names = PackedStringArray(["Old English Text MT", "UnifrakturMaguntia", "Noto Serif SC", "serif"])
+	_blackletter = bl
 	_build_halves()
 
 
@@ -178,7 +183,7 @@ func _layout_halves() -> void:
 		if mode != "menu":
 			a = 0.0
 		c.label_text = MENU[item]["label"]
-		c.num_text = MENU[item]["num"]
+		c.num_text = ""    # [YG-MARK] 11-05 更高级：罗马数字 Ⅰ～Ⅳ 小到看不清，去掉
 		c.font_serif = _menu_font
 		c.font_gothic = _gothic
 		c.unit = u
@@ -276,9 +281,10 @@ func _draw_sub() -> void:
 		return
 	var y: float = sim.C.y + sim.F * 1.02
 	var grow := clampf((_t - 0.3) / 1.8, 0.0, 1.0)
-	var txt := "LUX SCISSA"
-	var fs := int(round(1.75 * u))
-	var w := _spaced_width(txt, _gothic, fs, 0.48)
+	# [YG-MARK] 11-05 更高级：副标题回到定好的哥特小字 Lux Scissa（移植时跟着网页版成了拉开字距的宋体大写）
+	var txt := "Lux Scissa"
+	var fs := int(round(2.5 * u))
+	var w := _spaced_width(txt, _blackletter, fs, 0.04)
 	var lw := 11.5 * u * grow
 	var gap := 1.8 * u
 	var cx := size.x * 0.5
@@ -286,7 +292,7 @@ func _draw_sub() -> void:
 	_line_grad(Vector2(cx + w * 0.5 + gap, y), Vector2(cx + w * 0.5 + gap + lw, y), Color(0.855, 0.831, 0.784, a * 0.65), false)
 	_diamond(Vector2(cx - w * 0.5 - gap * 0.45, y), 0.44 * u * 0.5, Color(0.86, 0.84, 0.79, 0.8 * a))
 	_diamond(Vector2(cx + w * 0.5 + gap * 0.45, y), 0.44 * u * 0.5, Color(0.86, 0.84, 0.79, 0.8 * a))
-	_text_spaced(Vector2(cx - w * 0.5, y + fs * 0.34), txt, _gothic, fs, Color(0.84, 0.816, 0.776, a), 0.48)
+	_text_spaced(Vector2(cx - w * 0.5, y + fs * 0.3), txt, _blackletter, fs, Color(0.86, 0.84, 0.8, a), 0.04)
 
 
 func _draw_menu_decor() -> void:
@@ -333,7 +339,7 @@ func _draw_hint() -> void:
 	var widths: Array = []
 	var total := 0.0
 	var gapw := 2.2 * u
-	var lfs := int(round(1.05 * u))
+	var lfs := int(round(1.3 * u))     # [YG-MARK] 11-05 更高级：提示放大一号、提亮
 	for p in parts:
 		var kw := _chip_width(p[0])
 		var tw := _spaced_width(p[1], _serif_light, lfs, 0.26)
@@ -344,9 +350,9 @@ func _draw_hint() -> void:
 	var x := size.x * 0.5 - total * 0.5
 	for i in parts.size():
 		var kw: float = widths[i][0]
-		_chip(Rect2(Vector2(x, y - 0.95 * u), Vector2(kw, 1.9 * u)), parts[i][0], a)
+		_chip(Rect2(Vector2(x, y - 1.1 * u), Vector2(kw, 2.2 * u)), parts[i][0], a)
 		_text_spaced(Vector2(x + kw + 0.55 * u, y + lfs * 0.34), parts[i][1], _serif_light, lfs,
-				Color(0.408, 0.439, 0.525, a), 0.26)
+				Color(0.56, 0.58, 0.65, a), 0.26)
 		x += float(widths[i][2]) + gapw
 
 
@@ -362,10 +368,11 @@ func _draw_ver() -> void:
 
 func _draw_top_hud() -> void:
 	var a := clampf((_t - 1.0) / 1.0, 0.0, 1.0) * _a
-	if a <= 0.01 or pad_mode:
+	if a <= 0.01:
 		return
 	var fs := int(round(1.02 * u))
-	var txt := "重播开场 · R"
+	# [YG-MARK] 11-06：手柄也有这两个键了（Back 重播、Y 声音），手柄时换键名而不是藏起来
+	var txt := "重播开场 · Back" if pad_mode else "重播开场 · R"
 	var w := _spaced_width(txt, _serif_light, fs, 0.26)
 	var bh := 2.0 * u
 	var right := size.x - 3.6 * u
@@ -375,7 +382,7 @@ func _draw_top_hud() -> void:
 	_btn(Rect2(Vector2(x1, y_top), Vector2(bw1, bh)), a)
 	_text_spaced(Vector2(x1 + 0.7 * u, y_top + bh * 0.5 + fs * 0.34), txt, _serif_light, fs,
 			Color(0.541, 0.573, 0.667, a), 0.26)
-	var txt2 := "声音 · M"
+	var txt2 := "声音 · Y" if pad_mode else "声音 · M"
 	var w2 := _spaced_width(txt2, _serif_light, fs, 0.26)
 	var bw2 := w2 + 2.2 * u
 	var x2 := x1 - 0.9 * u - bw2
@@ -466,13 +473,14 @@ func _draw_settings() -> void:
 			continue
 		if is_sel:
 			_row_sel(r, ry, rh)
-		_text_spaced(Vector2(r.position.x + 2.0 * u, ry + rh * 0.5 + lfs * 0.34), row["label"], _serif, lfs,
-				Color(0.961, 0.949, 0.925) if is_sel else Color(0.557, 0.569, 0.62), 0.4)
+		# [YG-MARK] 11-05 更高级：标签正常字距（原来按四个字两端撑开，“雨　　量”很怪）
+		_text_spaced(Vector2(r.position.x + 2.6 * u, ry + rh * 0.5 + lfs * 0.34), row["label"], _serif, lfs,
+				Color(0.961, 0.949, 0.925) if is_sel else Color(0.6, 0.612, 0.66), 0.14)
 		_draw_row_ctl(row, Vector2(r.position.x + r.size.x - 2.0 * u, ry + rh * 0.5), is_sel)
 
 
 func _draw_row_ctl(row: Dictionary, right: Vector2, is_sel: bool) -> void:
-	var fs := int(round(1.45 * u))
+	var fs := int(round(1.6 * u))     # [YG-MARK] 11-05 更高级：选项放大
 	var key: String = row["k"]
 	match str(row["type"]):
 		"choice":
@@ -521,7 +529,8 @@ func _draw_row_ctl(row: Dictionary, right: Vector2, is_sel: bool) -> void:
 			for i in 3:
 				var t: String = labels[i]
 				var w := _spaced_width(t, _serif, fs, 0.2)
-				var c := Color(0.541, 0.573, 0.667)
+				# [YG-MARK] 11-05 更高级：没选的那个压暗，开 / 关一眼分得出
+				var c := Color(0.541, 0.573, 0.667) if i == 0 else Color(0.365, 0.388, 0.467)
 				if i == 1 and not on:
 					c = Color(0.953, 0.941, 0.918)
 				elif i == 2 and on:
@@ -688,24 +697,45 @@ func _cut_line(c: Vector2, width: float, a: float) -> void:
 		draw_line(a0.lerp(a1, t0), a0.lerp(a1, t1), Color(col.r, col.g, col.b, al * a), 1.5)
 
 
+## [YG-MARK] 11-05 更高级：椭圆光斑 / 暗底都改用一张平滑的径向渐变图拉伸着画。
+## 原来是一圈圈半透明圆叠出来的，背后一亮（玩家划刀）就露出一道道同心台阶。
+var _radial: GradientTexture2D
+
+
+func _radial_tex() -> GradientTexture2D:
+	if _radial == null:
+		var g := Gradient.new()
+		var offs := PackedFloat32Array()
+		var cols := PackedColorArray()
+		for i in 17:
+			var t := float(i) / 16.0
+			offs.append(t)
+			var a := 1.0 - smoothstep(0.35, 1.0, t)
+			cols.append(Color(1, 1, 1, a))
+		g.offsets = offs
+		g.colors = cols
+		_radial = GradientTexture2D.new()
+		_radial.gradient = g
+		_radial.fill = GradientTexture2D.FILL_RADIAL
+		_radial.fill_from = Vector2(0.5, 0.5)
+		_radial.fill_to = Vector2(1.0, 0.5)
+		_radial.width = 256
+		_radial.height = 256
+	return _radial
+
+
+func _radial_blob(c: Vector2, rx: float, ry: float, col: Color) -> void:
+	draw_texture_rect(_radial_tex(), Rect2(c - Vector2(rx, ry), Vector2(rx, ry) * 2.0), false, col)
+
+
 func _glow_ellipse(c: Vector2, rx: float, ry: float, a: float) -> void:
-	# 网页版是 radial-gradient 的椭圆光斑，这里用缩放过的圆叠三层
-	draw_set_transform(c, 0.0, Vector2(1.0, ry / maxf(rx, 1.0)))
-	draw_circle(Vector2.ZERO, rx, Color(0.784, 0.737, 1.0, 0.055 * a))
-	draw_circle(Vector2.ZERO, rx * 0.62, Color(0.784, 0.737, 1.0, 0.05 * a))
-	draw_circle(Vector2.ZERO, rx * 0.34, Color(0.86, 0.84, 0.80, 0.04 * a))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# 网页版是 radial-gradient 的椭圆光斑
+	_radial_blob(c, rx, ry, Color(0.80, 0.76, 0.98, 0.12 * a))
 
 
-## [YG-MARK] 11-05：羽化的暗底（一层层缩小的黑椭圆叠出来，中心约 strength，边缘淡到 0）
+## [YG-MARK] 11-05：羽化的暗底（中心约 strength，从 0.35 半径起淡到边缘 0）
 func _soft_backdrop(c: Vector2, rx: float, ry: float, strength: float) -> void:
-	var steps := 14
-	var per := 1.0 - pow(1.0 - clampf(strength, 0.0, 0.98), 1.0 / steps)
-	draw_set_transform(c, 0.0, Vector2(1.0, ry / maxf(rx, 1.0)))
-	for i in steps:
-		var k := 1.0 - float(i) / steps
-		draw_circle(Vector2.ZERO, rx * (0.35 + 0.65 * k), Color(0.008, 0.01, 0.018, per))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_radial_blob(c, rx, ry, Color(0.008, 0.01, 0.018, clampf(strength, 0.0, 0.98)))
 
 
 ## [YG-MARK] 11-05 改好看：设置 / 说明页的底——不画方框，一块羽化的暗 + 上下两道渐隐细线（暂停菜单的味道）
@@ -747,14 +777,14 @@ func _sel_mark(c: Vector2, half_w: float, fs: int, a: float) -> void:
 func _chip(r: Rect2, text: String, a: float) -> void:
 	draw_rect(r, Color(0.071, 0.086, 0.133, 0.55 * a), true)
 	draw_rect(r, Color(0.627, 0.667, 0.784, 0.24 * a), false, 1.0)
-	var fs := int(round(0.96 * u))
+	var fs := int(round(1.15 * u))
 	var w := _spaced_width(text, _gothic, fs, 0.1)
 	_text_spaced(Vector2(r.position.x + r.size.x * 0.5 - w * 0.5, r.position.y + r.size.y * 0.5 + fs * 0.35),
 			text, _gothic, fs, Color(0.722, 0.749, 0.831, a), 0.1)
 
 
 func _chip_width(text: String) -> float:
-	return _spaced_width(text, _gothic, int(round(0.96 * u)), 0.1) + 1.1 * u
+	return _spaced_width(text, _gothic, int(round(1.15 * u)), 0.1) + 1.3 * u
 
 
 func _btn(r: Rect2, a: float) -> void:

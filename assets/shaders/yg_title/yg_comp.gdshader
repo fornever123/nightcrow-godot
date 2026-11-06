@@ -146,9 +146,10 @@ void fragment() {
 	if (uOpen > .0005) {
 		add += (WHT * exp(-abs(a - gap) / 1.4) * 1.8 + VIO * exp(-abs(a - gap) / 9.0) * .3) * on * (1.0 - uOpen * .6);
 	}
-	float al = exp(-pow(u / (uRes.x * .29), 2.0));
+	// [YG-MARK] 11-05 更高级：刀口中间最亮、两头收细（原来 .29 宽、两头还留 12% 亮度，读起来是一根匀的亮线）
+	float al = exp(-pow(u / (uRes.x * .24), 2.0));
 	float ef = smoothstep(uRes.x * .56, uRes.x * .2, abs(u));
-	float cw = mix(.45, 1.0, al);
+	float cw = mix(.32, 1.0, al);
 	float vb = .78 + .22 * sin(uTime * .8);
 	// 鼠标靠近刀口时的能量共鸣
 	float m_dist_seam = length(p0 - uMouse.xy);
@@ -158,7 +159,7 @@ void fragment() {
 	float arc_disp = (vn(vec2(u * .032 - uTime * 6.5, floor(uTime * 14.0) * .7)) - .5) * 8.5 * (al + m_res * .8)
 			+ (vn(vec2(u * .11 + uTime * 13.0, 3.7)) - .5) * 3.5;
 	float arc = exp(-abs(s - gap * sd - arc_disp) / 1.1) * step(.42, vn(vec2(u * .02 + uTime * 3.5, 8.0))) * (al * .85 + m_res) * on * (1.0 - uOpen);
-	vec3 seam = WHT * exp(-ae / (.82 * cw)) * 2.1 * mix(.12, 1.0, al)
+	vec3 seam = WHT * exp(-ae / (.82 * cw)) * 2.1 * mix(.05, 1.15, al)
 			+ VIO * exp(-ae / (3.6 * cw)) * .62 * (al * vb + m_res)
 			+ VIO * exp(-ae / 24.0) * .042 * al * vb
 			+ (WHT * 1.2 + VIO * 1.5) * arc + GLD * jag * .28;

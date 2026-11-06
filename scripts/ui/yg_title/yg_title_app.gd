@@ -49,8 +49,12 @@ const PAD_DEAD := 0.5
 const REPEAT_FIRST := 0.38
 const REPEAT_NEXT := 0.11
 var _held := ""
+var _held_axis := false   ## [YG-MARK] 11-06：连发是摇杆按出来的（true）还是十字键（false）；摇杆回中只清自己那份
 var _repeat_t := 0.0
 var _stick := Vector2.ZERO
+var _stick_cmd := ""      ## [YG-MARK] 11-06：摇杆上一次报的方向
+## [YG-MARK] 11-06：鼠标移动超过这么多像素才算换回鼠标（手放在桌上的微抖不算）
+const MOUSE_WAKE_PX := 3.0
 
 
 func _ready() -> void:
@@ -125,6 +129,9 @@ func _watch_scale(rdt: float) -> void:
 
 func _pad_repeat(rdt: float) -> void:
 	if _held == "":
+		return
+	# [YG-MARK] 11-06：退出确认只有两个按钮，按住会来回翻，不连发
+	if ui.mode == "confirm":
 		return
 	# 左右连发只给滑条（全屏 / 开关类按住不放会来回闪）
 	if (_held == "left" or _held == "right") and not (ui.mode == "settings" and str(ui.ROWS[ui.rsel]["type"]) == "slider"):
@@ -348,19 +355,19 @@ func _menu_confirm() -> void:
 
 
 func _close_settings() -> void:
-	audio.play("tick")
+	audio.play("back")    # [YG-MARK] 11-05 声音：返回单独一声
 	sim.state = "menu"
 	ui.set_mode("menu")
 
 
 func _close_confirm() -> void:
-	audio.play("tick")
+	audio.play("back")    # [YG-MARK] 11-05 声音：返回单独一声
 	sim.state = "menu"
 	ui.set_mode("menu")
 
 
 func _close_help() -> void:
-	audio.play("tick")
+	audio.play("back")    # [YG-MARK] 11-05 声音：返回单独一声
 	sim.state = "menu"
 	ui.set_mode("menu")
 
@@ -416,6 +423,9 @@ func _input(event: InputEvent) -> void:
 	if sim == null:
 		return
 	if event is InputEventMouseMotion:
+		# 用 screen_relative（屏幕像素）：relative 会被拉伸倍率放大缩小，全屏 / 小窗时门槛就不准了
+		if ui.pad_mode and event.screen_relative.length() > MOUSE_WAKE_PX:
+			ui.pad_mode = false    # [YG-MARK] 11-06：手柄用完动鼠标，提示换回键鼠
 		var p := get_local_mouse_position()
 		sim.mouse["x"] = p.x
 		sim.mouse["y"] = p.y
@@ -446,21 +456,45 @@ func _input(event: InputEvent) -> void:
 
 
 # ---------------------------------------------------------------- [YG-MARK] 11-05 手柄（Xbox 布局：十字键 / 左摇杆 选，A / Start 确认，B 返回）
+## [YG-MARK] 11-06：键盘 R / M / X 的手柄对应。Back 重播开场、Y 静音、X 随手一刀
+## （和游戏里一致：Back 是重开、X 是攻击；Y 在游戏里是远射，首页没有远射，拿来开关声音）
 const PAD_MAP := {
 	JOY_BUTTON_DPAD_UP: "up", JOY_BUTTON_DPAD_DOWN: "down",
 	JOY_BUTTON_DPAD_LEFT: "left", JOY_BUTTON_DPAD_RIGHT: "right",
 	JOY_BUTTON_A: "ok", JOY_BUTTON_START: "ok", JOY_BUTTON_B: "back",
+	JOY_BUTTON_BACK: "replay", JOY_BUTTON_Y: "mute", JOY_BUTTON_X: "slash",
 }
 
 
 func _on_pad_button(ev: InputEventJoypadButton) -> void:
 	var cmd: String = PAD_MAP.get(ev.button_index, "")
 	if not ev.pressed:
-		if cmd != "" and cmd == _held:
+		if cmd != "" and cmd == _held and not _held_axis:
 			_held = ""
 		return
 	ui.pad_mode = true
+	if cmd == "replay" or cmd == "mute" or cmd == "slash":
+		_pad_extra(cmd)
+		return
 	_pad_press(cmd)
+
+
+## [YG-MARK] 11-06：顺序照 _on_key：静音任何时候都行 → 收尾卡先回菜单 → 重播 → 开场中先跳过 → 随手一刀
+func _pad_extra(cmd: String) -> void:
+	if cmd == "mute":
+		audio.toggle_mute()
+		return
+	if sim.state == "card":
+		sim.back_from_card()
+		ui.set_mode("menu")
+		return
+	if cmd == "replay":
+		_restart_intro()
+		return
+	if sim.state == "intro":
+		sim.skip_intro()
+		return
+	_random_slash()
 
 
 func _on_pad_axis(ev: InputEventJoypadMotion) -> void:
@@ -478,12 +512,20 @@ func _on_pad_axis(ev: InputEventJoypadMotion) -> void:
 			cmd = "right" if _stick.x > 0.0 else "left"
 	elif _stick.length() > 0.3:
 		return     # 死区之间不变，免得在门槛上来回跳
-	if cmd == _held:
+	# [YG-MARK] 11-06：只在摇杆换方向时动作（推满后手抖会连续发 motion 事件，不能每个都算一次）
+	if cmd == _stick_cmd:
 		return
-	_held = ""
-	if cmd != "":
-		ui.pad_mode = true
-		_pad_press(cmd)
+	_stick_cmd = cmd
+	if cmd == "":
+		# [YG-MARK] 11-06：摇杆回中只取消摇杆自己的连发；按着十字键时摇杆的微抖不能把它打断
+		if _held_axis:
+			_held = ""
+			_held_axis = false
+		return
+	ui.pad_mode = true
+	_pad_press(cmd)
+	if _held == cmd:
+		_held_axis = true
 
 
 func _pad_press(cmd: String) -> void:
@@ -498,6 +540,7 @@ func _pad_press(cmd: String) -> void:
 		return
 	if cmd in ["up", "down", "left", "right"]:
 		_held = cmd
+		_held_axis = false
 		_repeat_t = REPEAT_FIRST
 	_nav(cmd)
 
@@ -567,13 +610,7 @@ func _on_key(k: int) -> void:
 		sim.skip_intro()
 		return
 	if k == KEY_X:
-		if sim.state == "menu" or sim.state == "settings" or sim.state == "confirm":
-			var a := randf_range(-0.5, 0.5)
-			var cx: float = sim.W * randf_range(0.3, 0.7)
-			var cy: float = sim.H * randf_range(0.15, 0.85)
-			var L: float = sim.W * 0.5
-			sim.player_slash(cx - cos(a) * L, cy - sin(a) * L, cx + cos(a) * L, cy + sin(a) * L)
-			audio.play("slash")
+		_random_slash()
 		return
 	var cmd := ""
 	if k == KEY_UP or k == KEY_W:
@@ -590,6 +627,18 @@ func _on_key(k: int) -> void:
 		cmd = "back"
 	if cmd != "":
 		_nav(cmd)
+
+
+## 随手一刀（键盘 X / 手柄 X）：开场、离开时不响应
+func _random_slash() -> void:
+	if not (sim.state == "menu" or sim.state == "settings" or sim.state == "confirm"):
+		return
+	var a := randf_range(-0.5, 0.5)
+	var cx: float = sim.W * randf_range(0.3, 0.7)
+	var cy: float = sim.H * randf_range(0.15, 0.85)
+	var L: float = sim.W * 0.5
+	sim.player_slash(cx - cos(a) * L, cy - sin(a) * L, cx + cos(a) * L, cy + sin(a) * L)
+	audio.play("slash")
 
 
 ## [YG-MARK] 11-05：键盘和手柄共用的菜单导航（cmd = up / down / left / right / ok / back）

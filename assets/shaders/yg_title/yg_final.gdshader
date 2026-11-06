@@ -38,8 +38,13 @@ void fragment() {
 	c *= uExpo;
 	c = aces(c);
 	float l = dot(c, vec3(.2126, .7152, .0722));
-	c = mix(c, vec3(l), .1);
-	c *= mix(vec3(.9, .97, 1.13), vec3(1.05, 1.0, .92), smoothstep(.22, .8, l));
+	// [YG-MARK] 11-05 更高级：一套颜色——刀口以下去饱和成墨蓝黑（贴着刀口的紫光不动），上面偏冷银；加一点 S 曲线对比
+	float below = smoothstep(10.0, 70.0, s);
+	c = mix(c, vec3(l) * vec3(.84, .92, 1.1), .6 * below);
+	c = mix(c, vec3(l) * vec3(.97, .99, 1.03), .35 * (1.0 - below));
+	c = clamp(c, 0.0, 1.0);
+	c = mix(c, c * c * (3.0 - 2.0 * c), .45);
+	c *= mix(vec3(.93, .97, 1.08), vec3(1.03, 1.0, .97), smoothstep(.22, .8, l));
 	c = pow(c, vec3(1.0 / 2.2));
 	if (uImpact > 0.0) {
 		float l2 = dot(c, vec3(.2126, .7152, .0722));
@@ -49,7 +54,7 @@ void fragment() {
 		c = mix(c, ic, uImpact);
 	}
 	c = mix(c, vec3(1.0, .985, 1.03), uFlash);
-	float v = 1.0 - smoothstep(.35, 1.1, length(dc * vec2(1.5, 1.08))) * .72;
+	float v = 1.0 - smoothstep(.28, 1.05, length(dc * vec2(1.45, 1.1))) * .86;   // [YG-MARK] 11-05 更高级：暗角加重
 	c *= v;
 	c += (h12(p + fract(uTime * 7.31) * vec2(311.7, 173.3)) - .5) * .045;
 	c *= 1.0 - uFade;

@@ -1,0 +1,12 @@
+[YG-MARK] 首页「断晓 · 断光」的声音素材（2026-11-05 加）。全部 CC0，可商用、不用署名。
+原文件在 E:/00game/work/nightcrow-音效试听-20261029/downloads/（用户 11-01 批准下载，来源 / 作者 / SHA256 登记在那里的 README.md）。
+处理脚本：转 44.1 kHz 双声道，雨声尾部 1.5 秒等功率交叉进开头做成无缝循环，统一响度，峰值压到 -1 dB 以内。
+
+| 文件 | 原文件 | 来源页面 | 作者 | 授权 |
+|---|---|---|---|---|
+| rain_bed.ogg | Rain OGG.zip / 3.ogg | https://opengameart.org/content/rain-loopable | Ylmir | CC0 |
+| rain_near.ogg | rain-gutter-loop_0.mp3 | https://opengameart.org/content/rain-gutter-loop | Ogrebane | CC0 |
+| ui_move.ogg | kenney_interface-sounds.zip / glass_006.ogg | https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
+| ui_back.ogg | kenney_interface-sounds.zip / tick_004.ogg | https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
+
+首页另外直接引用了 assets/audio/ult/ 下的 ult_eye / ult_rise / ult_cut_0～3 / ult_impact / ult_push / ult_sheathe（大招线的素材，授权见大招线文档）。

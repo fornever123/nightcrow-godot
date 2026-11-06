@@ -49,7 +49,14 @@ void vertex() {
 		float depth = clamp((size - .8) / 12.0, 0.0, 1.0);
 		pos += uPar * (.3 + depth * 1.6);
 		float sb = max(dot(pos - uC, uN), 0.0);
-		if (size > 6.0) {
+		// [YG-MARK] 11-05 更高级：冻住的悬珠只留一部分，集中在中间光柱里、往两边变稀，分三层远近
+		float shaft = mix(.2, 1.0, exp(-pow((pos.x - uC.x) / (uRes.x * .28), 2.0)));
+		if (size > 6.0 && sp < 30.0) {
+			// 前景：少量大的虚焦光斑
+			type = 3.0;
+			hl = vec2(size * 1.9);
+			col = vec3(1.0, .97, .92) * .085 * shaft * max(uDawn, .18);
+		} else if (size > 6.0) {
 			type = 3.0;
 			hl = vec2(size * .95);
 			col *= vec3(.52, .64, .92) * .16;
@@ -62,22 +69,25 @@ void vertex() {
 			float tq = step(fract(seed * 3.17), .15) * pow(max(0.0, sin(uTime * (.35 + fract(seed * 5.3) * .3) + seed * 9.0)), 45.0);
 			pos.y += tq * bs * 1.8;
 			if (bs > 2.05) {
+				// 中景：清楚的折射水珠，靠近刀口的映一点紫
 				type = 5.0;
-				hl = vec2(bs * 1.18, bs * 1.58);
+				hl = vec2(bs * 1.18, bs * 1.58) * step(fract(seed * 7.31), .62);
 				vec2 bc = vec2((uBox.x + uBox.y) * .5, (uBox.z + uBox.w) * .5);
-				col *= 1.45 + 1.35 * exp(-length(pos - bc) / (uRes.y * .24));
+				col *= (1.45 + 1.35 * exp(-length(pos - bc) / (uRes.y * .24))) * shaft;
+				col = mix(col, col.g * vec3(.78, .66, 1.12), .4 * exp(-abs(dot(pos - uC, uN)) / (uRes.y * .1)));
 			} else {
+				// 远景：微尘，只留四成多
 				type = 0.0;
-				hl = vec2(bs * 1.75 + .95);
+				hl = vec2(bs * 1.75 + .95) * step(fract(seed * 7.31), .42);
 				// [YG-MARK] 11-05 改好看：小的是远处的，更暗，拉出远近
-				col *= .72 * mix(.42, 1.0, smoothstep(.85, 2.1, size));
+				col *= .72 * mix(.42, 1.0, smoothstep(.85, 2.1, size)) * shaft;
 			}
 		} else {
 			// 落下来的雨（开场也走这段，和斩完之后一样）
 			float sbv = max(-sb, 0.0);
 			float suv = dot(pos - uC, vec2(uN.y, -uN.x));
 			float deep_fade = mix(.28, 1.0, exp(-sbv / (uRes.y * .46)));
-			float menu_calm = 1.0 - .58 * exp(-pow(suv / (uRes.y * .22), 2.0)) * smoothstep(uRes.y * .08, uRes.y * .22, sbv);
+			float menu_calm = 1.0 - .58 * exp(-pow(suv / (uRes.y * .22), 2.0)) * smoothstep(uRes.y * .08, uRes.y * .22, sbv);   // 开场雨（§5 不动）
 			float lit = (.42 + 2.1 * exp(-sbv / (uRes.y * .11)) + .55 * exp(-length(pos - uC) / (uSunR * 1.5))) * deep_fade * menu_calm;
 			vec3 tint = mix(vec3(.52, .64, .92), vec3(.68, .58, .98), exp(-sbv / (uRes.y * .12)) * clamp(fract(seed * 3.7), 0.0, 1.0));
 			col = tint * lit * .78;
@@ -96,7 +106,7 @@ void vertex() {
 		float su = dot(pos - uC, vec2(uN.y, -uN.x));
 		float seam_fade = smoothstep(0.0, uRes.y * .042, sb);
 		float deep_fade = mix(.28, 1.0, exp(-sb / (uRes.y * .46)));
-		float menu_calm = 1.0 - .58 * exp(-pow(su / (uRes.y * .22), 2.0)) * smoothstep(uRes.y * .08, uRes.y * .22, sb);
+		float menu_calm = 1.0 - .86 * exp(-pow(su / (uRes.y * .27), 2.0)) * smoothstep(uRes.y * .06, uRes.y * .2, sb);   // [YG-MARK] 11-05 更高级：菜单后面留安静区
 		float lit = (.42 + 2.1 * exp(-sb / (uRes.y * .11)) + .55 * exp(-length(pos - uC) / (uSunR * 1.5))) * seam_fade * deep_fade * menu_calm;
 		vec3 tint = mix(vec3(.52, .64, .92), vec3(.68, .58, .98), exp(-sb / (uRes.y * .12)) * clamp(fract(seed * 3.7), 0.0, 1.0));
 		col = tint * lit * .78;

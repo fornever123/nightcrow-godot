@@ -149,7 +149,8 @@ void fragment() {
 	vec2 bc = vec2((uBox.x + uBox.y) * .5, (uBox.z + uBox.w) * .5);
 	float bh = max(uBox.w - uBox.z, 1.0);
 	float sr = tp.y - (uBox.w - bh * .04);
-	if (sr > 0.0) {
+	// [YG-MARK] 11-05 更高级：字标倒影关掉——正好叠在「开始游戏」后面像个鬼影
+	if (false && sr > 0.0) {
 		float k = sr / bh;
 		float w1 = fbm(vec2(tp.x * .003, sr * .02 - t * .35));
 		float w2 = fbm3(vec2(tp.x * .012 - t * .2, sr * .07 - t * 1.1));
@@ -181,5 +182,17 @@ void fragment() {
 	float lmask = smoothstep(.03, .22, max(w_lum, max(lg.r, max(lg.g, lg.b))));
 	col = mix(col, lg * vec3(1.0, 1.06, 1.22) + vec3(.45, .56, .82) * w_rim * sheen * .55, lmask);
 
+	// [YG-MARK] 11-05 更高级：刀口漏下来的光照亮正下方一带水面，水里倒映上面的几道光柱（被水波扭、断续），
+	// 上下两半才是同一个世界；离刀口越远越沉到墨黑
+	float wob = (fbm(vec2(p.x / uRes.y * 3.0, s / uRes.y * 9.0 - t * .5)) - .5) * uRes.y * .05 * (.3 + d * 3.0);
+	float px2 = p.x + wob + s * .18 - uC.x;
+	float leak = exp(-pow(px2 / (uRes.x * .16), 2.0));
+	float shafts = exp(-pow((px2 + uRes.y * .10) / (uRes.y * .035), 2.0)) * .8
+			+ exp(-pow((px2 - uRes.y * .16) / (uRes.y * .05), 2.0))
+			+ exp(-pow((px2 - uRes.y * .36) / (uRes.y * .03), 2.0)) * .6;
+	float sbrk = smoothstep(.35, .75, fbm3(vec2(p.x / uRes.y * 1.5, s / uRes.y * 22.0 - t * 1.4)));
+	col += vec3(.30, .34, .46) * leak * exp(-d * 5.0) * .5;
+	col += vec3(.42, .46, .58) * shafts * sbrk * exp(-d * 2.6) * smoothstep(0.0, .03, d) * .16;
+	col *= mix(1.0, .55, smoothstep(.15, .6, d));
 	COLOR = vec4(col, 1.0);
 }

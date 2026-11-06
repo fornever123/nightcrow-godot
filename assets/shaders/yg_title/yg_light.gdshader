@@ -102,8 +102,7 @@ vec3 sky(vec2 p) {
 			+ exp(-pow((a - .02) / .14, 2.0)) * .35;
 	bm *= .72 + .28 * fbm3(vec2(a * 36.0, r * 2.2));
 	g += mix(WARM, BONE, .4) * bm * exp(-r * .95) * .54 * smoothstep(.08, .42, r);
-	float dst = step(.9958, h12(floor(p / 6.5))) * bm;
-	g += BONE * dst * smoothstep(.48, 0.0, length(fract(p / 6.5) - .5)) * 2.1;
+	// [YG-MARK] 11-05 更高级：光柱里铺满的小星点去掉（和悬珠一起读成满屏噪点）
 	float fg = fbm(vec2(p.x / uRes.y * 1.3, p.y / uRes.y * 4.0) + vec2(3.0, 7.0));
 	float fg2 = fbm(vec2(p.x / uRes.y * 4.0, p.y / uRes.y * 14.0) + vec2(9.0, 1.0));
 	g *= .64 + .68 * fg + .25 * (fg2 - .5);
@@ -129,7 +128,8 @@ vec3 sky(vec2 p) {
 		float mtn_rim = exp(-abs(h_far - mtn) * 240.0) * smoothstep(-.002, .01, h_far);
 		vec3 mtn_col = vec3(.026, .022, .024) + WARM * exp(-r * 1.7) * .095 + BONE * exp(-h_far * 18.0) * .05;
 		g = mix(g, mtn_col, in_mtn * .88);
-		g += mix(WARM, BONE, .5) * mtn_rim * (.18 + .22 * bm) * uSunK;
+		// [YG-MARK] 11-05 更高级：远山描边减到三成
+		g += mix(WARM, BONE, .5) * mtn_rim * (.18 + .22 * bm) * uSunK * .3;
 	}
 
 	// 第2层（中景视差）：断碑残垣与悬空残石
@@ -140,8 +140,7 @@ vec3 sky(vec2 p) {
 	if (mono.x + mono.y > .001) {
 		vec3 stone_col = vec3(.014, .012, .015) + WARM * exp(-h_mid * 12.0) * .04;
 		g = mix(g, stone_col, mono.x * .94);
-		// [YG-MARK] 11-05 改好看：白描边压到四分之一，碑是实心剪影，只留一线逆光
-		g += mix(WARM, BONE, .55) * mono.y * (.32 + .35 * uSunK) * .24;
+		// [YG-MARK] 11-05 更高级：断碑的白描边彻底去掉（像剪纸），只剩实心逆光剪影
 	}
 
 	// 第3层（近景视差）：左右两侧险峻断崖暗角剪影
@@ -168,6 +167,10 @@ vec3 sky(vec2 p) {
 	// 刀口以下是“地面”，越往下越暗（开场还没斩时不再是一整片灰雾）。
 	// 不整体调暖：11-02 雾调暖发灰褐发土被撤过，暖色只留在开场光刚亮起那一下（见 fragment 的 early）
 	g *= mix(1.0, .42, smoothstep(0.0, uRes.y * .5, s));
+	// [YG-MARK] 11-05 更高级：光有焦点——字标背后一团亮，往四周压暗
+	vec2 fc = (p - vec2(uC.x, uC.y - uRes.y * .07)) / vec2(uRes.x * .27, uRes.y * .36);
+	float cg = exp(-dot(fc, fc));
+	g = g * mix(.38, 1.15, cg) + BONE * cg * .2;
 	return g * .82;
 }
 

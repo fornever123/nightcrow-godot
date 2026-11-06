@@ -530,10 +530,17 @@ func seam_splash(dt: float) -> void:
 		n -= 1.0
 		if randf() >= n:
 			continue
-		var x := randf() * W
+		# [YG-MARK] 11-05 更高级：火星跟着刀口的亮度走，聚在中间（原来整条均匀撒）
+		var x := clampf(C.x + (randf() + randf() + randf() - 1.5) * W * 0.36, 0.0, W)
 		var y := seam_y(x)
 		spawn_spark(x + o_l.x + N.x * 2.0 * k, y + o_l.y + N.y * 2.0 * k,
 				rnd(-50.0, 50.0) * k, -rnd(30.0, 140.0) * k, rnd(0.18, 0.4), rnd(0.5, 0.9), 0)
+	# [YG-MARK] 11-05 更高级：偶尔有一粒光屑从断口滴下去，落进影里
+	if randf() < dt * 1.6:
+		var x2 := clampf(C.x + (randf() + randf() - 1.0) * W * 0.3, 0.0, W)
+		var y2 := seam_y(x2)
+		spawn_spark(x2 + o_l.x + N.x * 4.0 * k, y2 + o_l.y + N.y * 4.0 * k,
+				rnd(-6.0, 6.0) * k, rnd(10.0, 40.0) * k, rnd(0.9, 1.3), rnd(0.7, 1.0), 0)
 
 
 func update_fx(dt: float) -> void:
