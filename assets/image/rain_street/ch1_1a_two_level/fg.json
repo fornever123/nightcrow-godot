@@ -1,0 +1,42 @@
+[
+ {
+  "file": "fg_0.png",
+  "w": 236,
+  "h": 941,
+  "top": true,
+  "bottom": true,
+  "x": 16
+ },
+ {
+  "file": "fg_1.png",
+  "w": 276,
+  "h": 941,
+  "top": true,
+  "bottom": true,
+  "x": 352
+ },
+ {
+  "file": "fg_2.png",
+  "w": 528,
+  "h": 381,
+  "top": false,
+  "bottom": true,
+  "x": 640
+ },
+ {
+  "file": "fg_3.png",
+  "w": 396,
+  "h": 556,
+  "top": true,
+  "bottom": false,
+  "x": 644
+ },
+ {
+  "file": "fg_4.png",
+  "w": 476,
+  "h": 273,
+  "top": false,
+  "bottom": true,
+  "x": 1196
+ }
+]
