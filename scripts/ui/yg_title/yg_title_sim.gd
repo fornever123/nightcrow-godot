@@ -18,7 +18,8 @@ var R := 194.0
 var F := 147.0
 var box := Vector4()            ## 字标方框：x0, x1, y0, y1
 
-const ANG_DEG := 10.32
+## [YG-MARK] 11-08 换 G03：刀口角度量自底图的断口（docs/视觉设计/首页/src/bake_g03_plate.py 打印的值），原来是 10.32
+const ANG_DEG := -10.041
 
 # ---------------------------------------------------------------- 质量控制
 const QUAL := {
@@ -140,17 +141,15 @@ func set_size(w: float, h: float) -> void:
 	var ang := deg_to_rad(ANG_DEG)
 	D = Vector2(cos(ang), sin(ang))
 	N = Vector2(-sin(ang), cos(ang))
-	# [YG-MARK] 11-05 改好看：刀口 / 字标中心 0.42H → 0.385H、字标 0.205H → 0.195H，给下面的菜单留出呼吸
-	C = Vector2(W * 0.5, H * 0.385)
+	# [YG-MARK] 11-08 换 G03：刀口压在底图的断口上（0.4397H），字标不再以刀口为中心，放到上面的光里，只让字尾越过刀口
+	C = Vector2(W * 0.5, H * 0.4397)
 	R = min(H * 0.27, W * 0.21)
-	F = min(H * 0.195, W * 0.148)
-	# 字标图（GPT 版）在画布上的位置：和网页版 makeTitle() 里 GPT 分支一致
+	F = min(H * 0.22, W * 0.165)
+	logo_cy = H * 0.300
 	var sc := F * 2.35 / 1264.0
-	var ix := C.x - 880.0 * sc
-	var iy := C.y - 447.9 * sc
-	box = Vector4(ix + 248.0 * sc, ix + 1512.0 * sc, iy + 73.0 * sc, iy + 889.0 * sc)
-	logo_origin = Vector2(ix, iy)
-	logo_size = Vector2(1672.0 * sc, 941.0 * sc)
+	box = Vector4(C.x - 632.0 * sc, C.x + 632.0 * sc, logo_cy - 405.0 * sc, logo_cy + 405.0 * sc)
+	logo_origin = Vector2(box.x, box.z)
+	logo_size = Vector2(box.y - box.x, box.w - box.z)
 	if not drops.is_empty() and old_w >= 100.0 and old_h >= 100.0 and (old_w != W or old_h != H):
 		for d in drops:
 			d.x *= W / old_w
@@ -161,6 +160,7 @@ func set_size(w: float, h: float) -> void:
 
 
 var logo_origin := Vector2.ZERO
+var logo_cy := 216.0            ## [YG-MARK] 11-08：字标中心的 y（界面的副标题、菜单从这里往下排）
 var logo_size := Vector2(100.0, 100.0)
 
 

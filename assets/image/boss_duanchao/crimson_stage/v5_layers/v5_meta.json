@@ -1,0 +1,11 @@
+{
+  "tower_size": [
+    1536,
+    1024
+  ],
+  "dial_center_px": [
+    840.0,
+    403.0
+  ],
+  "dial_radius_px": 292.5
+}

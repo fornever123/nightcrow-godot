@@ -1,0 +1,23 @@
+{
+  "dial_size": 1248,
+  "minute_pivot_px": [
+    45.55,
+    46.87
+  ],
+  "minute_size": [
+    500,
+    95
+  ],
+  "hour_pivot_px": [
+    47.6,
+    78.2
+  ],
+  "hour_size": [
+    403,
+    162
+  ],
+  "pallet_pivot_px": [
+    129.5,
+    129.5
+  ]
+}

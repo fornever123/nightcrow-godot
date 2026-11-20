@@ -16,6 +16,8 @@ const Config := preload("res://scripts/core/configuration.gd")
 const Factory := preload("res://scripts/night/player_factory.gd")
 const Shade := preload("res://scripts/night/shade.gd")
 const Encounter := preload("res://scripts/night/encounter.gd")
+const Encounters := preload("res://scripts/core/encounters.gd")
+const Tuning := preload("res://scripts/core/tuning.gd")
 const Style := preload("res://scripts/night/style_meter.gd")
 const Hud := preload("res://scripts/night/combat_hud.gd")
 const Terrain := preload("res://scripts/night/terrain.gd")
@@ -34,10 +36,11 @@ const AudioFeedback := preload("res://scripts/presentation/audio_feedback.gd")
 const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
 const UltFx := preload("res://scripts/night/ult_fx.gd")
+const CombatControls := preload("res://scripts/gameplay/combat_controls.gd")
 const PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
 ## 大招能量：打中敌人按伤害 ×ULT_GAIN_HIT，自己挨打按掉血 ×ULT_GAIN_HURT（满 100）
-const ULT_GAIN_HIT := 0.8
-const ULT_GAIN_HURT := 1.2
+var ULT_GAIN_HIT: float = 0.8
+var ULT_GAIN_HURT: float = 1.2
 
 const G := Shade.Kind.GRUNT
 const B := Shade.Kind.BRUTE
@@ -50,9 +53,9 @@ const FIRST_ARENA_X := 2500.0
 const ARENA_SPACING := 3600.0       ## 相邻两处封印中心的距离（中间约 3.5 秒的路，路上也有能跳的台子）
 const TRIGGER_BEFORE := 1000.0      ## 走到封印中心左边这么远就合上封印（= 进了竞技场 200）
 const START_X := 300.0
-const WAVE_HEAL := 25.0
-const ROUND_HP_MUL := 1.2
-const PARRY_WINDOW := 12
+var WAVE_HEAL: float = 25.0
+var ROUND_HP_MUL: float = 1.2
+var PARRY_WINDOW: int = 12
 
 ## 一轮 = 三处封印。每处封印 = 若干波。数据格式见 encounter.gd 顶部注释。
 ## 第四轮：加入影弓（A）和影爆（X）。远程影和近战影各算各的出手名额。
@@ -115,6 +118,12 @@ var _round_time: float = 0.0
 var _round_rank: int = 0
 var _round_max_combo: int = 0
 var _time: float = 0.0
+var _slowmo_seq: int = 0
+var _zoom_punch: float = 0.0      ## 命中瞬间镜头微推脉冲（0..0.088，极速回弹至基准 zoom_level）
+var _cam_kick_ofs: Vector2 = Vector2.ZERO
+var _cam_kick_vel: Vector2 = Vector2.ZERO
+var _hit_overlay: Node2D          ## 前景高对比破空激波环与十字刃芒演出层
+var _impact_rings: Array[Dictionary] = []
 var ult_fx: Node2D
 var _ult_hint_shown := false
 var _ult_collect := false         ## 绝影期间为 true：伤害数字不弹，只累计（定格时显示总伤害）
@@ -130,18 +139,45 @@ const ULT_FINAL_DMG := 66.0       ## 绝影：接着沿斩线斩开（24 + 66 = 
 const ULT_SLOPE := -0.07          ## 绝影：斩线的斜率（往敌群那边微微升起，和 ult_map_slash.gd 一致）
 
 
+## 关卡规则和敌人数值从 encounters.json 读（叠加修改器的改动）。场景重载不会重置 Shade.KINDS，所以这里刷新。
+func _read_encounter_rules() -> void:
+	Shade.KINDS = Encounters.kinds(Shade.KIND_IDS)
+	var rules := Encounters.rules()
+	PARRY_WINDOW = int(rules.get("parryWindow", PARRY_WINDOW))
+	WAVE_HEAL = float(rules.get("waveHeal", WAVE_HEAL))
+	ROUND_HP_MUL = float(rules.get("roundHpMul", ROUND_HP_MUL))
+	ULT_GAIN_HIT = float(rules.get("ultGainHit", ULT_GAIN_HIT))
+	ULT_GAIN_HURT = float(rules.get("ultGainHurt", ULT_GAIN_HURT))
+
+
 func _ready() -> void:
 	config = Config.read()
 	if config.is_empty():
 		push_error("无法读取统一战斗配置")
 		return
+	_read_encounter_rules()
+	Tuning.attach_watch(self)
 	moves = Config.moves(config)
 	floor_y = float(config.stage.bounds.floorY)
 	shake_mul = float(config.feedback.get("shakeMultiplier", 1))
 	RenderingServer.set_default_clear_color(Color("0a0f1f"))
 	Factory.register_input()
+	CombatControls.apply_scheme(Factory.scheme())
 	_build_world()
 	player = Factory.build(config, moves, Vector2(START_X, floor_y))
+	player.enable_combat_rework()
+	if player.light_combo.size() >= 4 and player.light_combo[3] != null:
+		moves["light_4"] = player.light_combo[3]
+	if player.air_combo.size() >= 4 and player.air_combo[3] != null:
+		moves["air_light_4"] = player.air_combo[3]
+	if player.combo_k_launch_move != null:
+		moves["combo_k_launch"] = player.combo_k_launch_move
+	if player.combo_k_pierce_move != null:
+		moves["combo_k_pierce"] = player.combo_k_pierce_move
+	if player.combo_k_pierce_left_move != null:
+		moves["combo_k_pierce_left"] = player.combo_k_pierce_left_move
+	if player.combo_k_cleave_move != null:
+		moves["combo_k_cleave"] = player.combo_k_cleave_move
 	# 多层地形：玩家也撞单向平台那一层；站在上面按住 S 再按跳 = 往下穿
 	player.collision_mask = 1 | Terrain.ONE_WAY_LAYER
 	player.one_way_mask = Terrain.ONE_WAY_LAYER
@@ -169,6 +205,20 @@ func _ready() -> void:
 	_build_lighting()
 	audio = AudioFeedback.new()
 	audio.configure(config.get("audio", {}))
+	audio.swing_by_move["light_4"] = "swing_charge"
+	audio.swing_by_move["air_light_4"] = "swing_charge"
+	audio.swing_by_move["combo_k_launch"] = "swing_up"
+	audio.swing_by_move["combo_k_pierce"] = "swing_dash"
+	audio.swing_by_move["combo_k_pierce_left"] = "swing_dash"
+	audio.swing_by_move["combo_k_cleave"] = "swing_charge"
+	audio.hit_tier["light_3"] = "heavy"
+	audio.hit_tier["air_light_3"] = "heavy"
+	audio.hit_tier["light_4"] = "finisher"
+	audio.hit_tier["air_light_4"] = "finisher"
+	audio.hit_tier["combo_k_launch"] = "heavy"
+	audio.hit_tier["combo_k_pierce"] = "heavy"
+	audio.hit_tier["combo_k_pierce_left"] = "heavy"
+	audio.hit_tier["combo_k_cleave"] = "finisher"
 	add_child(audio)
 	fx = ImpactFX.new()
 	fx.enabled = bool(config.feedback.get("effectsEnabled", true))
@@ -180,6 +230,12 @@ func _ready() -> void:
 	add_child(fx)
 	fx.track_player(player)
 	fx.track_glow(player.get_node("Visual/ActorSprite"))
+	_hit_overlay = Node2D.new()
+	_hit_overlay.name = "SlashImpactOverlay"
+	_hit_overlay.z_as_relative = false
+	_hit_overlay.z_index = 22
+	_hit_overlay.draw.connect(_draw_hit_overlay)
+	add_child(_hit_overlay)
 	ult_fx = UltFx.new()
 	ult_fx.fx = fx
 	ult_fx.player = player
@@ -200,7 +256,11 @@ func _ready() -> void:
 	encounter.shade_spawned.connect(_on_shade_spawned)
 	_connect_player()
 	hud.banner(stage_title[0], stage_title[1], 3.2)
-	_queue_hint(&"move", "A / D 移动   W / 空格 跳   %s 攻击   %s 冲刺斩" % [Factory.key_label("attack"), Factory.key_label("dash")], 6.0)
+	var sc := Factory.scheme()
+	_queue_hint(&"move", "A / D 移动   W / 空格 跳   %s 攻击   %s 重击/蓄力   %s 瞬步/追影" % [
+		CombatControls.key_label(sc, "attack"),
+		CombatControls.key_label(sc, "heavy"),
+		CombatControls.key_label(sc, "dash")], 6.0)
 	_stage_ready()
 	# 暂停菜单（UI 线）：雨街试玩在 _stage_ready 里自己挂；别的入口（雨街无限场景、编辑器 F6）也要 Esc 能暂停
 	if get_node_or_null("PauseMenu") == null:
@@ -361,13 +421,16 @@ func _build_hud() -> void:
 
 func _connect_player() -> void:
 	player.hit_confirmed.connect(_on_player_hit)
+	player.damage_window_opened.connect(_on_damage_window)
 	player.parry_success.connect(_on_parry)
 	player.block_success.connect(_on_block)
+	player.perfect_dodge_triggered.connect(_on_perfect_dodge)
+	player.shadow_pursuit_started.connect(_on_shadow_pursuit)
+	player.keen_edge_ready_changed.connect(_on_keen_edge_ready)
+	player.combo_finisher_triggered.connect(_on_combo_finisher)
 	# 冲刺斩起步“呼”一声；刀风统一走 swing_cue（判定帧前 3 帧，音画对齐）
 	# 冲刺斩只看原画（整段原版帧里的刀光、尘土），不再叠程序尘土 / 速度线 / 残影
-	player.move_started.connect(func(move: Resource, _index: int):
-		if move == player.dash_move or move == player.dash_left_move:
-			audio.play_dash())
+	player.move_started.connect(_on_player_move_started)
 	player.swing_cue.connect(func(move: Resource, index: int): audio.play_swing_of(move, index))
 	player.jumped.connect(func(is_double: bool):
 		audio.play_jump(is_double)
@@ -561,6 +624,7 @@ func _revive() -> void:
 func _on_shade_spawned(s: Node2D) -> void:
 	s.damaged.connect(_on_shade_damaged.bind(s))
 	s.broken.connect(_on_shade_broken.bind(s))
+	s.shell_broken.connect(_on_shade_shell_broken)
 	s.launched_high.connect(_on_shade_launched)
 	s.slam_impact.connect(_on_slam_impact)
 	s.wall_slam.connect(_on_shade_wall.bind(s))
@@ -579,13 +643,157 @@ func _on_shade_spawned(s: Node2D) -> void:
 	s.dodged.connect(func(_p: Vector2): fx.spawn_dust(Vector2(s.global_position.x, s.feet_y()), 0.5))
 	s.friendly_hit.connect(_on_friendly_hit)
 	s.projectile_spawned.connect(_on_projectile)
+	if s.has_signal(&"shadow_pinned"):
+		s.shadow_pinned.connect(_on_shade_pinned)
+	if s.has_signal(&"mark_detonated"):
+		s.mark_detonated.connect(_on_mark_detonated)
+	if s.has_signal(&"momentum_blasted"):
+		s.momentum_blasted.connect(_on_shade_momentum_blasted)
+	if s.has_signal(&"shell_clanged"):
+		s.shell_clanged.connect(_on_shade_shell_clanged)
+	if s.has_signal(&"momentum_threshold_reached"):
+		s.momentum_threshold_reached.connect(_on_shade_momentum_threshold)
+	if s.has_signal(&"lethal_blow"):
+		s.lethal_blow.connect(_on_shade_lethal_blow)
 	fx.spawn_dust(Vector2(s.global_position.x, s.feet_y()), 0.6)
 	if s.kind == B and not _hints_done.has(&"brute"):
-		_queue_hint(&"brute", "甲影只在出刀时霸体（白光打不断）→ 按 L 弹刀把它炸飞；不出刀时照样能 W+J 挑飞", 6.0)
+		_queue_hint(&"brute", "甲影裹着白金凝壳：满蓄/瞬发重击正面秒破，或弹刀/绕背/连锁冲撞破壳后随意挑飞", 6.0)
 	elif s.kind == A and not _hints_done.has(&"archer"):
-		_queue_hint(&"archer", "影弓：橙色瞄准线变粗 = 要放箭 → 按 L 弹回去，或者一刀把箭砍回去", 6.0)
+		_queue_hint(&"archer", "影弓：橙色瞄准线变粗 = 要放箭 → 按弹刀键弹回去，或者一刀把箭砍回去", 6.0)
 	elif s.kind == X and not _hints_done.has(&"bomber"):
 		_queue_hint(&"bomber", "影爆扔炸弹：落地马上炸（同伴也炸）→ 砍它一刀把炸弹打回去", 6.0)
+
+
+## 伤害窗口打开（11-03 重击，方案 A）：重击是起跳下劈，判定只在挥到底那一截，所以「砸地」这一下要在这里发生——
+## 挥空也看得到脚下一沉和地面被推开（薄薄一条贴地推击），打中了再在这一套上加溅水和震屏（见 _on_player_hit）。
+## 靠 `heavy_ground( mv )` 而不是 screen_flash 判断：screen_flash 已经清零（整屏白留给大招）。
+func _on_player_move_started(move: Resource, _index: int) -> void:
+	if move == player.dash_move or move == player.dash_left_move \
+			or move == player.air_dash_move or move == player.air_dash_left_move \
+			or move == player.combo_k_pierce_move or move == player.combo_k_pierce_left_move:
+		audio.play_dash()
+
+
+func _on_keen_edge_ready(ready_now: bool) -> void:
+	if not ready_now or player == null or fx == null:
+		return
+	fx.glow_hit(0.75)
+	fx.spawn_text(player.global_position + Vector2(0.0, -196.0), "紫电锋芒！")
+	var spr := player.get_node_or_null("Visual/ActorSprite") as Sprite2D
+	if spr != null:
+		fx.start_ghosts(spr, 0.14, 10.0)
+
+
+func _on_combo_finisher(_mv: Resource, stage_idx: int) -> void:
+	match stage_idx:
+		1:
+			hud.callout("升龙挑月！", Color("9fd8ff"), 34)
+		2:
+			hud.callout("穿云破阵！", Color("b8a8ff"), 36)
+		3:
+			hud.callout("断岳崩裂！", Color("ffd07a"), 40)
+			audio.play_charge_release(true)
+
+
+func _on_shade_pinned(point: Vector2) -> void:
+	hud.callout("钉空！", Color("8ae8ff"), 34)
+	fx.spawn_text(point + Vector2(0.0, -32.0), "钉滞 · 锋芒")
+	_spawn_slash_shock(point, Vector2(float(player.facing) if player != null else 1.0, 0.0), 0.92, false)
+
+
+func _on_mark_detonated(point: Vector2, bonus_damage: float) -> void:
+	style.add_event(&"chain", 0.6)
+	hud.callout("破印！", Color("d5a6ff"), 34)
+	if bonus_damage >= 1.0:
+		fx.spawn_text(point + Vector2(0.0, -48.0), "破印 +%.0f" % bonus_damage, bonus_damage, true)
+	_spawn_slash_shock(point, Vector2(float(player.facing) if player != null else 1.0, -0.35), 1.18, true)
+
+
+func _on_shade_momentum_blasted(point: Vector2, dir: Vector2, power: float) -> void:
+	if player != null and player.is_ult():
+		return
+	style.add_event(&"launch", 0.8 + 0.4 * power)
+	audio.play_launch()
+	audio.play_slam(clampf(0.85 + 0.35 * power, 0.75, 1.25))
+	fx.impact_frame(0.96, 1.65, 1.35)
+	camera.add_shake((18.0 + 12.0 * power) * shake_mul, dir)
+	_trigger_cam_kick(dir, 42.0 + 22.0 * power)
+	_trigger_zoom_punch(0.048 + 0.028 * power)
+	_spawn_slash_shock(point, dir, 1.45 + 0.45 * power, true, power >= 0.88)
+	fx.spawn_launch(point)
+	hud.callout("满势远轰！" if power >= 0.92 else "破势轰飞！", Color("ffd27a"), 38)
+
+
+func _on_shade_shell_clanged(point: Vector2, dir: Vector2, _dmg: float) -> void:
+	if player != null and player.is_ult():
+		return
+	audio.play_deflect()
+	fx.spawn_block(point, dir)
+	_trigger_cam_kick(dir, 18.0)
+	_trigger_zoom_punch(0.012)
+	_spawn_slash_shock(point, dir, 0.85, false)
+
+
+func _on_shade_momentum_threshold(point: Vector2, is_max: bool) -> void:
+	if player != null and player.is_ult():
+		return
+	audio.play_parry(0.85 if is_max else 0.45)
+	var fdir := Vector2(float(player.facing) if player != null else 1.0, 0.0)
+	_spawn_slash_shock(point, fdir, 1.30 if is_max else 0.92, is_max)
+	if is_max:
+		_trigger_zoom_punch(0.026)
+
+
+func _on_shade_lethal_blow(point: Vector2, dir: Vector2, _overkill_launch: bool) -> void:
+	if player != null and player.is_ult():
+		return
+	fx.impact_frame(1.0, 1.72, 1.35)
+	_trigger_cam_kick(dir, 44.0)
+	_trigger_zoom_punch(0.056)
+	_spawn_slash_shock(point, dir, 1.90, true, true)
+	audio.play_slam(1.12)
+
+
+func _on_perfect_dodge(attacker: Node2D, point: Vector2) -> void:
+	style.add_event(&"parry")
+	var dir := Vector2(player.facing, 0.0)
+	if attacker != null and is_instance_valid(attacker):
+		dir = attacker.global_position - player.global_position
+	hud.callout("掠影闪！", Color("c8b0ff"), 36)
+	audio.play_parry()
+	fx.spawn_parry(point, dir)
+	fx.spawn_text(player.global_position + Vector2(0.0, -190.0), "掠影闪 · 瞬重")
+	camera.add_shake(8.5 * shake_mul, dir)
+	_trigger_zoom_punch(0.024)
+	_spawn_slash_shock(point, dir, 1.05, false)
+
+
+func _on_shadow_pursuit(_target: Node2D, origin: Vector2) -> void:
+	audio.play_dash()
+	fx.spawn_jump(origin + Vector2(0.0, player.foot_offset), true)
+
+
+func _on_damage_window(mv: Resource) -> void:
+	if mv == null or player == null or not _is_heavy_ground(mv):
+		return
+	var feet: Vector2 = player.global_position + Vector2(0.0, player.foot_offset)
+	var reach: float = _heavy_reach(mv)
+	fx.spawn_ground_wave(feet, player.facing, reach, 1.0)
+	camera.add_shake(10.0 * shake_mul, Vector2.DOWN)
+
+
+## 是不是「大范围砸地重击」：判定盒横向 ≥ 600 px 且伤害窗口只在判定段后半（= 重击那一类招）。
+## 用招式数据判，不写死 id，将来别的招也能开这套反馈。
+func _is_heavy_ground(mv: Resource) -> bool:
+	if mv.get(&"hitbox") == null:
+		return false
+	var box: Rect2 = mv.get(&"hitbox")
+	return box.size.x >= 600.0 and float(mv.get(&"damage_from_frac")) >= 0.5
+
+
+func _heavy_reach(mv: Resource) -> float:
+	var box: Rect2 = mv.get(&"hitbox")
+	return (absf(box.position.x) + box.size.x * 0.5) * 0.92
 
 
 func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
@@ -602,18 +810,85 @@ func _on_player_hit(target: Node2D, mv: Resource, point: Vector2) -> void:
 	player.add_ult_energy(clampf(mv.damage, 3.0, 30.0) * ULT_GAIN_HIT)
 	if target.state == Shade.State.LAUNCHED:
 		style.add_event(&"juggle")
+	var move_id: StringName = StringName(mv.get(&"id"))
+	var f_sign := float(player.facing)
 	var dir := target.global_position - player.global_position
 	if mv.direction > 0:
-		dir = Vector2.UP
+		dir = Vector2(f_sign * 0.35, -1.0)
+	elif move_id in [&"light_1", &"air_light_1"]:
+		dir = Vector2(f_sign, 0.28)
+	elif move_id in [&"light_2", &"air_light_2"]:
+		dir = Vector2(f_sign, -0.34)
+	elif move_id in [&"light_3", &"air_light_3"]:
+		dir = Vector2(f_sign, 0.20)
+	elif move_id == &"light_4":
+		dir = Vector2(f_sign * 0.52, -0.85)
+	elif move_id == &"air_light_4":
+		dir = Vector2(f_sign * 0.62, -0.78)
 	# 穿透招式（冲刺斩）路上的第 2 只起：角色不停，震屏和命中特效也收小，不再整屏压暗
 	var follow_up: bool = mv.hitstop_first_only and player.swing_hit_count > 1
 	# 招式分档震幅已在 Config.moves 中乘过全局倍率，这里不重复相乘。
 	if mv.shake_amount > 0.0:
 		camera.add_shake(mv.shake_amount * (0.2 if mv.is_ranged() else (0.35 if follow_up else 1.0)), dir)
 	audio.play_impact(mv)
-	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move
+	var is_dash: bool = mv == player.dash_move or mv == player.dash_left_move \
+			or mv == player.combo_k_pierce_move or mv == player.combo_k_pierce_left_move
+	var is_keen_slash: bool = player.has_method(&"is_keen_swing") and bool(player.call(&"is_keen_swing"))
+	var is_enhanced_a4: bool = move_id in [&"light_4", &"air_light_4", &"combo_k_cleave"]
+	var hit_center: Vector2 = point.lerp(target.global_position, 0.5)
 	# 冲刺斩命中只留小火花（slim）+ 顿帧，不画“一闪”亮线
-	fx.spawn_hit(point.lerp(target.global_position, 0.5), ImpactFX.power_of(mv) * (0.5 if follow_up else 1.0), mv.direction > 0, dir, is_dash, mv.id)
+	var hit_fx_id: StringName = &"charge_1" if is_enhanced_a4 else move_id
+	var hit_power: float = ((1.62 if is_keen_slash else 1.48) if is_enhanced_a4 else ImpactFX.power_of(mv)) * (0.5 if follow_up else 1.0)
+	fx.spawn_hit(hit_center, hit_power, mv.direction > 0 or is_enhanced_a4, dir, is_dash, hit_fx_id)
+	if is_keen_slash and not follow_up:
+		hud.callout("锋芒破！", Color("d8b6ff"), 38)
+	if not mv.is_ranged() and not follow_up:
+		fx.glow_hit(clampf(hit_power * 1.25, 0.45, 1.0))
+		if move_id in [&"light_1", &"air_light_1"]:
+			_trigger_cam_kick(dir, 15.0)
+			_trigger_zoom_punch(0.014)
+			_spawn_slash_shock(hit_center, dir, 0.74, false)
+		elif move_id in [&"light_2", &"air_light_2"]:
+			_trigger_cam_kick(dir, 22.0)
+			_trigger_zoom_punch(0.024)
+			_spawn_slash_shock(hit_center, dir, 0.98, false)
+			audio.play_slam(0.30)
+		elif move_id in [&"light_3", &"air_light_3"]:
+			_trigger_cam_kick(dir, 34.0)
+			_trigger_zoom_punch(0.038)
+			fx.impact_frame(0.78, 0.90, 0.88)
+			_spawn_slash_shock(hit_center, dir, 1.28, true)
+			audio.play_slam(0.65)
+		elif not is_enhanced_a4 and not _is_heavy_ground(mv) and hit_power >= 0.45:
+			_trigger_cam_kick(dir, 26.0)
+			_trigger_zoom_punch(0.026)
+			_spawn_slash_shock(hit_center, dir, clampf(hit_power * 1.2, 0.85, 1.35), hit_power >= 0.75)
+	if is_enhanced_a4 and not follow_up:
+		camera.add_shake(18.0 * shake_mul, dir)
+		_trigger_cam_kick(dir, 54.0)
+		_trigger_zoom_punch(0.066)
+		fx.impact_frame(1.0, 1.85, 1.45)
+		_spawn_slash_shock(hit_center, dir, 1.82, true, is_keen_slash)
+		var spr4 := player.get_node_or_null("Visual/ActorSprite") as Sprite2D
+		if spr4 != null:
+			fx.start_ghosts(spr4, 0.20, 12.0)
+		var feet4: Vector2 = player.global_position + Vector2(0.0, player.foot_offset)
+		var support4: float = float(terrain.support_y(feet4.x, feet4.y)) if terrain != null else floor_y
+		if move_id == &"light_4" or absf(support4 - feet4.y) <= 140.0:
+			fx.spawn_ground_wave(Vector2(feet4.x, support4), player.facing, 380.0, 1.0)
+		audio.play_launch()
+		audio.play_slam(1.25)
+	# 大范围重击（11-03 方案 A）：不闪白、不喊大字。命中只在「砸地」这一套上盖章——
+	# 脚下砸出水花/碎石（雨街自动换成溅水版）+ 冲击帧压暗稍长 + 一记砸地低频。
+	elif _is_heavy_ground(mv):
+		fx.impact_frame(1.0, 1.6, 1.3)
+		if not follow_up:
+			_trigger_cam_kick(Vector2(f_sign * 0.35, 1.0), 50.0)
+			_trigger_zoom_punch(0.064)
+			_spawn_slash_shock(hit_center, Vector2(f_sign, 0.55), 1.55, true)
+			var feet: Vector2 = player.global_position + Vector2(0.0, player.foot_offset)
+			fx.spawn_ground_slam(feet, 1.25)
+			audio.play_slam(1.18)
 
 
 func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> void:
@@ -624,13 +899,33 @@ func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> 
 	fx.spawn_text(Vector2(lerpf(point.x, s.global_position.x, 0.5), s.global_position.y - s.half_h - 64.0), "%.0f" % amount, amount)
 
 
+## A2：白金凝壳归零瞬间 → 0.15s 慢放反馈 + 返还 1 格残影
+func _on_shade_shell_broken(s: Node2D) -> void:
+	if player != null and player.has_method(&"refund_shadow"):
+		player.refund_shadow(1)
+	if player != null and not player.is_ult():
+		_slowmo(0.28, 0.15)
+	style.add_event(&"armor_break")
+	hud.callout("白壳崩碎！", Color("dfe8ff"), 40)
+	var dir := s.global_position - player.global_position if is_instance_valid(s) and player != null else Vector2.UP
+	camera.add_shake(20.0 * shake_mul, dir)
+	_trigger_zoom_punch(0.048)
+	audio.play_stun()
+	if is_instance_valid(s):
+		var bp := s.global_position + Vector2(0.0, -s.half_h * 0.4)
+		fx.spawn_break(bp)
+		_spawn_slash_shock(bp, dir, 1.45, true)
+
+
 ## 11-01 起没有失衡 / 眩晕：broken 只在甲影出刀被弹刀、霸体被炸破时发
 func _on_shade_broken(point: Vector2, s: Node2D) -> void:
 	style.add_event(&"armor_break")
 	hud.callout("霸体炸破！", Color("ffe066"), 40)
 	camera.add_shake(20.0 * shake_mul, s.global_position - player.global_position)
+	_trigger_zoom_punch(0.042)
 	audio.play_stun()
 	fx.spawn_break(point)
+	_spawn_slash_shock(point, s.global_position - player.global_position, 1.35, true)
 	_queue_hint(&"blast", "弹飞了！追上去 W+J 挑飞 / 空中连，或者把它撞向墙和同伴", 5.0, true)
 
 
@@ -650,9 +945,11 @@ func _on_slam_impact(point: Vector2, strength: float) -> void:
 		ult_fx.spark(point)
 		return
 	hud.callout("下砸！", Color("ffb054"), 40)
-	camera.add_shake(22.0 * strength * shake_mul, Vector2.DOWN)
+	camera.add_shake(24.0 * strength * shake_mul, Vector2.DOWN)
+	_trigger_zoom_punch(0.042 * clampf(strength, 0.7, 1.3))
 	audio.play_slam(strength)
 	fx.spawn_ground_slam(point, clampf(strength, 0.6, 1.4))
+	_spawn_slash_shock(point, Vector2.DOWN, 1.25 * clampf(strength, 0.7, 1.3), true)
 
 
 func _on_shade_wall(speed: float, damage: float, point: Vector2, s: Node2D) -> void:
@@ -660,7 +957,9 @@ func _on_shade_wall(speed: float, damage: float, point: Vector2, s: Node2D) -> v
 	var strength := Feel.from_wall_speed(speed)
 	fx.spawn_wall_slam(point, dir, strength)
 	audio.play_wall(strength)
-	camera.add_shake(16.0 * shake_mul * clampf(strength, 0.4, 1.2), dir)
+	camera.add_shake(18.0 * shake_mul * clampf(strength, 0.4, 1.3), dir)
+	_trigger_zoom_punch(0.028 * clampf(strength, 0.5, 1.2))
+	_spawn_slash_shock(point, dir, 1.10 * clampf(strength, 0.6, 1.3), strength >= 0.85)
 	if damage > 0.0 or s.state == Shade.State.DEAD:
 		style.add_event(&"wall")
 		hud.callout("撞墙！", Color("ff8a5c"), 38)
@@ -726,6 +1025,8 @@ func _on_shade_parried(_by: Node, _point: Vector2) -> void:
 
 
 func _on_shade_died(s: Node2D) -> void:
+	if player != null and player.has_method(&"refund_shadow"):
+		player.refund_shadow(1)
 	if bool(s.get("_split_on")):
 		style.add_event(&"kill")      # 绝影斩开：断成两半就是它的死法，不再放击杀火花和碎块消散
 		return
@@ -773,9 +1074,11 @@ func _on_parry(attacker: Node, point: Vector2) -> void:
 	var dir := Vector2(player.facing, 0)
 	if attacker is Node2D:
 		dir = (attacker as Node2D).global_position - player.global_position
-	camera.add_shake(10.0 * shake_mul, dir)
+	camera.add_shake(12.0 * shake_mul, dir)
+	_trigger_zoom_punch(0.028)
 	audio.play_parry()
 	fx.spawn_parry(point, dir)
+	_spawn_slash_shock(point, dir, 1.15, true)
 
 
 func _on_block(attacker: Node, point: Vector2) -> void:
@@ -802,12 +1105,22 @@ func _on_player_wall(speed: float, damage: float, point: Vector2) -> void:
 
 
 func _slowmo(scale: float, seconds: float) -> void:
+	_slowmo_seq += 1
+	var token := _slowmo_seq
 	Engine.time_scale = scale
 	var t := get_tree().create_timer(seconds, true, false, true)
-	t.timeout.connect(func(): Engine.time_scale = 1.0)
+	t.timeout.connect(func():
+		if is_instance_valid(self) and _slowmo_seq == token:
+			Engine.time_scale = 1.0)
+
+
+func reset_time_scale() -> void:
+	_slowmo_seq += 1
+	Engine.time_scale = 1.0
 
 
 func _exit_tree() -> void:
+	_slowmo_seq += 1
 	Engine.time_scale = 1.0
 
 
@@ -832,15 +1145,22 @@ func _pump_hints() -> void:
 
 # ---------------------------------------------------------------- 输入 / HUD
 
-## 底部操作提示按当前键位方案（键盘 / 键鼠，见 player_factory）写；暂停菜单换方案后再调一次。
+## 底部操作提示按当前键位方案（键盘 / 键鼠，见 combat_controls）写；暂停菜单换方案后再调一次。
 func apply_control_scheme() -> void:
+	var sc := Factory.scheme()
+	CombatControls.apply_scheme(sc)
 	if hud == null:
 		return
-	var a := Factory.key_label("attack")
-	hud.help_text = ("A/D 移动   W/空格 跳   S 跳下木台   {a} 攻击·按住蓄力（霸体，空中也行）   W+{a} 跳起上挑   {k} 远射   {l} 格挡/弹刀   {d} 冲刺斩（空中也行）   R 大招
-"
-			+ "手柄：A 跳 · X 攻击 · Y 远射 · B 冲刺斩 · RB 弹刀 · RT 大招   空格取消出招·空中{a}循环三连   S+{a} 下砸·前+{a} 横扫   冲刺斩/上挑/空中{a} 每中两下 +1 空中跳   H 隐藏   F3 木桩   F5 重开"
-			).format({"a": a, "k": Factory.key_label("ranged"), "l": Factory.key_label("parry"), "d": Factory.key_label("dash")})
+	var lb := CombatControls.labels(sc)
+	hud.help_text = ("A/D 移动   W/空格 跳   S 跳下木台   {a} 攻击   {h} 重击（{a}→{h} / {a}{a}→{h} / {a}{a}{a}→{h} 三式派生破势 · 按住蓄力破甲 · 空中横轰 · S+{h}下砸）   {d} 穿身瞬步·追影   {l} 弹刀   {r} 影镖钉空   R 大招\n"
+			+ "身法与锋芒：{d} 穿敌绕背 / 弹刀 / 掠影闪 / {r} 钉空浮空敌 → 点亮「紫电锋芒」直按 {a} 零铺垫劈出真·强普！   手柄：X 攻击 · Y 重击   H 隐藏   F3 木桩   F5 重开"
+			).format({
+				"a": String(lb.get("attack", "J")),
+				"h": String(lb.get("heavy", "K")),
+				"d": String(lb.get("dash", "Shift")),
+				"l": String(lb.get("parry", "L")),
+				"r": String(lb.get("ranged", "U")),
+			})
 	hud.queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -856,9 +1176,44 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/training.tscn")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if config.is_empty():
 		return
+	if camera != null:
+		if player != null and player.is_ult():
+			_zoom_punch = 0.0
+			_cam_kick_ofs = Vector2.ZERO
+			_cam_kick_vel = Vector2.ZERO
+		else:
+			if _cam_kick_ofs.length_squared() > 0.04 or _cam_kick_vel.length_squared() > 2.0:
+				var acc := -480.0 * _cam_kick_ofs - 30.0 * _cam_kick_vel
+				_cam_kick_vel += acc * delta
+				_cam_kick_ofs += _cam_kick_vel * delta
+				if _cam_kick_ofs.length_squared() <= 0.04 and _cam_kick_vel.length_squared() <= 2.0:
+					_cam_kick_ofs = Vector2.ZERO
+					_cam_kick_vel = Vector2.ZERO
+					camera.base_offset = Vector2.ZERO
+				else:
+					_sync_cam_kick_offset()
+			if _zoom_punch > 0.0002:
+				_zoom_punch = move_toward(_zoom_punch, 0.0, maxf(_zoom_punch * 11.5, 0.18) * delta)
+				var z_now := zoom_level * (1.0 + _zoom_punch)
+				camera.zoom = Vector2(z_now, z_now)
+			elif not is_equal_approx(camera.zoom.x, zoom_level):
+				_zoom_punch = 0.0
+				camera.zoom = Vector2(zoom_level, zoom_level)
+	if not _impact_rings.is_empty():
+		var idx := _impact_rings.size() - 1
+		while idx >= 0:
+			var item: Dictionary = _impact_rings[idx]
+			var next_age := float(item.get("age", 0.0)) + delta
+			if next_age >= float(item.get("life", 0.14)):
+				_impact_rings.remove_at(idx)
+			else:
+				item["age"] = next_age
+			idx -= 1
+		if _hit_overlay != null:
+			_hit_overlay.queue_redraw()
 	hud.player_hp = player.hp
 	hud.player_max_hp = player.max_hp
 	hud.ult_frac = player.ult_energy / maxf(player.ult_max, 1.0)
@@ -874,6 +1229,95 @@ func _process(_delta: float) -> void:
 				maxi(encounter.wave_index, 0) + 1, encounter.waves.size()]
 	_update_lighting()
 	queue_redraw()
+
+
+func _sync_cam_kick_offset() -> void:
+	if camera == null:
+		return
+	var snap_step: float = float(camera.pixel_snap) / maxf(camera.zoom.x, 0.01) if float(camera.pixel_snap) > 0.0 else 0.0
+	camera.base_offset = _cam_kick_ofs.snapped(Vector2.ONE * snap_step) if snap_step > 0.0 else _cam_kick_ofs
+
+
+func _trigger_cam_kick(dir: Vector2, screen_px: float) -> void:
+	if camera == null or shake_mul <= 0.0 or screen_px <= 0.0 or (player != null and player.is_ult()):
+		return
+	var norm := dir.normalized() if dir.length_squared() > 0.001 else Vector2(float(player.facing) if player != null else 1.0, 0.0)
+	var world_amp: float = clampf(screen_px * float(camera.shake_world_scale) * clampf(shake_mul, 0.5, 1.65), 0.0, 140.0)
+	_cam_kick_ofs = (_cam_kick_ofs * 0.35) + norm * world_amp
+	_cam_kick_vel = -norm * (world_amp * 14.0)
+	_sync_cam_kick_offset()
+
+
+func _trigger_zoom_punch(strength: float) -> void:
+	if camera == null or strength <= 0.0 or (player != null and player.is_ult()):
+		return
+	_zoom_punch = clampf(maxf(_zoom_punch, strength * clampf(shake_mul, 0.5, 1.6)), 0.0, 0.088)
+	var z_now := zoom_level * (1.0 + _zoom_punch)
+	camera.zoom = Vector2(z_now, z_now)
+
+
+func _spawn_slash_shock(pos: Vector2, dir: Vector2, power: float, heavy_burst: bool = false, lethal_cut: bool = false) -> void:
+	if fx == null or not fx.enabled or _hit_overlay == null:
+		return
+	var fallback_x := float(player.facing) if player != null else 1.0
+	var norm_dir := dir.normalized() if dir.length_squared() > 0.001 else Vector2(fallback_x, 0.0)
+	if _impact_rings.size() >= 18:
+		_impact_rings.pop_front()
+	_impact_rings.append({
+		"pos": pos,
+		"dir": norm_dir,
+		"age": 0.0,
+		"life": 0.24 if lethal_cut else (0.20 if heavy_burst else 0.14),
+		"power": clampf(power, 0.35, 1.95),
+		"heavy": heavy_burst or lethal_cut,
+		"lethal": lethal_cut,
+	})
+	_hit_overlay.queue_redraw()
+
+
+func _draw_hit_overlay() -> void:
+	if _hit_overlay == null or _impact_rings.is_empty():
+		return
+	var inv_z := 1.0 / maxf(zoom_level, 0.1)
+	for item in _impact_rings:
+		var ring_pos: Vector2 = item.get("pos", Vector2.ZERO)
+		var ring_dir: Vector2 = item.get("dir", Vector2.RIGHT)
+		var ring_age := float(item.get("age", 0.0))
+		var ring_life := maxf(float(item.get("life", 0.14)), 0.01)
+		var ring_p := float(item.get("power", 0.7))
+		var is_hvy := bool(item.get("heavy", false))
+		var is_lethal := bool(item.get("lethal", false))
+		var u := clampf(ring_age / ring_life, 0.0, 1.0)
+		var ease_out := 1.0 - pow(1.0 - u, 3.0)
+		var alpha := clampf(1.0 - u, 0.0, 1.0)
+		var ang := ring_dir.angle()
+		# 1. 沿刀势压缩扩散的椭圆破空气浪环
+		var r_end := (34.0 + 62.0 * ring_p) * inv_z
+		var rx := lerpf(8.0 * inv_z, r_end * 0.52, ease_out)
+		var ry := lerpf(14.0 * inv_z, r_end, ease_out)
+		var lw := maxf((5.6 if is_hvy else 3.6) * ring_p * (1.0 - u * 0.80) * inv_z, 1.4)
+		var col_outer := (Color(1.0, 0.86, 0.52, 0.86 * alpha) if is_hvy else Color(0.76, 0.66, 1.0, 0.78 * alpha))
+		_hit_overlay.draw_set_transform(ring_pos, ang, Vector2(rx / maxf(ry, 0.01), 1.0))
+		_hit_overlay.draw_arc(Vector2.ZERO, ry, -PI * 0.68, PI * 0.68, 22, col_outer, lw)
+		if is_hvy:
+			var r2 := ry * 0.68
+			_hit_overlay.draw_arc(Vector2.ZERO, r2, 0.0, TAU, 24, Color(1.0, 0.98, 0.92, 0.74 * alpha), maxf(lw * 0.65, 1.2))
+		# 2. 首几帧锐利贯穿刀芒切线（致命一击拉长至横贯一闪断魂斩线）
+		var cut_window := 0.78 if is_lethal else 0.62
+		if u < cut_window:
+			var sf := 1.0 - u / cut_window
+			var slen := (320.0 * inv_z if is_lethal else (64.0 + 96.0 * ring_p) * inv_z) * (0.76 + 0.24 * sf)
+			var back_span := slen if is_lethal else slen * 0.58
+			_hit_overlay.draw_set_transform(ring_pos, ang, Vector2.ONE)
+			_hit_overlay.draw_line(Vector2(-back_span, 0.0), Vector2(slen, 0.0),
+				Color(0.72, 0.54, 1.0, 0.88 * sf), ((7.2 if is_lethal else 4.8) + 5.2 * ring_p) * sf * inv_z)
+			_hit_overlay.draw_line(Vector2(-back_span * 0.86, 0.0), Vector2(slen * 0.92, 0.0),
+				Color(1.0, 0.99, 0.95, 0.98 * sf), ((3.4 if is_lethal else 2.2) + 2.6 * ring_p) * sf * inv_z)
+			if is_hvy or is_lethal:
+				var clen := (110.0 * inv_z if is_lethal else slen * 0.38) * (0.8 + 0.2 * sf)
+				_hit_overlay.draw_line(Vector2(0.0, -clen), Vector2(0.0, clen),
+					Color(1.0, 0.90, 0.58, 0.90 * sf), (2.8 + 2.4 * ring_p) * sf * inv_z)
+	_hit_overlay.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw() -> void:

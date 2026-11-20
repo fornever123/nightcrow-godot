@@ -1,13 +1,57 @@
-# Nightcrow Godot project
+# 断晓
 
-**Before doing anything, read `docs/项目进程.md`.** It is the single source of truth for project progress and the user's latest requirements. Newer requirements override older ones. After every step of work, update it: add an entry at the top of its 进程记录, update that line's status, and put new user requirements at the top of 最新要求. Do not create separate handoff documents.
+**Before doing anything, read `docs/项目进程.md`, `E:/00game/剧情与主题规划.md`, and `E:/00game/项目规划.md`.** Newer requirements override older ones. After every step of work, update `docs/项目进程.md` using localized `edit_file` replacements ONLY (never overwrite the whole file via script).
 
 Always reply to the user in Simplified Chinese.
 
-Engine: Godot 4.7.2 (`engine/Godot_v4.7.2-stable_win64_console.exe`), GDScript, Forward+ renderer. This directory is independent of TapTap Maker; never invoke Maker tools or Maker preview/build pipelines here.
+## 唯一净源准绳与防分支污染铁律（2026-11-17 修订，所有会话与 AI 必读）
 
-Several work lines (background, lighting/FX, ultimate, rain trial, audio) share this working tree. Only edit files owned by your line; see `docs/项目进程.md` §4.
+1. **世界观、首章认知反转与美术红线（`E:/00game/剧情与主题规划.md` · 2026-11-19 修订）**：
+   - 白光驱逐时间（鲜活原貌定格，赶出的流动时间沉入暗处化为狂影，入夜至 `5:59` 全境停止刹那触底反弹回溯）。
+   - **【核心叙事节奏】一开始角色不知道光是坏的（第一章道中误以为黑影才是灾厄、盼着破晓天亮，开局与首章道中严禁提前剧透“斩光/光是敌人”），直到打第一个 Boss 才亲眼发现“光有问题”，此后才逆光登天断晓。**
+   - 少字数纯画面叙事、零繁琐官衔与长对话；**彻底废除白瓷化/石化**；**禁海、禁水淹积水、禁血肉、去阶级感**；**背景、彩窗与其他角色/首领严禁出现紫色**（紫色仅归夜鸦刀光与裂口）。
+   - 第一章【司辰母钟楼】× 第二章【归晓大教堂】双枢并立 ➔ 第三章【浮空白城】➔ 终章【天顶裂口】；朔/萤/薇/曜 4 女平权群像；严禁地图场地机关。
+2. **Boss 战归零留白 & 战斗不绑旧预设（`E:/00game/项目规划.md`）**：
+   - **全部章节的 Boss 战（形象、名字、场地、招式）已于 2026-11-17 彻底归零留白**，由首领线从零独立构思；此前未实装的战斗预设词条（驻时白血、凝光棱甲、驻留白光刃、收刀、接法谱等）已全部删除。
+3. **禁读归档冷宫 & 分支不入正册**：
+   - 除非用户当前对话明确点名，**严禁任何 AI 读取、检索或参考 `docs/_历史与废案归档/` 与 `E:/00game/历史归档/` 下的任何历史废案与旧分支**（如断潮、单刃兽 B1、司晷、守钟骸、咬链兽、G03 旧首页、《沉影之昼》等）。
+   - 未获用户拍板「定稿 / 做进正式游戏」的方案与草图一律放在 `docs/_当前分支草稿/<线名>/`（禁止命名“终版/定案”），其他对话严禁跨线参考。
+
+## 项目核心（用户 2026-11-08 要求放在这里）
+
+用户原话：“我主要是希望我这些设想你都仔细去想，从开始构思这个游戏的玩法，构筑一个可玩性很高的作品，而不是我提出需求你在那里修修补补，而是我提出需求，你去思考根据我的需求，你可不可以创造一个更好玩的模式”
+
+## 创作工作法（用户 2026-11-17 拍板写进这里，所有会话必守）
+
+用户原话：“为什么做游戏的时候……所做的改动完全没有我所设想的大，只是在原来基础上缝缝补补……没有自己去追求更高更强的游戏画面，机制，玩法”；“我的要求不止是好玩，也是好的画面，这俩是并列的”；“我想重置设置界面的美术，但是他只是改了一下多出来的字，几乎没有变”；“我需要他勇敢做，生图生成视频甚至 blender，remotion 这种级别的都要主动使用”。诊断全文见 `docs/_当前分支草稿/创作方法/为什么总是缝缝补补_诊断与新工作法草稿_20261117.md`。
+
+1. **好玩和好看并列，都是一号目标**，不分先后。每个改动都要说清它让玩家"玩起来"和"看起来"各变好了多少。
+2. **先认档位，再动手。** 用户说"重置 / 重做 / 重新设计 / 根本没做好 / 和没改有什么区别"，默认是**颠覆档**；只有"修一下 / 调一下 / 这里不对"才是补丁档。其他需求先给三档：补丁（字面最小改动）/ 重构（重做背后那个系统）/ 颠覆（从零做这一块最好的样子），写清玩家感受变化多大、牵动哪些线，**明确推荐一档，不准默认推荐补丁**。先不受约束地发散，再拿红线去筛。
+3. **颠覆档的固定做法：**
+   - 旧版本**只当功能清单**（有哪几项、接了哪些接口），美术和布局一律不继承；
+   - 先出 **2～3 个彼此差异很大的全新方向效果图**（每个都是完整一屏，不是局部修改），用户挑一个；
+   - **新建场景 / 新文件从零搭**，旧的只用来核对功能有没有漏；
+   - 交付必附**改前 / 改后并排对比图**，并排看还像同一个东西就算没完成，不交。
+   - 用户一次提多个需求，每个单独定档、单独交付对比图，不打包稀释。
+4. **主动用重工具。** 视觉类需求的方案必须写明用哪个重工具做什么；对"重做 / 更好看"类需求，只改代码常数、字距、颜色值的方案默认不合格。Blender、Remotion / HyperFrames、Godot 着色器 / 粒子 / 光照、Codex 生图、Google Flow、Colab G4 都直接用；只有即梦 / Seedance 要先审批（见 `E:/00game/CLAUDE.md`）。需要审批或下载的关键一步（字体、即梦）**一次列清并写明"不做这一步就不会大变"**，不准默默跳过换成小改。工具连不上，立刻告诉用户怎么修。
+5. **对标整帧，不对标单件。** 画面验收看游戏实机同一帧（角色 + 刀光 + 敌人 + 背景 + 光 + HUD 合起来），与目标画面和点名的参照游戏对应帧**并排**比，逐项写差距；不再单看素材原图。
+6. **AI 先自己玩、自己看、自己严格打分，再交付。** 用户 11-17：“要打分吧，最好给自己打分。评审方式要严格全面，画面的话兼顾动效和画面，美术和视角冲击力，真实感。玩法的话也要全面。”按 `docs/评审打分标准.md` 执行：画面 7 项（静帧美术 / 动效 / 视觉冲击力 / 真实感 / 整帧统一 / 世界观表达 / 战斗可读性）、玩法 10 项，刻度锚定点名的参照游戏；每项要实机证据，8 分以上必须有与参照游戏的并排对比图，每项写扣分点，改前改后都打，不准只报平均分（同时报最低项）。用户否掉的东西若自评 ≥7，要记进该文档的校准记录并往下压。测试全绿只代表"没坏"，不代表"变好"。
+7. **汇报说人话**：玩家能感到什么变化 / 怎么试 / 还差什么。token、额度、dBFS、文件清单放最后。
+8. **跨线的好点子摆到用户面前**，不要因为文件归属缩成本线内的小改。
+9. **当前里程碑：10 分钟垂直切片**——一局从入夜钟响到第一章关底，玩法与画面同时做到成品品质；其中挑一个最关键场景做「美术样板角」，定全作画面天花板，之后素材都按它对齐。不以数量为产出（再多 N 张图、N 条音效），以"切片里那一帧、那段手感有没有被拉高"为产出。
+10. **两个总监会话：「画面总监」与「玩法总监」分开负责，但互相联通**（用户 11-17：“体验总监也是画面和玩法分开，但是同样能相互联通”）：
+    - **画面总监**：对切片"好不好看"负责（画面 7 项打分），可跨背景、光影、特效、角色动作表现、UI 视觉、镜头、后处理直接改代码与素材。
+    - **玩法总监**：对切片"好不好玩"负责（玩法 10 项打分），可跨战斗手感、敌人、遭遇、关卡路线、肉鸽成长、数值直接改代码与素材。
+    - **联通方式**：共用一份 `docs/体验北极星.md` 和同一个 10 分钟切片；每次交付写清"这次改动对另一侧的影响"，并请对方用自己那一侧的打分表评一次；"白光驱逐时间"这类既是玩法规则又是渲染系统的东西，双方先商定接口（谁主写哪些文件），再各自动手；两个会话直接互发消息同步，并在 `docs/项目进程.md` §0 各占一行。
+    - 各在自己的 git 分支上做，用户试玩满意再合并；同一个文件同一时间只由一方改。其他线按两位总监的需求供素材。两位总监的文件不受下面"只改自己线的文件"限制。
+11. **「体验北极星」**：由两位总监共同起草 `docs/体验北极星.md`（≤2 页：玩法支柱 + 画面支柱、一局 10 分钟逐分钟体验（看到什么 + 做什么 + 感到什么）、3～5 张目标画面帧、每个维度点名参照游戏的具体时刻）。用户拍板后，它成为所有会话的第一读物，`docs/项目进程.md` 降为查历史用。
+
+Engine: Godot 4.7.2 (`engine/Godot_v4.7.2-stable_win64_console.exe`), GDScript, Forward+ renderer. Never invoke TapTap Maker tools here. Only edit files owned by your line (the 画面总监 / 玩法总监 sessions are the exception, see 创作工作法 §10); see `docs/项目进程.md` §4.
+
+## 角色动作参考起源（2026-11-13，所有 AI 必读）
+
+- **`E:\夸克\603-604` 是本项目主角 2D 角色动作的参考起源与初代视频母带库**（与 3D 骨骼动作库 `E:/bip动作库` 区分，原片只读不覆盖；用即梦 / Seedance 生成前必须先报完整方案与提示词获批，其他生成与制作工具（Codex 生图、Google Flow、Colab G4、Blender、Remotion 等）不用审批、要主动用，见 `E:/00game/CLAUDE.md`）。
 
 ## GitHub version control
 
-This folder is an independent Git repository. Its GitHub origin is fornever123/nightcrow-godot (public by user request), separate from the parent Maker repository. Commit only when the user asks, and keep commits scoped to one work line. Use `tools/github-sync.ps1` for user-requested GitHub updates; never force-push or overwrite unfinished merge/rebase work. Keep engine binaries, caches, backups and credentials excluded. See `docs/GitHub更新说明.md`.
+This folder is an independent Git repository (`fornever123/nightcrow-godot`). Commit only when the user asks, scoped to one work line. See `docs/GitHub更新说明.md`.

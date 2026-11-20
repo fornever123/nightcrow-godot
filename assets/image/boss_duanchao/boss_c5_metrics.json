@@ -1,0 +1,56 @@
+{
+  "atlas_cols": 8,
+  "atlas_rows": 9,
+  "total_frames": 72,
+  "deck_walk_row": 28.0,
+  "spire_l_size": [
+    692,
+    973
+  ],
+  "spire_r_size": [
+    685,
+    972
+  ],
+  "lantern_left": [
+    466,
+    708
+  ],
+  "lantern_right": [
+    219,
+    708
+  ],
+  "spire_l_shaft_x": 430,
+  "spire_l_balcony_y": 548,
+  "spire_l_balcony_tip_x": 687,
+  "spire_r_shaft_x": 265,
+  "spire_r_balcony_y": 546,
+  "spire_r_balcony_tip_x": 4,
+  "minute_hand_size": [
+    336,
+    1005
+  ],
+  "hour_hand_size": [
+    337,
+    759
+  ],
+  "hud_main_slot_uv": [
+    0.1036,
+    0.5202,
+    0.7993,
+    0.2897
+  ],
+  "hud_prism_slot_uv": [
+    0.1572,
+    0.25,
+    0.7788,
+    0.4625
+  ],
+  "hud_main_size": [
+    1525,
+    321
+  ],
+  "hud_prism_size": [
+    1234,
+    160
+  ]
+}

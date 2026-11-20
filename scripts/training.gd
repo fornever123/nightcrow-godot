@@ -1,6 +1,7 @@
 extends Node2D
 ## One configuration file for game and modifier; C-drive combat remains the gameplay core.
 const Config := preload("res://scripts/core/configuration.gd")
+const Tuning := preload("res://scripts/core/tuning.gd")
 const Art := preload("res://scripts/presentation/art_cache.gd")
 const PlayerScene := preload("res://scenes/actors/player.tscn")
 const DummyScene := preload("res://scenes/actors/dummy.tscn")
@@ -38,6 +39,7 @@ func _ready() -> void:
 		push_error("无法读取统一战斗配置")
 		return
 	disk_hash = FileAccess.get_file_as_string(Config.PATH).hash()
+	Tuning.attach_watch(self)
 	moves = Config.moves(config)
 	RenderingServer.set_default_clear_color(Color(config.art.get("background","#20212c")))
 	_register_input()

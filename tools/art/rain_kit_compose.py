@@ -46,6 +46,7 @@ def mirrored(p):
     q["attach"] = [round(w - p["attach"][1], 1), round(w - p["attach"][0], 1)]
     q["stand"] = [[round(w - b, 1), round(w - a, 1), y, s] for a, b, y, s in p["stand"]]
     q["blocks"] = [[round(w - b, 1), round(w - a, 1), y, s] for a, b, y, s in p["blocks"]]
+    q["slopes"] = [[round(w - b, 1), yb, round(w - a, 1), ya, s] for a, ya, b, yb, s in p.get("slopes", [])]
     q["lamps"] = [[round(w - x, 1), y, k, r] for x, y, k, r in p["lamps"]]
     return q
 
@@ -139,11 +140,12 @@ def compose(sec_plan, PX, kit, layout):
     over(out, canvas, 0, 0)
 
     # ---- 平台 / 石台 / 灯（件内坐标 → 段内世界坐标）
-    plats, blocks, lamps = [], [], []
+    plats, blocks, slopes, lamps = [], [], [], []
     for q in placed:
         L, dy = q["left"], q["dy"]
         plats += [[round(L + x0, 1), round(L + x1, 1), round(y + dy, 2), s] for x0, x1, y, s in q["meta"]["stand"]]
         blocks += [[round(L + x0, 1), round(L + x1, 1), round(y + dy, 2), s] for x0, x1, y, s in q["meta"]["blocks"]]
+        slopes += [[round(L + a, 1), round(ya + dy, 2), round(L + b, 1), round(yb + dy, 2), s] for a, ya, b, yb, s in q["meta"].get("slopes", [])]
         lamps += [[round(L + x, 1), round(y + dy, 2), k, r] for x, y, k, r in q["meta"]["lamps"]]
     refl = [[l[0], LAMP_WARM] for l in lamps] + sec_plan.get("reflections", [])
     for lx, col in refl:
@@ -158,6 +160,7 @@ def compose(sec_plan, PX, kit, layout):
     sec["art"] = {"near": "res://assets/image/rain_street/" + outp.name, "x0": X0, "y0": Y0, "width": round(W / PX, 2), "water_y": WATER}
     sec["platforms"] = sorted(plats, key=lambda p: (-p[2], p[0]))
     sec["blocks"] = sorted(blocks, key=lambda p: p[0])
+    sec["slopes"] = slopes
     sec["lamps"] = lamps
     if "spawns" in sec_plan:
         sec["spawns"] = sec_plan["spawns"]
@@ -174,10 +177,14 @@ def check(layout):
     for si, sec in enumerate(layout["sections"]):
         surf = [(a, b, y) for a, b, y, _ in sec["platforms"]] + [(a, b, y) for a, b, y, _ in sec["blocks"]]
         bad = [(A, B) for A in surf for B in surf if A is not B and A[1] > B[0] and A[0] < B[1] and 0 < B[2] - A[2] < 188]
+        ramp = []   # 斜坡沿途都能起跳：每 40 取一个点算作能跳的落脚处（不算顶头）
+        for x0, y0, x1, y1, _ in sec.get("slopes", []):
+            n = max(1, int(abs(x1 - x0) / 40))
+            ramp += [(x0 + (x1 - x0) * i / n, x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n) for i in range(n + 1)]
         unreach = [(a, b, y) for a, b, y, k in sec["platforms"] if not any(
             (B[2] > y and B[2] - y <= 300 and max(0, max(a, B[0]) - min(b, B[1])) <= 380) or
             (abs(B[2] - y) <= 60 and (B[0], B[1], B[2]) != (a, b, y) and max(0, max(a, B[0]) - min(b, B[1])) <= 450)
-            for B in surf + [(-1e9, 1e9, 580)])]
+            for B in surf + ramp + [(-1e9, 1e9, 580)])]
         spawn_bad = [s for s in sec["spawns"] if not (abs(s[1] - 580) < 1 or any(a <= s[0] <= b and abs(y - s[1]) < 1 for a, b, y in surf))]
         print(si, "headroom:", bad or "ok", " reach:", unreach or "ok", " spawns:", spawn_bad or "ok")
         ok = ok and not bad and not unreach and not spawn_bad

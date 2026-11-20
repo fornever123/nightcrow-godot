@@ -1,0 +1,87 @@
+{
+  "title": "《断晓》第一批纯 AI 音效打样（弹刀 + 挥刀 · 双大模型对比）",
+  "jobs": [
+    {
+      "id": "parry_sekiro_tf",
+      "category": "1. 精准弹刀（最高音调冷钢交击）",
+      "label": "TangoFlux · 高音冷钢弹刀火石长鸣",
+      "engine": "tangoflux",
+      "duration": 2.0,
+      "steps": 50,
+      "seeds": [101, 202, 303],
+      "prompt": "Sharp high-pitched katana sword parry clash, crisp cold steel blade deflecting another sword with bright metallic ring, sparks flying, clean studio game sound effect, isolated, no background noise"
+    },
+    {
+      "id": "parry_heavy_tf",
+      "category": "1. 精准弹刀（最高音调冷钢交击）",
+      "label": "TangoFlux · 满势大弹刀璀璨钢鸣",
+      "engine": "tangoflux",
+      "duration": 2.2,
+      "steps": 50,
+      "seeds": [108, 209],
+      "prompt": "Powerful anime sword parry impact, piercing high-frequency carbon steel clang followed by long shimmering metallic resonance and punchy impact, crisp studio foley, isolated"
+    },
+    {
+      "id": "parry_video_mm",
+      "category": "1. 精准弹刀（最高音调冷钢交击）",
+      "label": "MMAudio 视频帧同步 · 主角弹刀实机动作卡点配音",
+      "engine": "mmaudio",
+      "local_video": "E:/00game/work/nightcrow-ai-sfx-20261114/refs/ref_parry1.mp4",
+      "duration": 2.0,
+      "steps": 35,
+      "cfg_strength": 5.0,
+      "seeds": [42, 77, 128],
+      "prompt": "sharp high-pitched katana blade parry deflect, crisp metallic sword clang, bright cold steel ring and sparks",
+      "negative_prompt": "music, voice, speech, crowd, dull thud, mud, static, background ambience"
+    },
+    {
+      "id": "swing_razor_tf",
+      "category": "2. 凌冽挥刀（金属寒芒破空）",
+      "label": "TangoFlux · 疾速金属寒芒挥刀",
+      "engine": "tangoflux",
+      "duration": 1.2,
+      "steps": 50,
+      "seeds": [301, 302, 303],
+      "prompt": "Fast razor-sharp katana slash cutting through air with crisp metallic blade schwing gleam, clean anime sword swing sound effect, isolated studio foley"
+    },
+    {
+      "id": "swing_a1_mm",
+      "category": "2. 凌冽挥刀（金属寒芒破空）",
+      "label": "MMAudio 视频帧同步 · 普攻一段疾斩卡点",
+      "engine": "mmaudio",
+      "local_video": "E:/00game/work/nightcrow-ai-sfx-20261114/refs/ref_swing_a1.mp4",
+      "duration": 1.2,
+      "steps": 35,
+      "cfg_strength": 4.8,
+      "seeds": [42, 88],
+      "prompt": "fast sharp katana sword slash whoosh with crisp metallic blade ring",
+      "negative_prompt": "music, voice, speech, footsteps, dull thud, background noise"
+    },
+    {
+      "id": "swing_a3_mm",
+      "category": "2. 凌冽挥刀（金属寒芒破空）",
+      "label": "MMAudio 视频帧同步 · 普攻三段重劈寒弧卡点",
+      "engine": "mmaudio",
+      "local_video": "E:/00game/work/nightcrow-ai-sfx-20261114/refs/ref_swing_a3.mp4",
+      "duration": 1.5,
+      "steps": 35,
+      "cfg_strength": 4.8,
+      "seeds": [42, 88],
+      "prompt": "heavy razor-sharp katana wide slash cutting air with bright cold steel resonance",
+      "negative_prompt": "music, voice, speech, footsteps, background noise"
+    },
+    {
+      "id": "swing_dash_mm",
+      "category": "2. 凌冽挥刀（金属寒芒破空）",
+      "label": "MMAudio 视频帧同步 · 残影冲刺居合斩卡点",
+      "engine": "mmaudio",
+      "local_video": "E:/00game/work/nightcrow-ai-sfx-20261114/refs/ref_dash_slash.mp4",
+      "duration": 2.3,
+      "steps": 35,
+      "cfg_strength": 5.0,
+      "seeds": [42, 99],
+      "prompt": "high-speed anime iaijutsu dash sword slash, metallic unsheathe schwing and razor wind cut",
+      "negative_prompt": "music, voice, speech, crowd, background noise"
+    }
+  ]
+}

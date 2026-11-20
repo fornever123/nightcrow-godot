@@ -103,6 +103,12 @@ var _impact_a: float = 0.0
 var _impact_hold: float = 0.0
 var _impact_fade: float = 0.18
 var _impact_peak: float = 0.0
+## 命中闪白（11-03 重击）：整屏亮一下再退，比压暗更"炸"。走单独一层，不受压暗影响
+var _flash: Node2D
+var _flash_a: float = 0.0
+var _flash_peak: float = 0.0
+var _flash_hold: float = 0.0
+var _flash_fade: float = 0.26
 
 
 func _ready() -> void:
@@ -118,6 +124,14 @@ func _ready() -> void:
 	_impact.visible = false
 	add_child(_impact)
 	_impact.draw.connect(_draw_impact)
+	_flash = Node2D.new()
+	_flash.name = "HitFlash"
+	_flash.top_level = true
+	_flash.z_as_relative = false
+	_flash.z_index = 40                  # 在角色（0）和所有战斗特效（20）之上，HUD 的 CanvasLayer 之下
+	_flash.visible = false
+	add_child(_flash)
+	_flash.draw.connect(_draw_flash)
 	ghosts = Node2D.new()
 	ghosts.z_as_relative = false
 	ghosts.z_index = -1                  # 残影在角色身后、地形前面
@@ -1027,7 +1041,8 @@ func _sync_glow() -> void:
 
 
 ## 重击冲击帧：背景压暗（角色、敌人、特效不压），停 hold 秒再淡回去。p ≥ 0.9（蓄力斩）更暗更久
-func impact_frame(p: float) -> void:
+## hold_mul / fade_mul 给"比蓄力斩还要重"的招（11-03 大范围重击）把停顿和消退一起拉长。
+func impact_frame(p: float, hold_mul: float = 1.0, fade_mul: float = 1.0) -> void:
 	if not enabled or not impact_frames_enabled:
 		return
 	var a := 0.4 if p < 0.9 else 0.52
@@ -1035,10 +1050,72 @@ func impact_frame(p: float) -> void:
 		return
 	_impact_peak = a
 	_impact_a = a
-	_impact_hold = 0.06 if p < 0.9 else 0.09
-	_impact_fade = 0.16 if p < 0.9 else 0.22
+	_impact_hold = (0.06 if p < 0.9 else 0.09) * maxf(hold_mul, 0.0)
+	_impact_fade = (0.16 if p < 0.9 else 0.22) * maxf(fade_mul, 0.0)
 	_impact.visible = true
 	_impact.queue_redraw()
+
+
+## 重击砸地后的**贴地推击**（11-03，方案 A）：一条很低很薄的地面冲击，0.14 s 就消失。
+##
+## 【为什么不是光带】重击是「起跳下劈」，动作是往下的；横在空中的长光条和这一刀对不上，
+## 读起来像 UI 不像刀。贴地推击才是"一刀砸下去、地上有什么东西被推出去"。
+## 【为什么这么薄】范围感交给震屏 / 顿帧 / 溅水，这一层只负责"把地面推开"这一件事。
+## origin = 脚底（世界坐标）；reach = 世界像素射程；strength 0..1。
+func spawn_ground_wave(origin: Vector2, facing: int, reach: float, strength: float) -> void:
+	if not enabled or reach <= 0.0:
+		return
+	var w := _w()
+	var px := maxf(reach / maxf(w, 0.0001), 1.0)          # 射程 → 屏幕像素
+	var dir := 1.0 if facing >= 0 else -1.0
+	var ang := 0.0 if dir > 0.0 else PI
+	var s := clampf(strength, 0.0, 1.0)
+	# 地面推击分三段：近段亮、远段暗、寿命依次变短 —— 读起来是"扩散出去然后散掉"，
+	# 一条等亮的长线会像激光，所以这里故意让它越远越淡。
+	var segs := [
+		[0.0, 0.42, 1.0, 0.16],
+		[0.34, 0.72, 0.62, 0.12],
+		[0.64, 1.0, 0.34, 0.09],
+	]
+	for seg in segs:
+		var a0: float = seg[0]
+		var a1: float = seg[1]
+		var k: float = seg[2]
+		var life: float = seg[3]
+		var seg_len := reach * (a1 - a0)
+		var seg_mid := origin + Vector2(dir * reach * (a0 + a1) * 0.5, -6.0)
+		var rim := Color(VIO_L.r, VIO_L.g, VIO_L.b, k)
+		var core := Color(WHITE.r, WHITE.g, WHITE.b, k)
+		_streak(seg_mid, seg_len / maxf(w, 0.0001), 6.0 + 4.0 * s, ang, rim, core, life)
+	# 脚下压出的一圈（扁的，贴地）
+	_ring(origin + Vector2(0.0, -4.0), 12.0, 60.0 + 40.0 * s, 5.0, 0.0, VIO_L, 0.16, 0.0, 0.22)
+	# 沿地面带出一点低尘 / 水雾，往推的方向散
+	for i in 3:
+		_puff(origin + Vector2(dir * _r(30.0, 120.0), -_r(4.0, 14.0)),
+				Vector2(dir * _r(120.0, 260.0), _r(-36.0, -10.0)), 7.0, 13.0 + 6.0 * s, 0.34, 0.02 * float(i))
+
+
+## 命中闪白：整屏瞬亮再退。strength 0..1 = 招式数据里的 screenFlash。
+##
+## 【11-03 重击改版后不再有人调用】整屏白是这个游戏**大招「绝影」的签名**（`ult_fx` 的后期 white 通道），
+## 重击用一次就把大招的"分量上限"吃掉了，还和大招=白屏的认知打架。留着函数是为了将来真需要
+## （比如 Boss 处决），但**普通招式不许开** —— `charge_1` 的 screenFlash 已经是 0。
+func white_flash(strength: float) -> void:
+	if not enabled or strength <= 0.0:
+		return
+	var a := clampf(strength, 0.0, 1.0) * 0.62
+	if a < _flash_a:
+		return
+	_flash_peak = a
+	_flash_a = a
+	_flash_hold = 0.05
+	_flash_fade = 0.22
+	_flash.visible = true
+	_flash.queue_redraw()
+
+
+func flash_alpha() -> float:
+	return _flash_a
 
 
 func impact_alpha() -> float:
@@ -1065,6 +1142,27 @@ func _draw_impact() -> void:
 	_impact.draw_rect(r.grow(maxf(r.size.x, r.size.y) * 0.1), Color(0.015, 0.02, 0.04, _impact_a))
 
 
+## 闪白层：整屏盖一层骨白（不是纯白，和整体色调一致）
+func _draw_flash() -> void:
+	if _flash_a <= 0.0 or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	var inv := vp.get_canvas_transform().affine_inverse()
+	var r := inv * vp.get_visible_rect()
+	_flash.draw_rect(r.grow(maxf(r.size.x, r.size.y) * 0.1), Color(0.94, 0.97, 1.0, _flash_a))
+
+
+func _tick_flash(delta: float) -> void:
+	if _flash_a <= 0.0:
+		return
+	if _flash_hold > 0.0:
+		_flash_hold -= delta
+	else:
+		_flash_a = maxf(_flash_a - _flash_peak * delta / maxf(_flash_fade, 0.01), 0.0)
+	_flash.visible = _flash_a > 0.0
+	_flash.queue_redraw()
+
+
 ## 跟踪主角：蓄力聚气、跑步扬灰
 func track_player(player: Node2D) -> void:
 	_player = player
@@ -1077,6 +1175,7 @@ func track_dissolve(s: Node2D) -> void:
 
 func _process(delta: float) -> void:
 	_tick_impact(delta)
+	_tick_flash(delta)
 	if _glow_pulse > 0.0:
 		_glow_pulse = maxf(_glow_pulse - delta * 3.2, 0.0)
 	_sync_glow()
@@ -1233,8 +1332,12 @@ func clear() -> void:
 	blade_seg = Vector4.ZERO
 	_impact_a = 0.0
 	_impact_hold = 0.0
+	_flash_a = 0.0
+	_flash_hold = 0.0
 	if _impact != null:
 		_impact.visible = false
+	if _flash != null:
+		_flash.visible = false
 	pfx.clear()
 	last_hit_plan.clear()
 	last_kind = ""

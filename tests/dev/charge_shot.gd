@@ -51,7 +51,7 @@ func run() -> void:
 	p.set_injected_frame(frame(false))
 	while p.current_move != p.charge_move:
 		await physics_frame
-	var release_shots := {10:"05_释放起手",26:"06_起跳下劈",40:"07_下劈轨迹",52:"08_落地冲击",60:"09_冲击余波",130:"10_收招"}
+	var release_shots := {10:"05_释放起手",26:"06_重击落刀",40:"07_下劈轨迹",52:"08_落地冲击",60:"09_冲击余波",130:"10_收招"}
 	var saved := {}
 	for i in 260:
 		await physics_frame

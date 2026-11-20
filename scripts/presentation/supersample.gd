@@ -67,6 +67,10 @@ func set_enabled(on: bool) -> void:
 			_route(n)
 		else:
 			_order(n)
+	if on:
+		# 只改父子关系不会让引擎重排绘制顺序，要靠一次激活状态变化触发（否则关着时建的小画布打开后还是晚一帧）
+		RenderingServer.viewport_set_active(_sub.get_viewport_rid(), false)
+		RenderingServer.viewport_set_active(_sub.get_viewport_rid(), true)
 	_fix_outline()
 	_sync()
 

@@ -50,7 +50,9 @@ func run() -> void:
 	for key in ["run", "jump", "fall", "land"]:
 		var source: Dictionary = view.setup.animations[key].get("source", {})
 		var expected_source := {"run":"跑步","jump":"跳向上","fall":"在空中下坠期间动画","land":"跳落地动作"}
-		check(source.get("animation", "") == expected_source[key] and source.get("collection", "") == "desktop-actions-20261018", key + " uses the selected desktop source")
+		# 跑步在 2026-11-02 换成「即梦 v5+v6 合成 → FrameBaker 导入」的 16 帧 24fps 序列
+		var expected_collection := {"run":"imports/framebaker","jump":"desktop-actions-20261018","fall":"desktop-actions-20261018","land":"desktop-actions-20261018"}
+		check(source.get("animation", "") == expected_source[key] and source.get("collection", "") == expected_collection[key], key + " uses the selected desktop source")
 	await step(6, false, true)
 	check(view.clip_name == "run", "movement plays running")
 	await shot("run")

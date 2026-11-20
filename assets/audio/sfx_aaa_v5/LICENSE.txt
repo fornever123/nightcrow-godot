@@ -1,0 +1,32 @@
+《断晓》商业 3A 混合合成音效库 (sfx_aaa_v5) 授权与来源说明
+====================================================================
+
+本目录下全部音频文件均由 tools/audio/make_sfx_aaa_v5.py 与 aaa_dsp.py 离线合成生成（48kHz 16-bit Stereo）。
+所引用的底层物理瞬态采样全部为 **CC0 1.0 Universal (Public Domain，可免费商用且无需强制署名)**：
+
+1. Still North Media — Medieval Weapons & Weapon Textures (192kHz / 24-bit)
+   授权：CC0 1.0 Public Domain (https://opengameart.org/node/146863)
+   用途：日本刀/军刀/猎刀/长枪真实挥砍破风、出鞘、归鞘、刃对刃交击、反曲弓崩弦与羽箭破空母带。
+
+2. Kreastricon62 — "Bloody Blade" (Freesound #323525)
+   授权：CC0 1.0 Public Domain
+   用途：剑刃命中切入物理接触瞬态层。
+
+3. blacklodgegames — 27 Metal Audio Samples (44.1kHz / 32-bit Stereo)
+   授权：CC0 1.0 Public Domain
+   用途：厚重黑铁甲叶、架势崩解与格挡中低频躯干层。
+
+4. Iwan 'qubodup' Gabovitch — Impact Meat & Metal Pack
+   授权：CC0 1.0 Public Domain
+   用途：重砸、撞墙与爆轰物理冲击层。
+
+5. rubberduck — 40 CC0 Water Splash & Slime SFX
+   授权：CC0 1.0 Public Domain
+   用途：雨港湿青石板脚步微溅水、落地水花。
+
+6. Kenney — Impact Sounds & RPG Audio
+   授权：CC0 1.0 Public Domain (https://kenney.nl)
+   用途：硬底皮靴触石瞬态、风衣布料摩擦、暗银钟鸣基音。
+
+7. 程序物理建模与非线性 DSP 合成层（tools/audio/aaa_dsp.py，项目自研原创）
+   用途：色散冷钢/白瓷模态谐振器、紫电空间裂口 FM 撕裂层、紧致相位锁定 Sub-Drop 与 48kHz 母带处理。

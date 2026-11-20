@@ -18,6 +18,8 @@ var move: Resource = null
 var facing: int = 1
 ## 飞行速度 px/s
 var speed: float = 940.0
+## 实战影镖纵向微调辅助速度 px/s（默认 0 保持纯水平，不影响训练场与 PVP）
+var velocity_y: float = 0.0
 ## 存活帧数上限（防止没撞到东西时永远飞下去）
 var life_frames: int = 90
 ## 命中时给【射手】的顿帧帧数
@@ -57,6 +59,8 @@ func _physics_process(delta: float) -> void:
 		return
 	_frames += 1
 	global_position.x += speed * float(facing) * delta
+	if velocity_y != 0.0:
+		global_position.y += velocity_y * delta
 
 	# 1) 先看有没有打到人（受击盒在 layer 4）
 	for area in get_overlapping_areas():

@@ -13,20 +13,6 @@ const FEET_ROW_GROUND := 560.0      ## 站在街面上时，脚在屏幕第几�
 const FEET_ROW_UPPER := 470.0       ## 站在楼上时，脚放得高一点，上下都看得到
 const SPAWN_REACH := 1500.0         ## 出生点离玩家最远多少（约 1.5 屏）
 
-const WAVES: Array = [
-	[   # ① 钟楼广场：先教近战，再教“跳上楼收拾影弓”
-		{"label": "雨中影卒", "spawns": [G, G, G], "max_attackers": 2},
-		{"label": "楼上的冷箭", "spawns": [G, A, A, G], "reinforce": [G, G], "reinforce_at": 2, "max_attackers": 2},
-	],
-	[   # ② 廊桥：甲影在地面压、影弓和影爆在桥上
-		{"label": "甲影过桥", "spawns": [B, G, A], "max_attackers": 2},
-		{"label": "桥上影爆", "spawns": [X, G, A, X], "reinforce": [B], "reinforce_at": 2, "max_attackers": 2},
-	],
-	[   # ③ 河岸石阶：高潮，楼上楼下一起来
-		{"label": "影潮上岸", "spawns": [G, G, B, A], "max_attackers": 2},
-		{"label": "四面八方", "spawns": [B, A, X, G, A], "reinforce": [G, X, G], "reinforce_at": 3, "max_attackers": 3},
-	],
-]
 
 var layout: Dictionary = {}
 var _cam_feet: float = 580.0        ## 镜头按这一层取景（站稳才更新，跳跃不晃镜头）
@@ -57,7 +43,7 @@ func _init() -> void:
 	arena_spacing = float(layout.get("arenaSpacing", 6400))
 	first_arena_x = START_X + 1700.0 + arena_half
 	trigger_before = arena_half - 200.0          # 进竞技场 200 就合上封印
-	round_waves = WAVES
+	round_waves = Encounters.waves(Shade.KIND_IDS)   # 默认值在 encounters.json
 	stage_title = PackedStringArray(["雨夜河岸街", "往右走 · 楼上楼下都有影子"])
 	cam_y = _cam_y_for(580.0)
 
@@ -68,7 +54,7 @@ static func _read_layout() -> Dictionary:
 		push_error("缺少关卡布局：" + LAYOUT_PATH)
 		return {}
 	var d: Variant = JSON.parse_string(f.get_as_text())
-	return d if d is Dictionary else {}
+	return Tuning.apply("layout", d) if d is Dictionary else {}   # 修改器的场景改动叠在默认布局上
 
 
 func _make_terrain() -> Node2D:
@@ -90,6 +76,9 @@ func _make_backdrop() -> Node2D:
 
 
 func _stage_ready() -> void:
+	# 斜坡：下坡贴着走不离地；上下坡走速一样
+	player.floor_snap_length = 20.0
+	player.floor_constant_speed = true
 	encounter.high_kinds = [A]
 	encounter.spawn_reach = SPAWN_REACH
 	_cam_feet = floor_y
@@ -202,9 +191,12 @@ func _draw() -> void:
 		return
 	# F1 调试：所有能站的面（单向平台 = 黄线，石阶 = 橙框）和出生点
 	for p in terrain.platforms:
-		draw_line(Vector2(p.x0, p.y), Vector2(p.x1, p.y), Color(1.0, 0.9, 0.2, 0.9), 4.0)
+		draw_line(Vector2(p.x0, p.y), Vector2(p.x1, p.get("y1", p.y)), Color(1.0, 0.9, 0.2, 0.9), 4.0)
 	for b in terrain.blocks:
-		draw_rect(Rect2(b.x0, b.y, b.x1 - b.x0, floor_y - b.y), Color(1.0, 0.55, 0.2, 0.9), false, 3.0)
+		if b.has("y1"):
+			draw_line(Vector2(b.x0, b.y), Vector2(b.x1, b.y1), Color(1.0, 0.55, 0.2, 0.9), 4.0)
+		else:
+			draw_rect(Rect2(b.x0, b.y, b.x1 - b.x0, float(b.get("bottom", floor_y)) - b.y), Color(1.0, 0.55, 0.2, 0.9), false, 3.0)
 	if phase == Phase.FIGHT:
 		for sp in encounter.spawn_points:
 			draw_circle(sp, 14.0, Color(1.0, 0.3, 0.3, 0.8))

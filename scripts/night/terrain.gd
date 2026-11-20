@@ -5,6 +5,11 @@ extends Node2D
 ## 两种部件：
 ##   platforms  单向平台 {x0, x1, y, style}：plank 木栈道 / roof 亭子屋檐 / slab 断桥石板
 ##   blocks     实心石台 {x0, x1, y, style}：从顶面一直实心到地面，侧面挡路
+##   slopes     斜坡 [x0, y0, x1, y1, style]：两端高度不同，默认单向（能跳穿、能往下穿）
+## 布局每条末尾可带选项字典（修改器写）：{"off": true} 这条不生效；
+## 平台 {"solid": true} 变实心（头顶和侧面都挡），{"bottom": y} 实心到 y；石台 {"pass": true} 变能跳穿，{"bottom": y} 只实心到 y（墙、挂在半空的挡块）；
+## 斜坡 {"solid": true} 实心到地面。
+## 平台 {"layered": true}：分层站立层上已经画好的台面（入口街，street_layered.gd），只要碰撞、不画灰盒。
 ##
 ## 玩家走 Godot 物理：石台 = 第 1 层实心碰撞体；平台 = ONE_WAY_LAYER 层的单向碰撞体。
 ## 影卒不用物理（见 shade.gd），每帧问这里：support_y() 脚下最高的面、push_out() 石台侧面挡路。
@@ -18,6 +23,7 @@ const ONE_WAY_LAYER := 32           ## 单向平台的物理层（第 6 层；16
 const STEP := 6.0                   ## 脚底比面低这么多以内仍算“站在这个面上”（台阶容差）
 const CELL := 4.0
 const PLATFORM_THICK := 16.0
+const BODY_H := 140.0               ## 影卒身高的上限：头顶高过挡块下沿才算被挡
 
 ## 每一段地形 = 一处封印竞技场（中心 ±1200）+ 它后面去下一处的那段路（中心 +1200 ~ +2400）。
 ## x 相对封印中心；y 是世界坐标（地面 580；一层约 440，二层约 312）。
@@ -59,6 +65,31 @@ func layout(index: int) -> Dictionary:
 	return sections[posmod(index, sections.size())]
 
 
+static func _opts(row: Array, at: int) -> Dictionary:
+	return row[at] if row.size() > at and row[at] is Dictionary else {}
+
+
+## 一条平台或石台按选项生成。is_block：默认实心到地面；否则默认能跳穿。
+func _add_bar(nodes: Array, row: Array, center: float, index: int, is_block: bool) -> void:
+	var o := _opts(row, 4)
+	if o.get("off", false):
+		return
+	var x0 := center + float(row[0])
+	var x1 := center + float(row[1])
+	var y := float(row[2])
+	if o.get("pass", false) or not o.get("solid", is_block):
+		var pf := add_platform(x0, x1, y, String(row[3]), index)
+		pf.visible = not (o.get("layered", false) or o.get("ch1_hidden", false))   # 分层站立层或第一章成图台面：只留碰撞
+		nodes.append(pf)
+		return
+	var bottom := float(o.get("bottom", NAN if is_block else y + PLATFORM_THICK))
+	if is_finite(bottom) and bottom >= floor_y:
+		bottom = NAN   # 到地面就是普通石台
+	var blk := add_block(x0, x1, y, String(row[3]), index, bottom)
+	blk.visible = not (o.get("layered", false) or o.get("ch1_hidden", false))
+	nodes.append(blk)
+
+
 ## 确保第 index 段（中心 center）已经生成；已生成就什么都不做
 func ensure_section(index: int, center: float) -> void:
 	if _built.has(index):
@@ -66,9 +97,15 @@ func ensure_section(index: int, center: float) -> void:
 	var nodes: Array = []
 	var lay := layout(index)
 	for b in lay.blocks:
-		nodes.append(add_block(center + float(b[0]), center + float(b[1]), float(b[2]), String(b[3]), index))
+		_add_bar(nodes, b, center, index, true)
 	for p in lay.platforms:
-		nodes.append(add_platform(center + float(p[0]), center + float(p[1]), float(p[2]), String(p[3]), index))
+		_add_bar(nodes, p, center, index, false)
+	for s in lay.get("slopes", []):
+		var so := _opts(s, 5)
+		if not so.get("off", false):
+			var sl := add_slope(center + float(s[0]), float(s[1]), center + float(s[2]), float(s[3]), String(s[4]), index, so.get("solid", false))
+			sl.visible = not (so.get("layered", false) or so.get("ch1_hidden", false))
+			nodes.append(sl)
 	# 这一段已经换成成图（雨夜河岸街 art）：成图范围里的灰盒部件只留碰撞、不画
 	var art: Dictionary = lay.get("art", {})
 	if not art.is_empty():
@@ -80,6 +117,20 @@ func ensure_section(index: int, center: float) -> void:
 			if minf(nx1, a1) - maxf(nx0, a0) >= 0.5 * (nx1 - nx0):
 				n.visible = false
 	_built[index] = nodes
+
+
+## 岔路选路后热替换某一段的地形（拆旧碰撞并按新段重建）
+func replace_section(index: int, center: float, sec_dict: Dictionary) -> void:
+	var sec_i := posmod(index, sections.size())
+	sections[sec_i] = sec_dict
+	if _built.has(index):
+		for n in _built[index]:
+			if is_instance_valid(n):
+				n.queue_free()
+		_built.erase(index)
+	platforms = platforms.filter(func(p): return int(p.section) != index)
+	blocks = blocks.filter(func(b): return int(b.section) != index)
+	ensure_section(index, center)
 
 
 ## 早于 keep_from 的段全部拆掉（走远了，省节点）
@@ -123,18 +174,21 @@ func add_platform(x0: float, x1: float, y: float, style: String = "plank", secti
 	return piece
 
 
-func add_block(x0: float, x1: float, y: float, style: String = "stone", section: int = -1) -> Node2D:
+## bottom：实心到哪（NAN = 到地面）
+func add_block(x0: float, x1: float, y: float, style: String = "stone", section: int = -1, bottom: float = NAN) -> Node2D:
 	var d := {"x0": x0, "x1": x1, "y": y, "style": style, "section": section, "solid": true}
+	if is_finite(bottom):
+		d["bottom"] = bottom
 	blocks.append(d)
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
 	var cs := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
-	var bottom := floor_y + 40.0
-	rect.size = Vector2(x1 - x0, bottom - y)
+	var to := bottom if is_finite(bottom) else floor_y + 40.0
+	rect.size = Vector2(x1 - x0, to - y)
 	cs.shape = rect
-	cs.position = Vector2((x0 + x1) * 0.5, (y + bottom) * 0.5)
+	cs.position = Vector2((x0 + x1) * 0.5, (y + to) * 0.5)
 	body.add_child(cs)
 	var piece := Piece.new()
 	piece.terrain = self
@@ -146,20 +200,76 @@ func add_block(x0: float, x1: float, y: float, style: String = "stone", section:
 	return piece
 
 
+## 斜坡。单向时碰撞矩形要跟着转：Godot 的单向判断看形状的局部 Y 轴，不转的话水平走过来会直接穿进坡里。
+func add_slope(x_a: float, y_a: float, x_b: float, y_b: float, style: String = "steps", section: int = -1, solid: bool = false) -> Node2D:
+	var x0 := minf(x_a, x_b)
+	var x1 := maxf(x_a, x_b)
+	var y0 := y_a if x_a <= x_b else y_b
+	var y1 := y_b if x_a <= x_b else y_a
+	var d := {"x0": x0, "x1": x1, "y": y0, "y1": y1, "style": style, "section": section}
+	var body := StaticBody2D.new()
+	body.collision_mask = 0
+	var cs := CollisionShape2D.new()
+	if solid:
+		d["solid"] = true
+		blocks.append(d)
+		body.collision_layer = 1
+		var poly := ConvexPolygonShape2D.new()
+		poly.points = PackedVector2Array([Vector2(x0, y0), Vector2(x1, y1), Vector2(x1, floor_y + 40.0), Vector2(x0, floor_y + 40.0)])
+		cs.shape = poly
+	else:
+		platforms.append(d)
+		body.collision_layer = ONE_WAY_LAYER
+		var along := Vector2(x1 - x0, y1 - y0)
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(along.length(), PLATFORM_THICK)
+		cs.shape = rect
+		cs.one_way_collision = true
+		cs.one_way_collision_margin = 2.0
+		cs.rotation = along.angle()
+		cs.position = Vector2((x0 + x1) * 0.5, (y0 + y1) * 0.5) + Vector2(0.0, 1.0).rotated(along.angle()) * PLATFORM_THICK * 0.5
+	body.add_child(cs)
+	var piece := Piece.new()
+	piece.terrain = self
+	piece.data = d
+	piece.add_child(body)
+	add_child(piece)
+	return piece
+
+
 # ---------------------------------------------------------------- 查询（影卒 / 影子 / 出生点 / 测试用）
+
+## 这个面在 x 处的高度（斜坡按两端插值）
+static func surface(d: Dictionary, x: float) -> float:
+	if not d.has("y1"):
+		return d.y
+	return lerpf(d.y, d.y1, clampf((x - d.x0) / maxf(d.x1 - d.x0, 1.0), 0.0, 1.0))
+
+
+## 一帧能走进坡面多深：坡越陡，能算“还站在面上”的范围越大，否则影卒快跑时会穿进上坡
+static func _tol(d: Dictionary) -> float:
+	if not d.has("y1"):
+		return STEP
+	return STEP + absf(d.y1 - d.y) / maxf(d.x1 - d.x0, 1.0) * 24.0
+
+
 
 ## 脚下最高的面：横向和 [x−foot, x+foot] 重叠、且面不高于 feet_y − STEP。都没有就是地面。
 ## ignore_y：正在往下穿的那块单向平台的高度（NAN = 不忽略）
 func support_y(x: float, feet_y: float, foot: float = 10.0, ignore_y: float = NAN) -> float:
 	var best := floor_y
 	for b in blocks:
-		if x + foot > b.x0 and x - foot < b.x1 and b.y >= feet_y - STEP and b.y < best:
-			best = b.y
+		if x + foot > b.x0 and x - foot < b.x1:
+			var by := surface(b, x)
+			if by >= feet_y - _tol(b) and by < best:
+				best = by
 	for p in platforms:
-		if x + foot > p.x0 and x - foot < p.x1 and p.y >= feet_y - STEP and p.y < best:
-			if is_finite(ignore_y) and absf(p.y - ignore_y) < 1.0:
-				continue
-			best = p.y
+		if x + foot > p.x0 and x - foot < p.x1:
+			var py := surface(p, x)
+			if py >= feet_y - _tol(p) and py < best:
+				if is_finite(ignore_y) and absf(py - ignore_y) < (1.0 if not p.has("y1") else 24.0):
+					continue
+				best = py
 	return best
 
 
@@ -172,8 +282,10 @@ func top_at(x: float, foot: float = 10.0) -> float:
 func solid_top(x: float, foot: float = 10.0) -> float:
 	var best := floor_y
 	for b in blocks:
-		if x + foot > b.x0 and x - foot < b.x1 and b.y < best:
-			best = b.y
+		if b.has("bottom"):   # 悬空的挡块不算落脚的实心面
+			continue
+		if x + foot > b.x0 and x - foot < b.x1 and surface(b, x) < best:
+			best = surface(b, x)
 	return best
 
 
@@ -183,9 +295,9 @@ func one_way_at(x: float, feet_y: float, foot: float = 10.0) -> float:
 	if absf(s - feet_y) > STEP + 1.0:
 		return NAN
 	for p in platforms:
-		if absf(p.y - s) < 0.5 and x + foot > p.x0 and x - foot < p.x1:
+		if x + foot > p.x0 and x - foot < p.x1 and absf(surface(p, x) - s) < 0.5:
 			for b in blocks:
-				if absf(b.y - s) < 0.5 and x + foot > b.x0 and x - foot < b.x1:
+				if x + foot > b.x0 and x - foot < b.x1 and absf(surface(b, x) - s) < 0.5:
 					return NAN   # 同一高度下面还有实心石台：穿不下去
 			return s
 	return NAN
@@ -196,7 +308,9 @@ func one_way_at(x: float, feet_y: float, foot: float = 10.0) -> float:
 func push_out(x: float, hw: float, feet_y: float) -> Vector2:
 	var side := 0
 	for b in blocks:
-		if feet_y <= b.y + STEP:
+		if feet_y <= surface(b, x) + _tol(b):
+			continue
+		if b.has("bottom") and feet_y - BODY_H > b.bottom:   # 从挡块下面走过
 			continue
 		if x + hw > b.x0 and x - hw < b.x1:
 			if x < (b.x0 + b.x1) * 0.5:
@@ -292,6 +406,10 @@ class Piece extends Node2D:
 		var x1: float = data.x1
 		var y: float = data.y
 		var fy: float = terrain.floor_y
+		if data.has("y1"):   # 斜坡的灰盒画法：能站的斜边 + 下面一层
+			draw_colored_polygon(PackedVector2Array([Vector2(x0, y), Vector2(x1, data.y1), Vector2(x1, data.y1 + 14.0), Vector2(x0, y + 14.0)]), G_STONE)
+			draw_line(Vector2(x0, y), Vector2(x1, data.y1), G_EDGE, 3.0)
+			return
 		match String(data.style):
 			"stone":
 				_draw_block(x0, x1, y, fy)

@@ -45,6 +45,24 @@ extends Resource
 @export var shake_amount: float = 4.0
 ## 命中时的挤压拉伸强度：(1.35, 0.72) 之类
 @export var squash: Vector2 = Vector2(1.35, 0.72)
+## 命中闪白强度 0..1（0 = 不闪）。大范围重击用：命中那一帧整屏亮一下再退。
+@export var screen_flash: float = 0.0
+
+@export_group("判定窗口")
+## 伤害窗口 = active 段的哪一截（0..1）。默认整段都算伤害。
+## 大范围重击填 0.85～1.0 就是「挥过去的前半段只有风、只有挥到底那一下结算」。
+@export_range(0.0, 1.0, 0.01) var damage_from_frac: float = 0.0
+@export_range(0.0, 1.0, 0.01) var damage_to_frac: float = 1.0
+## 后摇可以被移动打断：active 段结束后再等这么多帧就允许方向键取消出招（-1 = 沿用接招点规则）
+@export var move_cancel_after_active: int = -1
+
+@export_group("空中版本")
+## 空中用这一招时的判定盒高度倍率（1 = 不变）。11-03 用户：空中冲刺斩"上下范围加大两倍"。
+@export var air_hitbox_height_scale: float = 1.0
+## 空中用这一招时只保留这么长的前摇（-1 = 不变）。数字比原前摇小就是"跳过前面几帧起手"。
+@export var air_startup_frames: int = -1
+## 空中用这一招时的后摇长度（-1 = 不变）。冲刺斩落地后摇很长，空中要短。
+@export var air_recovery_frames: int = -1
 
 @export_group("蓄力")
 ## 长按蓄力的招式：按住攻击键蓄力，松开才出手。
@@ -97,6 +115,28 @@ func is_parry_move() -> bool:
 ## 整个招式的总帧数
 func total_frames() -> int:
 	return startup_frames + active_frames + recovery_frames
+
+
+## 这一帧（从招式第 0 帧算）算不算伤害窗口。active 段之外一律不算。
+##
+## 【为什么要按比例而不是帧号】active 段的长度会被 activeSpeed / 动画帧数改写，
+## 写死帧号的话"调快判定段"就会把伤害窗口调飞。用比例就永远落在同一段动作上。
+func damages_at(f: int) -> bool:
+	var within := f - startup_frames
+	if within < 0 or within >= active_frames:
+		return false
+	if active_frames <= 0:
+		return false
+	var t := float(within) / float(active_frames)
+	return t + 0.0001 >= damage_from_frac and t <= damage_to_frac + 0.0001
+
+
+## 空中版本的帧数据（11-03）：空中冲刺斩要"起手快、后摇短"，这里按招式数据算。
+## 返回 {startup, active, recovery, total}；没写空中覆盖时就是原值。
+func air_frames() -> Dictionary:
+	var s := startup_frames if air_startup_frames < 0 else clampi(air_startup_frames, 0, startup_frames)
+	var r := recovery_frames if air_recovery_frames < 0 else maxi(air_recovery_frames, 1)
+	return {"startup": s, "active": active_frames, "recovery": r, "total": s + active_frames + r}
 
 
 ## 第 f 帧属于哪个阶段。f 从 0 开始。

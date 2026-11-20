@@ -51,10 +51,10 @@ func run() -> void:
 	audio = stage.audio
 	await step(8)
 
-	# ---- 音效库
-	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/audio/sfx_v3/manifest.json"))
+	# ---- 音效库（sfx_aaa_v5 商业 3A 混合合成库）
+	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(audio.BANK_DIR + "manifest.json"))
 	var clips: Dictionary = manifest.get("clips", {})
-	check(clips.size() >= 30, "音效清单里有 30 种以上事件（实际 %d）" % clips.size())
+	check(clips.size() >= 50, "音效清单里有 50 种以上事件（实际 %d）" % clips.size())
 	var missing: Array[String] = []
 	var short: Array[String] = []
 	var total := 0
@@ -204,6 +204,18 @@ func run() -> void:
 	for i in AudioServer.get_bus_effect_count(master):
 		has_lim = has_lim or AudioServer.get_bus_effect(master, i) is AudioEffectHardLimiter
 	check(has_lim, "主总线有硬限幅（叠音不爆）")
+	for bus_name in [&"SFX_Impact", &"SFX_Blade", &"SFX_Warning", &"SFX_Motion", &"SFX_UI"]:
+		check(AudioServer.get_bus_index(bus_name) >= 0, "分层总线 %s 已建立" % String(bus_name))
+	var motion_bus := AudioServer.get_bus_index(&"SFX_Motion")
+	var has_sidechain := false
+	for i in AudioServer.get_bus_effect_count(motion_bus):
+		var eff := AudioServer.get_bus_effect(motion_bus, i)
+		if eff is AudioEffectCompressor and (eff as AudioEffectCompressor).sidechain == &"SFX_Impact":
+			has_sidechain = true
+	check(has_sidechain, "SFX_Motion 挂载受 SFX_Impact 驱动的侧链动态让路压缩器")
 
 	print("AUDIO_TESTS: %d checks / %d failures" % [checks, failures.size()])
+	stage.free()
+	OS.delay_msec(80)
+	await process_frame
 	quit(1 if failures.size() > 0 else 0)

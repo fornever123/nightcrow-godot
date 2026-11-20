@@ -1,0 +1,194 @@
+{
+  "s1_1a_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_1a_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 816.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_1a_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_1a_center.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "outdoor_sky"
+  },
+  "s1_1a_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_1a_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 824.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_1b_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_1b_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_1b_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_1b_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_2a_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2a_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 804.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_2a_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2a_center.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 758.0,
+    "indoor": false,
+    "mode": "outdoor_sky"
+  },
+  "s1_2a_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2a_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 808.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_2b_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2b_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 818.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_2b_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2b_center.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "outdoor_sky"
+  },
+  "s1_2b_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_2b_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 816.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_3a_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3a_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_3a_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3a_center.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "outdoor_sky"
+  },
+  "s1_3a_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3a_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_3b_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3b_left.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 990.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "s1_3b_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3b_center.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 990.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "s1_3b_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3b_right.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 990.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "s1_3c_left": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3c_left.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 816.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_3c_right": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_3c_right.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 816.0,
+    "indoor": false,
+    "mode": "cutout"
+  },
+  "s1_4_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_4_center.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 990.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "s1_4_upper": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_4_upper.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 990.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "j_fork_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/j_fork_center.png",
+    "width_px": 1672,
+    "height_px": 1056,
+    "ground_px": 812.0,
+    "indoor": false,
+    "mode": "outdoor_sky"
+  },
+  "s1_rest_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/s1_rest_center.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 988.0,
+    "indoor": true,
+    "mode": "indoor"
+  },
+  "e1_court_center": {
+    "tex": "res://assets/image/rain_street/ch1_shadow_street/e1_court_center.png",
+    "width_px": 1672,
+    "height_px": 1236,
+    "ground_px": 992.0,
+    "indoor": true,
+    "mode": "indoor"
+  }
+}

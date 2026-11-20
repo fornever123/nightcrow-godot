@@ -15,9 +15,12 @@ __pycache__/
 /exports/
 /builds/
 
-# Machine-specific editor configuration and credentials.
+# Machine-specific editor configuration, agent scratch & credentials.
 /.cursor/
 /.vscode/
+/.claude/
+/.omx/
+/.agents/
 .DS_Store
 Thumbs.db
 *.log
@@ -35,10 +38,37 @@ Thumbs.db
 *.keystore
 /export_credentials.cfg
 /.github-auth/
-# 自动化浏览器的用户资料（Cookie、登录状态等），绝不上传
 /.dsh-chrome-profile/
-# 手动备份副本
 *.bak-*
+/1/
+
+# ============================================================================
+# 2026-11-19 两人协作 GitHub 仓库瘦身规则
+# 本地保留原文件不删除，仅排除未挂载的旧素材、过程渲染视频、草稿与禁读归档
+# ============================================================================
+/docs/_历史与废案归档/
+/docs/_当前分支草稿/
+/docs/视觉设计/
+/art/
+/source-art/
+/tools/art/src/
+/tools/art/rain_street_remotion/
+
+# 未挂载到 battle.json 的历史角色动作试验图集（现役 r3_true_slash_20261115 / supplement_v2_20261117 / 跑步左向转右 保持追踪）
+/assets/image/desktop-actions-hd/overhaul_20261114/
+/assets/image/desktop-actions-hd/pure_ai_20261114/
+/assets/image/desktop-actions-hd/redraw_20261115/
+/assets/image/desktop-actions-hd/true_slash_preview/
+/assets/image/desktop-actions-hd/vfx_12styles_preview/
+
+# 大体积过程视频、原始数组与压缩包（仅留本地，不入 Git）
+*.mp4
+*.avi
+*.mov
+*.npy
+*.zip
+*.7z
+*.rar
 
 # AI 高清离线参考（2026-10-20 生成，2026-10-21 起停用）：只留在本机，不上传。
 /assets/image/ai-hd-20261020/

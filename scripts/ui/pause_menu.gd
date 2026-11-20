@@ -4,9 +4,10 @@ extends CanvasLayer
 ## 全部用 _draw 画（和 combat_hud.gd 一样没有图片资源）。世界暂停后本节点仍运行。
 ## 10-31 加料（用户选 ④⑤）：背景虚化 + 菜单自己一层慢雨（世界停了雨不停）；
 ## 打开时标题浮出、分隔线从中间展开、选项依次浮出；选中项底下银线划过；翻页淡入；关闭时淡出。
-## 设置只在本次运行有效，还没存盘；“操作方式”例外，由 player_factory 存进 user://controls.cfg。
+## 设置会存盘：主音量、全屏和首页共用 user://settings.cfg；操作方式由 player_factory 存进 user://controls.cfg；底部提示、伤害数字只在本次运行有效。
 
 const Factory := preload("res://scripts/night/player_factory.gd")
+const GothicFonts := preload("res://scripts/ui/gothic_fonts.gd")
 const INK := Color(0.024, 0.031, 0.051)
 const SILVER := Color("e6e9ef")
 const BONE := Color("e9e4d8")
@@ -29,7 +30,9 @@ const RAIN_SPEED := Vector2(380.0, 620.0)   ## 像素/秒，比游戏里的雨�
 
 enum Page { MAIN, HELP, SETTINGS }
 
-const MAIN_ITEMS: Array[String] = ["继续", "重新开始", "操作说明", "设置", "退出游戏"]
+const MAIN_ITEMS: Array[String] = ["继续", "重新开始", "操作说明", "设置", "回到标题", "退出游戏"]
+const TITLE_SCENE := "res://scenes/yg_title_zhanzhong.tscn"   ## 首页线的标题画面《斩钟》（11-05 请我们加“回到标题”，11-15 从断光改到斩钟）
+const SETTINGS_CFG := "user://settings.cfg"   ## 和首页共用：[audio] master 0..1、[display] fullscreen
 ## 键位以 scripts/night/player_factory.gd 为准；攻击 / 远射 / 弹刀 / 冲刺斩随操作方式（键盘 / 键鼠）变，见 _help_rows()
 const HELP_PAD := "手柄：A 跳 · X 攻击 · Y 远射 · B 冲刺斩 · RB 弹刀 · RT 大招 · Start 暂停 · Back 重开"
 
@@ -61,11 +64,11 @@ func _ready() -> void:
 	layer = 28                     # HUD 10 之上，试玩结算页 30 之下
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
-	_title_font = _system(["Old English Text MT", "Noto Serif SC", "serif"], 400)
-	_serif = _system(["Noto Serif SC", "Source Han Serif SC", "SimSun", "serif"], 400)
-	_serif_bold = _system(["Source Han Serif SC Heavy", "Source Han Serif SC", "Noto Serif SC", "serif"], 900)   # 思源宋体特粗（用户 10-31 选①）
-	_digits = _system(["Georgia", "Noto Serif SC", "serif"], 400)
-	(_digits as SystemFont).font_italic = true
+	_title_font = GothicFonts.blackletter(700)
+	_serif = GothicFonts.serif(450)
+	_serif_bold = GothicFonts.cinzel(800, false, 900)   # 西文/数字走石刻 Cinzel，中文走思源重宋 900
+	_digits = GothicFonts.digits(600, true)
+	_load_shared_settings()
 	_volume = db_to_linear(AudioServer.get_bus_volume_db(0))
 	_dim = ColorRect.new()
 	_dim.name = "Dim"
@@ -89,13 +92,6 @@ func _ready() -> void:
 	_canvas.gui_input.connect(_on_gui_input)
 	add_child(_canvas)
 	_rng.seed = 7
-
-
-func _system(names: Array, weight: int) -> SystemFont:
-	var f := SystemFont.new()
-	f.font_names = PackedStringArray(names)
-	f.font_weight = weight
-	return f
 
 
 func _backdrop_shader() -> Shader:
@@ -317,7 +313,8 @@ func _activate() -> void:
 				1: _restart()
 				2: _go(Page.HELP, 0)
 				3: _go(Page.SETTINGS, 0)
-				4: get_tree().quit()
+				4: _to_title()
+				5: _quit_game()
 		Page.HELP:
 			_back()
 		Page.SETTINGS:
@@ -327,8 +324,99 @@ func _activate() -> void:
 				_adjust(1)
 
 
+func _silence_stage_audio() -> void:
+	var root_target: Node = stage if stage != null else (get_tree().current_scene if get_tree() != null else null)
+	if stage != null:
+		var audio: Node = stage.get("audio")
+		if audio != null:
+			audio.set("enabled", false)
+			audio.set_process(false)
+			audio.set_physics_process(false)
+			if audio.has_method("stop_all"):
+				audio.stop_all()
+			var voices = audio.get("_voices")
+			if voices is Dictionary:
+				voices.clear()
+		var ult_fx: Node = stage.get("ult_fx")
+		if ult_fx != null:
+			ult_fx.set_process(false)
+			ult_fx.set_physics_process(false)
+			if ult_fx.has_method("clear"):
+				ult_fx.clear()
+	if root_target != null:
+		_stop_media_players_recursive(root_target)
+
+
+func _stop_media_players_recursive(node: Node) -> void:
+	if node is AudioStreamPlayer:
+		var ap := node as AudioStreamPlayer
+		ap.stop()
+		ap.stream = null
+	elif node is AudioStreamPlayer2D:
+		var ap2 := node as AudioStreamPlayer2D
+		ap2.stop()
+		ap2.stream = null
+	elif node is AudioStreamPlayer3D:
+		var ap3 := node as AudioStreamPlayer3D
+		ap3.stop()
+		ap3.stream = null
+	elif node is VideoStreamPlayer:
+		var vp := node as VideoStreamPlayer
+		vp.stop()
+		vp.stream = null
+	for child in node.get_children():
+		_stop_media_players_recursive(child)
+
+
+func _to_title() -> void:
+	opened = false
+	_closing = false
+	_silence_stage_audio()
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
+
+
+func _quit_game() -> void:
+	opened = false
+	_closing = false
+	_silence_stage_audio()
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	get_tree().quit()
+
+
+## 主音量、全屏和首页共用 user://settings.cfg；无头测试不读不写，免得动到玩家的设置
+func _load_shared_settings() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_CFG) != OK:
+		return
+	if cfg.has_section_key("audio", "master"):
+		var v := clampf(float(cfg.get_value("audio", "master")), 0.0, 1.0)
+		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(v, 0.0001)))
+		AudioServer.set_bus_mute(0, v <= 0.0)
+	if cfg.has_section_key("display", "fullscreen"):
+		var want := bool(cfg.get_value("display", "fullscreen"))
+		var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+		if want != full:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if want else DisplayServer.WINDOW_MODE_WINDOWED)
+
+
+func _save_shared_setting(section: String, key: String, value: Variant) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_CFG)
+	cfg.set_value(section, key, value)
+	cfg.save(SETTINGS_CFG)
+
+
 func _restart() -> void:
 	opened = false
+	_closing = false
+	_silence_stage_audio()
 	if stage != null and stage.has_method("_restart_trial"):
 		stage._restart_trial()
 	else:
@@ -337,7 +425,7 @@ func _restart() -> void:
 		get_tree().reload_current_scene.call_deferred()
 
 
-# ---------------------------------------------------------------- 设置（只在本次运行有效）（操作方式除外）
+# ---------------------------------------------------------------- 设置（音量、全屏存 user://settings.cfg，操作方式存 user://controls.cfg）
 
 func _settings() -> Array:
 	var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
@@ -353,11 +441,10 @@ func _settings() -> Array:
 
 
 ## 操作说明：攻击 / 远射 / 弹刀 / 冲刺斩按当前方案只显示一种（战斗线 11-01：键盘和键鼠二选一，默认键盘）
+## 11-03：冲刺斩改成双击 A / D（战斗线通知），Shift / 右键仍能出，页上只写主键位
 func _help_rows() -> Array:
 	var atk := Factory.key_label("attack")
 	var dash := Factory.key_label("dash")
-	if Factory.scheme() == Factory.SCHEME_MOUSE:
-		dash += " / Shift"
 	return [
 		["A / D", "移动"], ["W / 空格", "跳（可二段）"], ["S", "从木台跳下"],
 		[atk, "攻击 · 空中三连可循环"], ["按住 " + atk, "蓄力，松开释放"], ["W + " + atk, "跳起上挑"],
@@ -375,9 +462,11 @@ func _adjust(step: int) -> void:
 			_volume = clampf(snappedf(_volume + 0.1 * step, 0.1), 0.0, 1.0)
 			AudioServer.set_bus_volume_db(0, linear_to_db(maxf(_volume, 0.0001)))
 			AudioServer.set_bus_mute(0, _volume <= 0.0)
+			_save_shared_setting("audio", "master", _volume)
 		1:
 			var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+			_save_shared_setting("display", "fullscreen", not full)
 		2:
 			if stage != null and stage.get("hud") != null:
 				stage.hud.help_visible = not stage.hud.help_visible
@@ -471,11 +560,11 @@ func _draw_menu() -> void:
 	match page:
 		Page.MAIN:
 			_heading(cx, "Intermissio", "暂停", _title_font, 64, 206, since)
-			var y := 357.0
+			var y := 352.0
 			for i in MAIN_ITEMS.size():
 				var k := _ease(since, 140.0 + 45.0 * i, 220.0)
 				_item(cx, y + (1.0 - k) * 8.0, MAIN_ITEMS[i], i, k)
-				y += 52.0
+				y += 46.0
 			_text(Vector2(cx, 625), _footer(), _serif_bold, 13, Color(FAINT, _ease(since, 380.0, 240.0)), 3.0)
 		Page.HELP:
 			_heading(cx, "操作说明", "CONTROLS", _serif_bold, 34, 150, since)
@@ -490,9 +579,9 @@ func _draw_menu() -> void:
 				var yy := 290.0 + 34.0 * row + (1.0 - k) * 6.0
 				_text(Vector2(x + 120, yy), help[i][0], _serif_bold, 16, Color(BONE, k), 1.0, HORIZONTAL_ALIGNMENT_RIGHT)
 				_text(Vector2(x + 140, yy), help[i][1], _serif, 16, Color(IDLE, k), 1.0, HORIZONTAL_ALIGNMENT_LEFT)
-			# 战斗线 11-01 的新规则，一行脚注，不占格子
+			# 战斗线 11-02 的规则（地面招式不再给跳），一行脚注，不占格子
 			var atk := Factory.key_label("attack")
-			_text(Vector2(cx, 290.0 + 34.0 * half - 6.0), "冲刺斩 / W + %s / 空中 %s 每打中两下，多一次空中跳" % [atk, atk], _serif, 13,
+			_text(Vector2(cx, 290.0 + 34.0 * half - 6.0), "空中 %s 每打中一下 · W + %s 上挑、空中冲刺斩 也各给一次空中跳" % [atk, atk], _serif, 13,
 					Color(FAINT, _ease(since, 240.0, 200.0)), 2.0)
 			_text(Vector2(cx, 290.0 + 34.0 * half + 16.0), HELP_PAD, _serif, 13,
 					Color(FAINT, _ease(since, 250.0, 200.0)), 2.0)
@@ -507,7 +596,7 @@ func _draw_menu() -> void:
 				_setting_row(cx, y + (1.0 - k) * 8.0, list[i][0], list[i][1], i, k)
 				y += 52.0
 			_item(cx, y + 12.0, "返回", list.size(), _ease(since, 120.0 + 45.0 * list.size(), 220.0))
-			_text(Vector2(cx, 640), "← → 调整　·　Esc 返回　·　操作方式会记住，其余本次运行有效", _serif, 13, Color(FAINT, _ease(since, 380.0, 240.0)), 3.0)
+			_text(Vector2(cx, 640), "← → 调整　·　Esc 返回　·　音量、全屏、操作方式会记住", _serif, 13, Color(FAINT, _ease(since, 380.0, 240.0)), 3.0)
 
 
 func _item(cx: float, y: float, label: String, i: int, alpha: float) -> void:

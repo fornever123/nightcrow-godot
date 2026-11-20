@@ -81,7 +81,7 @@ func run() -> void:
 	var moves: Dictionary = Config.moves(Config.read())
 	var expected := {
 		"light_1": [6, 7, 5.5], "light_2": [6, 8, 6.5], "light_3": [11, 15, 12.0],
-		"charge_1": [13, 16, 15.0], "up_strike": [9, 11, 10.0], "air_up": [6, 7, 6.0],
+		"charge_1": [18, 25, 30.0], "up_strike": [9, 11, 10.0], "air_up": [6, 7, 6.0],
 		"air_light_1": [6, 7, 5.5], "air_light_2": [6, 8, 6.5], "air_light_3": [10, 13, 11.0],
 		"dash_slash": [6, 14, 12.0], "ranged_1": [3, 5, 3.5],
 	}

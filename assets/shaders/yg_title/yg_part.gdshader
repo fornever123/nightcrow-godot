@@ -20,7 +20,14 @@ uniform float uMode = 0.0;
 uniform float uDawn = 0.0;
 uniform float uStreak = .022;
 uniform vec4 uBox = vec4(0.0);
+// [YG-MARK] 11-08 换 G03：uMono 把光层 / 影层的粒子去色；uRainK 影层雨丝亮度；uInkMask 开着时粒子不盖在黑字上
+uniform float uMono = 0.0;
+uniform float uRainK = 1.0;
+uniform float uInkMask = 0.0;
+uniform float uReveal = 1.0;
+uniform sampler2D uLogo : filter_linear, repeat_disable;
 
+varying vec2 vP;
 varying vec2 vQ;
 varying vec3 vCol;
 varying float vA;
@@ -158,6 +165,16 @@ void vertex() {
 	vec2 w = pos + off;
 	VERTEX = w - avel;
 	vQ = c;
+	vP = w;
+	if (uMode < 1.5) {
+		col = mix(col, vec3(dot(col, vec3(.3, .59, .11))) * vec3(.96, .98, 1.04), uMono);
+		if (uMode > .5 && type > 5.5) {
+			col *= uRainK;
+		}
+		if (type > 2.5 && type < 3.5) {
+			col *= 1.0 - uMono;   // 虚焦的圆斑：黑底上像镜头脏了
+		}
+	}
 	vCol = col;
 	vA = uMode < 1.5 ? alpha : 1.0;
 	vType = type;
@@ -192,6 +209,12 @@ void fragment() {
 	} else {
 		a = exp(-vQ.x * vQ.x * 3.4) * exp(-vQ.y * vQ.y * 2.6)
 				+ exp(-dot(vQ - vec2(0.0, .45), vQ - vec2(0.0, .45)) * 14.0) * .6;
+	}
+	if (uInkMask > .5) {
+		vec2 l = (vP - uBox.xz) / (uBox.yw - uBox.xz);
+		if (l.x > 0.0 && l.x < 1.0 && l.y > 0.0 && l.y < 1.0) {
+			a *= 1.0 - texture(uLogo, l).a * uReveal;
+		}
 	}
 	COLOR = vec4(vCol * a * vA, 1.0);
 }

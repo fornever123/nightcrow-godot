@@ -2,10 +2,11 @@ extends RefCounted
 const Move := preload("res://scripts/core/move_definition.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const PATH := "res://assets/data/battle.json"
+const Tuning := preload("res://scripts/core/tuning.gd")
 
 static func read() -> Dictionary:
 	var value: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
-	return value if value is Dictionary else {}
+	return Tuning.apply("battle", value) if value is Dictionary else {}
 
 static func character(config: Dictionary, id: String) -> Dictionary:
 	for c in config.get("characters", []):
@@ -146,6 +147,15 @@ static func moves(config: Dictionary) -> Dictionary:
 		m.root_motion_scale = float(source.get("rootMotionScale", 1.0))
 		var box: Dictionary = source.get("hitbox", {})
 		m.hitbox = Rect2(Vector2(box.get("x", 100), box.get("y", -90)), Vector2(box.get("width", 200), box.get("height", 136)))
+		# 伤害窗口 / 闪白 / 后摇移动取消（11-03 重击）：不写就是默认（整段都算伤害、不闪、走接招点规则）
+		m.damage_from_frac = clampf(float(source.get("damageFromFrac", 0.0)), 0.0, 1.0)
+		m.damage_to_frac = clampf(float(source.get("damageToFrac", 1.0)), 0.0, 1.0)
+		m.screen_flash = clampf(float(source.get("screenFlash", 0.0)), 0.0, 1.0)
+		m.move_cancel_after_active = int(source.get("moveCancelAfterActive", -1))
+		# 空中版本（11-03）：空中冲刺斩上下判定 ×2、起手快、后摇短
+		m.air_hitbox_height_scale = maxf(float(source.get("airHitboxHeightScale", 1.0)), 0.1)
+		m.air_startup_frames = int(source.get("airStartupFrames", -1))
+		m.air_recovery_frames = int(source.get("airRecoveryFrames", -1))
 		m.command = &"light"
 		m.is_charge = String(source.get("input", "")) == "J_HOLD"
 		m.is_parry = String(source.get("input", "")) == "L"

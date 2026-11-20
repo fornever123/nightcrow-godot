@@ -1,0 +1,69 @@
+{
+  "title": "《断晓》腾讯混元 HunyuanVideo-Foley-XXL (48kHz 双声道) 首批抽卡清单",
+  "negative_prompt": "noisy, harsh, muffled, music, speech, voice, crowd, background ambience, static hiss",
+  "jobs": [
+    {
+      "id": "hy_parry_text_crisp",
+      "category": "1. 弹刀 · 纯文本录音棚模式（无画面干扰）",
+      "label": "混元 XXL 纯文本 · 清脆高音冷钢弹刀",
+      "duration": 2.0,
+      "steps": 50,
+      "guidance_scale": 5.0,
+      "seeds": [11, 22, 33, 44],
+      "prompt": "Sharp heavy katana sword parry clash, forged carbon steel blades colliding with a punchy metallic impact and bright high-pitched ringing resonance, flying sparks, studio foley"
+    },
+    {
+      "id": "hy_parry_text_heavy",
+      "category": "1. 弹刀 · 纯文本录音棚模式（无画面干扰）",
+      "label": "混元 XXL 纯文本 · 满势大弹刀震荡长鸣",
+      "duration": 2.4,
+      "steps": 50,
+      "guidance_scale": 5.0,
+      "seeds": [101, 202, 303, 404],
+      "prompt": "Powerful sword deflect clang, heavy tempered steel blade impact with deep metallic body and long shimmering high-frequency ringout, crisp action game sound effect"
+    },
+    {
+      "id": "hy_parry_video_sync",
+      "category": "2. 弹刀 · 完整场景格挡火花片帧同步",
+      "label": "混元 XXL 视频帧同步 · 实机格挡交锋卡点",
+      "local_video": "E:/00game/work/nightcrow-hyfoley-20261114/refs/hy_ref_parry.mp4",
+      "duration": 2.2,
+      "steps": 50,
+      "guidance_scale": 4.8,
+      "seeds": [42, 77, 128, 256],
+      "prompt": "Katana sword parry deflecting heavy attack, crisp cold steel blade clang with bright metallic ring and sparks"
+    },
+    {
+      "id": "hy_swing_text_razor",
+      "category": "3. 挥刀 · 纯文本录音棚模式（无画面干扰）",
+      "label": "混元 XXL 纯文本 · 金属凌冽拔刀疾斩",
+      "duration": 1.4,
+      "steps": 50,
+      "guidance_scale": 5.0,
+      "seeds": [15, 25, 35, 45],
+      "prompt": "Fast razor-sharp katana sword slash cutting through air with crisp metallic blade schwing and forceful wind whoosh, clean studio foley"
+    },
+    {
+      "id": "hy_swing_video_combo",
+      "category": "4. 挥刀 · 完整场景连斩/冲刺片帧同步",
+      "label": "混元 XXL 视频帧同步 · 普攻连斩破空",
+      "local_video": "E:/00game/work/nightcrow-hyfoley-20261114/refs/hy_ref_combo.mp4",
+      "duration": 2.5,
+      "steps": 50,
+      "guidance_scale": 4.8,
+      "seeds": [42, 88, 168, 312],
+      "prompt": "Sharp katana sword slashes cutting air, crisp cold steel blade gleam and heavy fast sword whoosh"
+    },
+    {
+      "id": "hy_swing_video_dash",
+      "category": "4. 挥刀 · 完整场景连斩/冲刺片帧同步",
+      "label": "混元 XXL 视频帧同步 · 居合冲刺斩",
+      "local_video": "E:/00game/work/nightcrow-hyfoley-20261114/refs/hy_ref_dash.mp4",
+      "duration": 2.2,
+      "steps": 50,
+      "guidance_scale": 4.8,
+      "seeds": [42, 99, 199, 299],
+      "prompt": "High-speed iaijutsu katana unsheathe shing followed by powerful razor wind slash"
+    }
+  ]
+}

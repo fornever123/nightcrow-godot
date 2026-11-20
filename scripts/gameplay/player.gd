@@ -17,6 +17,9 @@ signal move_started(move: Resource, index: int)
 ## 提前 3 帧发声，耳朵听到的“唰”正好落在刀光出现的那一帧）
 signal swing_cue(move: Resource, index: int)
 signal hit_confirmed(target: Node2D, move: Resource, point: Vector2)
+## 伤害窗口打开（一招里真的开始能打到人的那一帧，每招只发一次）。
+## 11-03 重击：大范围重击的伤害只在判定段末尾，刀光要在"窗口打开"时铺开，而不是等打中了才画。
+signal damage_window_opened(move: Resource)
 signal landed()
 signal jumped(is_double: bool)
 ## 打中返还了一次空中跳（stock = 现在存着几次返还的空中跳）
@@ -48,6 +51,20 @@ signal ult_arrive()
 ## “咔”收剑的那一帧
 signal ult_reveal()
 signal ult_finished()
+## 2 格残影池变化（current = 当前可用格数，maximum = 上限）
+signal shadow_changed(current: int, maximum: int)
+## 6 帧高速穿身短闪起手
+signal short_dash_started(direction: int, origin: Vector2)
+## 极限掠影闪避：擦着敌人出刀帧瞬步穿过，当场返还 1 格残影并赋予瞬发完美重击
+signal perfect_dodge_triggered(attacker: Node2D, point: Vector2)
+## 1A 半空智能索敌「追影冲刺」起手
+signal shadow_pursuit_started(target: Node2D, destination: Vector2)
+## 瞬发完美重击就绪态变化（弹刀成功 / 极限闪避后窗口）
+signal flash_heavy_ready_changed(ready: bool)
+## 紫电锋芒就绪态变化（穿敌绕背 / 极限闪避 / 精准弹刀 / 浮空影镖钉滞点亮；单点 J 直出真强普）
+signal keen_edge_ready_changed(ready: bool)
+## J + K 轻重派生终结技起手（stage: 1=升龙挑月, 2=穿云破阵, 3=断岳崩裂）
+signal combo_finisher_triggered(move: Resource, stage: int)
 
 const InputBuffer := preload("res://scripts/core/input_buffer.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
@@ -61,12 +78,33 @@ enum State { NEUTRAL, ATTACK, LAUNCHED, DOWN, DEAD }
 ##   &""      = 普通
 ## 敌人在 take_hit 里通过 attacker.combat_intent() 读取。
 var finisher_intent: StringName = &""
-const PLUNGE_SPEED := 1250.0
+## 下落攻击的速度（11-03 用户：“速度改成几乎瞬移”）：直接以恒定高速往下砸，不吃重力、不吃下落速度上限。
+##
+## 【为什么是 5200】每帧位移 ≈ 5200/60 ≈ 87 px，正好是角色碰撞胶囊高度（168）的一半，
+## 再快 move_and_slide 就可能一帧穿过薄地板。这个速度从 355 px 的跳跃顶点砸到地面约 4 帧，看起来就是瞬移。
+const PLUNGE_SPEED := 5200.0
 ## 见 _clamp_root_motion。试玩场景设为 &"shade"。
 var root_motion_block_group: StringName = &""
 ## 见 _process_attack 的 recovery 分支。试玩场景设为 true。
 var launcher_cancel: bool = false
 const ROOT_MOTION_CONTACT := 40.0
+## 判定盒向下多给一截（像素）。空中追打时敌人常常已经在脚底以下，原判定盒下沿正好卡在脚底，
+## 于是「人明明跳起来压着它，却一刀不中」。34 px 约等于半个身子，够擦到，又不会打到脚下好几层。
+const MELEE_VERTICAL_FORGIVENESS := 34.0
+## 空中出刀再往下多给一截：空连时玩家一跳（355）常常直接高过被打飞的敌人，
+## 原来的盒子全都长在脚底以上，于是「人在它上面砍，砍不到」。144 px 向下 =
+## 玩家最多高出敌人 200 左右还能砍到；街道楼层间距 335，不会隔着楼板打到下一层。
+const MELEE_AIR_DOWN_REACH := 110.0
+## 判定盒往身后多盖一截（11-08 用户：“在空中很容易模型重合但是还是打不到人”）：
+## 招式盒子都从身前十来像素才开始，敌人中心只要落到她身后一点点就打不中，空连飞过头时最常见。
+## 现在盒子后沿盖到身后这么远；和她身体重合、身后不到一个身位的敌人都算打中（击退仍朝她面向）。
+const MELEE_BACK_REACH := 40.0
+## 刀光判定放大（11-08 用户：“刀光范围直接搞大点”“改主角刀光，判定包括自己”）：
+## 每一招的盒子前沿离她中心的距离、上下高度都放大这么多倍（招式数据里的盒子不改）……
+const MELEE_REACH_SCALE := 1.25
+## ……并且一定把她自己整个身体（受击盒 50×156）包进去，四周再多这么多：
+## 跟她模型重合、贴在头顶脚边、身后半个身位的敌人都砍得到。
+const MELEE_BODY_MARGIN := 30.0
 
 const TRACKED_ACTIONS: Array[StringName] = [
 	&"jump", &"attack_light", &"attack_ranged", &"aim_up",
@@ -170,10 +208,18 @@ var input_source: Object = null
 @export var extra_air_jumps: int = 1
 ## 二段跳相对首跳的力度。略小一点，落地更干脆
 @export var double_jump_scale: float = 0.92
-## 打中返还空中跳（11-01 用户）：冲刺斩 / W+J / 空中 J（含下砸、横扫）每打中敌人这么多次 → +1 次空中跳
-@export var air_jump_refund_hits: int = 2
+## 地面招式（冲刺斩 / W+J）返还空中跳：每打中这么多下 → +1 段。
+## 11-02 默认给地面冲刺斩关掉（0 = 不给）：空中已经「每中一下给一段」，地面再给就是双份。
+## 想恢复就把这个数改回 2。
+@export var air_jump_refund_hits: int = 0
+## W+J 上挑打中返还空中跳（11-02 用户：“W+J 空中冲刺斩给”）：默认 1 = 挑中一下就给一段，
+## 因为它就是把敌人挑上天的那一招，不给跳就得靠提前起跳才追得上。0 = 关。
+@export var launcher_refund_hits: int = 1
+## 空中打到人返还空中跳（11-02 用户：“空中打到人能多一段跳”）：空中三连 / 空中上挑 / 下砸 / 横扫
+## 每打中这么多次 → +1 次空中跳。默认 1 = 空连每命中一下就给一段，空连才追得住被打飞的敌人。
+@export var air_hit_refund_hits: int = 1
 ## 返还的空中跳最多同时存几次（另算在 extra_air_jumps 之外；落地清零）
-@export var air_jump_refund_max: int = 2
+@export var air_jump_refund_max: int = 3
 ## 出招期间的水平移速倍率。不是 0 —— 出招能走位是这个手感的关键
 @export var attack_move_scale: float = 0.62
 ## 单向平台所在的物理层（试玩关卡的多层地形，见 scripts/night/terrain.gd）。
@@ -218,6 +264,11 @@ var input_source: Object = null
 @export var air_combo: Array = []
 @export var dash_move: Resource
 @export var dash_left_move: Resource
+## 空中冲刺斩的独立招式（11-03 用户：“空中冲刺斩我也希望当成单独动作”）。为空时退回用地面冲刺斩。
+@export var air_dash_move: Resource
+@export var air_dash_left_move: Resource
+## 下落攻击的独立招式（11-03 用户：“下落攻击我希望有单独动作模组”）。为空时退回用空中第三刀（旧行为）。
+@export var air_plunge_move: Resource
 @export var guard_reactions: Array = []
 @export var parry_reactions: Array = []
 
@@ -234,6 +285,64 @@ var input_source: Object = null
 @export var air_light_uses: int = 1
 ## 一次腾空能放几次冲刺斩（11-01 用户：“冲刺斩希望能在天上用”），落地回满
 @export var air_dash_uses: int = 1
+## 空中冲刺斩无限用（11-03 用户：“空中冲刺斩在空中能无限使用应该”）：打开后不看 `air_dash_uses`，
+## 只要人在空中就能一直放。想恢复次数限制，把这个开关关掉（或在 battle.json 里设 airDashUnlimited: false）。
+@export var air_dash_unlimited: bool = true
+
+@export_group("残影与短闪")
+## 2 格残影池（A1）：冲刺斩与 6 帧穿身短闪各耗 1 格；精准弹刀直接回满，破壳 / 击杀各回 1 格，平时慢速自然充能。
+@export var max_shadow_charges: int = 2
+var shadow_charges: int = 2
+@export var shadow_regen_seconds: float = 3.0
+var _shadow_regen_timer: float = 0.0
+@export var shadow_cost_enabled: bool = true
+## 6 帧干脆穿身短闪（A1）：高速穿身，任意后续帧可自由出刀 / 跳跃 / 弹刀取消。
+@export var short_dash_frames: int = 6
+@export var short_dash_speed: float = 1650.0
+var _short_dash_ticks: int = 0
+var _short_dash_dir: int = 1
+## 「瞬步穿锋 · 追影重斩」(1A) 战斗重设计开关：实战场景开启，M0 木桩训练场保持 false 以 100% 兼容旧测试契约
+@export var combat_rework_enabled: bool = false
+## 无限闪开关：开启后地面/空中瞬步、追影冲刺及冲刺派生完全零残影消耗、无限连闪
+@export var unlimited_dash: bool = false
+@export var step_dash_frames: int = 7
+@export var step_dash_speed: float = 2150.0
+@export var pursuit_range_x: float = 480.0
+@export var pursuit_max_distance: float = 540.0
+@export var pursuit_frames: int = 6
+@export var heavy_full_charge_frames: int = 25
+@export var heavy_tap_threshold_frames: int = 6
+@export var flash_heavy_duration: float = 1.25
+@export var keen_edge_duration: float = 1.8
+@export var rework_ranged_cooldown_frames: int = 66
+## 实战普攻连段续接窗口（帧）：被打断 / 瞬步 / 弹刀 / 走位 / 挥空后在此窗口内再按 J，接着下一刀继续砍
+@export var rework_combo_keep_frames: int = 240
+var flash_heavy_timer: float = 0.0
+var keen_edge_timer: float = 0.0
+var _keen_swing_active: bool = false
+var _keen_cross_locks: Dictionary = {}
+var ranged_cooldown: int = 0
+var combo_k_launch_move: Resource = null
+var combo_k_pierce_move: Resource = null
+var combo_k_pierce_left_move: Resource = null
+var combo_k_cleave_move: Resource = null
+var _rework_next_light: int = 0
+var _rework_combo_timer: int = 0
+var _rework_next_air: int = 0
+var _rework_air_combo_timer: int = 0
+var _post_dash_window: int = 0
+var _post_dash_was_pursuit: bool = false
+var _pursuit_target: Node2D = null
+var _pursuit_offset: Vector2 = Vector2.ZERO
+var _dash_preserving_charge: bool = false
+var _dash_passed_enemy: Node2D = null
+var _perfect_dodge_locks: Dictionary = {}
+var _charge_action: StringName = &"attack_light"
+var _heavy_hold_frames: int = 0
+var _air_normal_hit_chain: int = 0
+var _air_a4_braked_this_flight: bool = false
+var _hit_recoil_x: float = 0.0
+var _hit_recoil_vel_x: float = 0.0
 
 @export_group("大招（第四轮）")
 ## 能量满后 J、K 在 ult_chord_frames 帧内先后按下（或同时按）→ 大招。默认关（训练场 / PVP 不受影响）。
@@ -302,6 +411,14 @@ var _dash_facing: int = 1
 var _pending_dash_direction: int = 1
 var _air_dash_left: int = 1
 var _dash_in_air: bool = false      ## 这一发冲刺斩是空中起手的：冲刺段不吃重力（平着冲出去）
+## 空中冲刺斩砍中的第一只敌人：穿到它另一侧就停（见 _try_dash_cross_stop）
+var _dash_cross_target: Node2D = null
+## 已经停在敌人另一侧了：这一招只剩落地
+var _dash_stopped: bool = false
+## 双击方向出冲刺斩（11-03 用户：“冲刺斩改成 aa 或 dd”）：两次按下相差多少帧内算双击
+@export var double_tap_frames: int = 14
+## 已经用掉的那一次双击（存第二下的 seq，避免同一次双击连着出好几发）
+var _double_tap_seq: int = -1
 var _reaction_guard_held: bool = false
 var hp: float = 100.0
 var hitstop_frames: int = 0
@@ -353,7 +470,8 @@ var _gravity: float = 1600.0
 var _fall_gravity: float = 1600.0
 var _jump_buffer_counter: int = 0
 var _air_jumps_left: int = 0
-var _refund_hits: int = 0           ## 离上一次返还空中跳又打中了几下
+var _refund_hits: int = 0           ## 地面冲刺斩 / 上挑：离上一次返还空中跳又打中了几下
+var _refund_hits_air: int = 0       ## 空中招式：同上（和地面分开记，互不凑数）
 var bonus_air_jumps: int = 0        ## 打中返还、还没用掉的空中跳
 var _ground_jump_used: bool = false
 var _uppercut_jump_pending: bool = false
@@ -367,6 +485,8 @@ var _air_slow_hit_tick: int = -1
 var _jump_buffer_tick: int = -1
 var _frame_counter: int = 0
 var _hit_this_swing: Dictionary = {}
+## 这一招的「伤害窗口打开」事件发过了没有（每招只发一次，见 damage_window_opened）
+var _damage_announced: bool = false
 ## 本招已经打中几次（换招清零）；穿透招式只在第 1 次顿帧，表现层据此减弱后续命中的震屏
 var swing_hit_count: int = 0
 var _squash_timer: int = 0
@@ -426,6 +546,9 @@ func _ready() -> void:
 	# Room for a heavy hitstop at the editor's maximum 3x feedback setting.
 	input_buffer = InputBuffer.new(128)
 	hp = max_hp
+	shadow_charges = max_shadow_charges
+	_shadow_regen_timer = 0.0
+	_ensure_short_dash_action()
 	_recalculate_jump()
 	up_direction = Vector2.UP
 	if _visual != null:
@@ -435,6 +558,22 @@ func _ready() -> void:
 		_melee_base_offset_x = absf(_melee.position.x)
 	_sync_melee_offset()
 	apply_combat_identity()
+
+
+func _ensure_short_dash_action() -> void:
+	if action_suffix != "":
+		return
+	if not InputMap.has_action(&"attack_heavy"):
+		InputMap.add_action(&"attack_heavy")
+	if InputMap.has_action(&"short_dash"):
+		return
+	InputMap.add_action(&"short_dash")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_C
+	InputMap.action_add_event(&"short_dash", key)
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_LEFT_SHOULDER
+	InputMap.action_add_event(&"short_dash", pad)
 
 
 ## 把 hit_mask / hurt_layer / identity_color 刷到节点上。
@@ -500,6 +639,14 @@ func apply_movement_config(c: Dictionary, settings: Dictionary) -> void:
 	hit_fall_slow_frames = maxi(0, int(air_combat.get("hitFallSlowFrames", 12)))
 	hit_fall_speed_scale = clampf(float(air_combat.get("hitFallSpeedScale", 0.45)), 0.0, 1.0)
 	hit_fall_gravity_scale = clampf(float(air_combat.get("hitFallGravityScale", 0.35)), 0.0, 1.0)
+	# 打中返还空中跳（11-02：空中打到人每一下都给一段）
+	air_jump_refund_hits = maxi(0, int(air_combat.get("airJumpRefundHits", air_jump_refund_hits)))   # 0 = 地面招式不返还
+	air_hit_refund_hits = maxi(1, int(air_combat.get("airHitRefundHits", air_hit_refund_hits)))
+	launcher_refund_hits = maxi(0, int(air_combat.get("launcherRefundHits", launcher_refund_hits)))
+	air_jump_refund_max = maxi(1, int(air_combat.get("airJumpRefundMax", air_jump_refund_max)))
+	# 空中冲刺斩次数：11-03 起默认无限；battle.json 里写 airDashUses / airDashUnlimited 可以改回来
+	air_dash_uses = maxi(1, int(air_combat.get("airDashUses", air_dash_uses)))
+	air_dash_unlimited = bool(air_combat.get("airDashUnlimited", air_dash_unlimited))
 	speed = float(c.get("speed", 186)) * float(settings.get("characterSpeedMultiplier", 1))
 	air_control = float(c.get("airControl", 0.8))
 	jump_time_to_peak = float(c.get("jumpTimeToPeak", 0.28))
@@ -534,10 +681,20 @@ func _sample_keyboard() -> InputBuffer.Frame:
 		if space_held and not _space_was_held and not sampled.pressed_this_frame.has(&"jump"):
 			sampled.pressed_this_frame.append(&"jump")
 		_space_was_held = space_held
+		for extra_act in [&"short_dash", &"attack_heavy"]:
+			if InputMap.has_action(extra_act):
+				if Input.is_action_pressed(extra_act) and not sampled.actions.has(extra_act):
+					sampled.actions.append(extra_act)
+				if Input.is_action_just_pressed(extra_act) and not sampled.pressed_this_frame.has(extra_act):
+					sampled.pressed_this_frame.append(extra_act)
 		return sampled
 	var tracked: Array[StringName] = []
 	for a in TRACKED_ACTIONS:
 		tracked.append(StringName(String(a) + action_suffix))
+	for extra_base in ["short_dash", "attack_heavy"]:
+		var ex_act := StringName(extra_base + action_suffix)
+		if InputMap.has_action(ex_act):
+			tracked.append(ex_act)
 	var axes: Array[StringName] = []
 	for a in AXIS_ACTIONS:
 		axes.append(StringName(String(a) + action_suffix))
@@ -595,12 +752,16 @@ func _physics_process(delta: float) -> void:
 		# Consume attacks before hitstop and the ultimate check: held L never
 		# stores a delayed J/K/dash/ultimate to fire when defense ends.
 		_take_edge(&"attack_light")
+		_take_edge(&"attack_heavy")
 		_take_edge(&"attack_ranged")
 		_take_edge(&"dash_modifier")
+		_take_edge(&"short_dash")
 		_take_edge(&"ult")
 		_consumed_edge[&"attack_light_press"] = frame.seq
+		_consumed_edge[&"attack_heavy_press"] = frame.seq
 		_ult_used_seq = maxi(_ult_used_seq, frame.seq)
 		_attack_hold_frames = 0
+		_heavy_hold_frames = 0
 	# 大招可以取消任何出招 / 自己的顿帧，所以放在顿帧前面判
 	if ult_frame < 0 and ult_enabled and not guard_held:
 		_try_ult()
@@ -616,15 +777,32 @@ func _physics_process(delta: float) -> void:
 
 	# ---- 2. Hitstop：冻结自己，不影响别人 ----
 	if hitstop_frames > 0:
-		hitstop_this_tick = true
-		hitstop_frames -= 1
-		# 空中停住位置但保留速度，恢复后继续原跳跃/击飞轨迹。
-		if state != State.LAUNCHED and not is_guarding() and is_on_floor():
-			velocity = Vector2.ZERO
-		return
+		if combat_rework_enabled and not guard_held and state == State.ATTACK and is_on_floor() \
+				and last_swing_hit and flash_heavy_timer <= 0.0 and _has_edge(&"attack_heavy") and _combo_k_stage() > 0:
+			hitstop_frames = 0
+		else:
+			hitstop_this_tick = true
+			hitstop_frames -= 1
+			# 空中停住位置但保留速度，恢复后继续原跳跃/击飞轨迹。
+			if state != State.LAUNCHED and not is_guarding() and is_on_floor():
+				velocity = Vector2.ZERO
+			elif combat_rework_enabled and state == State.ATTACK and not is_on_floor() and current_move != null \
+					and StringName(current_move.get(&"id")) in [&"air_light_1", &"air_light_2", &"air_light_3"] \
+					and _air_normal_hit_chain >= 4 and velocity.y >= 0.0:
+				velocity.y = minf(velocity.y + _fall_gravity * 0.55 * delta, max_fall_speed)
+			_sync_visual_pivot()
+			return
 
 	_air_hit_slow_frames = maxi(_air_hit_slow_frames - 1, 0)
 	_squash_timer = maxi(_squash_timer - 1, 0)
+	if absf(_hit_recoil_x) > 0.05 or absf(_hit_recoil_vel_x) > 1.0:
+		var recoil_acc := -520.0 * _hit_recoil_x - 30.0 * _hit_recoil_vel_x
+		_hit_recoil_vel_x += recoil_acc * delta
+		_hit_recoil_x = clampf(_hit_recoil_x + _hit_recoil_vel_x * delta, -24.0, 22.0)
+		if absf(_hit_recoil_x) <= 0.08 and absf(_hit_recoil_vel_x) <= 2.0:
+			_hit_recoil_x = 0.0
+			_hit_recoil_vel_x = 0.0
+		_sync_visual_pivot()
 	if _squash_timer == 0:
 		_lerp_visual_scale(0.18)
 	_update_drop_through()
@@ -643,10 +821,52 @@ func _physics_process(delta: float) -> void:
 		action_idle_frames += 1
 	# J 的"按住了几帧"计时器也必须每帧更新（含顿帧期间的输入）
 	_update_attack_hold(frame)
+	if state != State.DEAD and ult_frame < 0:
+		_tick_shadow_regen(delta)
+		if combat_rework_enabled and _rework_combo_timer > 0:
+			if state in [State.LAUNCHED, State.DOWN]:
+				_rework_combo_timer = maxi(_rework_combo_timer, 120)
+			elif not (state == State.ATTACK and light_combo.has(current_move)) \
+					and _short_dash_ticks <= 0 and not _guard_active:
+				_rework_combo_timer -= 1
+				if _rework_combo_timer <= 0:
+					_rework_next_light = 0
+		if combat_rework_enabled and _rework_air_combo_timer > 0:
+			if state in [State.LAUNCHED, State.DOWN]:
+				_rework_air_combo_timer = maxi(_rework_air_combo_timer, 120)
+			elif not (state == State.ATTACK and air_combo.has(current_move)) \
+					and _short_dash_ticks <= 0 and not _guard_active:
+				_rework_air_combo_timer -= 1
+				if _rework_air_combo_timer <= 0:
+					_rework_next_air = 0
+		if _post_dash_window > 0 and _short_dash_ticks <= 0:
+			_post_dash_window -= 1
+			if _post_dash_window <= 0:
+				_post_dash_was_pursuit = false
+				_dash_passed_enemy = null
+		if flash_heavy_timer > 0.0:
+			flash_heavy_timer = maxf(flash_heavy_timer - delta, 0.0)
+			if flash_heavy_timer <= 0.0:
+				flash_heavy_ready_changed.emit(false)
+		if keen_edge_timer > 0.0:
+			keen_edge_timer = maxf(keen_edge_timer - delta, 0.0)
+			if keen_edge_timer <= 0.0:
+				keen_edge_ready_changed.emit(false)
+		if ranged_cooldown > 0:
+			ranged_cooldown -= 1
 
 	if ult_frame >= 0:
 		_process_ult(delta, frame)
 		return
+
+	if state not in [State.LAUNCHED, State.DOWN, State.DEAD]:
+		if not guard_held and _short_dash_ticks <= 0 \
+				and (_try_rework_dash_input(frame) if combat_rework_enabled else _try_short_dash_input(frame)):
+			_process_short_dash(delta, frame, true)
+			return
+		if _short_dash_ticks > 0:
+			_process_short_dash(delta, frame, false)
+			return
 
 	# 蓄力是"招式之外的一个前置阶段"，所以优先于状态机分流
 	if charge_frames >= 0:
@@ -675,12 +895,15 @@ func _update_ground_air() -> void:
 		_air_light_left = air_light_uses
 		_air_dash_left = air_dash_uses
 		_air_hit_slow_frames = 0
+		_air_normal_hit_chain = 0
+		_air_a4_braked_this_flight = false
 		var landing_peak := _peak_y
 		# 站在地上时最高点 = 脚下，离地之后再往上记
 		_peak_y = global_position.y
 		if ground_frames == 1:
 			# 落地清零返还的空中跳（地面冲刺斩打中攒下的留到下一次落地）
 			_refund_hits = 0
+			_refund_hits_air = 0
 			bonus_air_jumps = 0
 			last_fall_height = maxf(global_position.y - landing_peak, 0.0)
 			last_landing_heavy = finisher_intent == &"slam" or last_fall_height >= heavy_landing_height
@@ -842,6 +1065,7 @@ func _try_uppercut_input(frame: InputBuffer.Frame) -> bool:
 	_consumed_edge[&"attack_light"] = light_frame.seq
 	_consumed_edge[&"jump"] = frame.seq
 	_jump_buffer_counter = 0
+	_short_dash_ticks = 0
 	charge_frames = -1
 	_charge_accum = 0.0
 	hitstop_frames = 0
@@ -867,7 +1091,7 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	if charge_frames >= 0:
 		return false
 	var busy := state != State.NEUTRAL or charge_frames >= 0 or hitstop_frames > 0 \
-			or _guard_active or not locomotion_animation.is_empty()
+			or _guard_active or not locomotion_animation.is_empty() or _short_dash_ticks > 0
 	if not busy:
 		return false
 	var explicit_space := _keyboard_frame and _pure_jump_down()
@@ -890,9 +1114,17 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	_cancel_locomotion()
 	_reset_air_combo()
 	_reaction_guard_held = false
+	_short_dash_ticks = 0
+	_pursuit_target = null
+	_pursuit_offset = Vector2.ZERO
+	_dash_preserving_charge = false
+	_post_dash_window = 0
+	_post_dash_was_pursuit = false
+	_dash_passed_enemy = null
 	charge_frames = -1
 	_charge_accum = 0.0
 	_charge_t = 0.0
+	_keen_swing_active = false
 	current_move = null
 	current_is_up = false
 	finisher_intent = &""
@@ -905,9 +1137,12 @@ func _try_action_jump_cancel(delta: float, frame: InputBuffer.Frame) -> bool:
 	hitstop_frames = 0
 	hitstop_this_tick = false
 	_attack_hold_frames = 0
+	_heavy_hold_frames = 0
 	_take_edge(&"attack_light")
+	_take_edge(&"attack_heavy")
 	_take_edge(&"attack_ranged")
 	_consumed_edge[&"attack_light_press"] = frame.seq
+	_consumed_edge[&"attack_heavy_press"] = frame.seq
 	if keep_guard and not _guard_active:
 		_start_guard(false)
 	input_direction = int(signf(frame.axis.x)) if absf(frame.axis.x) > 0.15 else 0
@@ -986,6 +1221,15 @@ func is_dropping_through() -> bool:
 
 func _do_jump() -> void:
 	_air_hit_slow_frames = 0
+	_air_normal_hit_chain = 0
+	_air_a4_braked_this_flight = false
+	if combat_rework_enabled and is_inside_tree():
+		for n in get_tree().get_nodes_in_group(&"shade"):
+			if n != null and is_instance_valid(n) and int(n.get(&"state")) == 6:
+				if n.get(&"_air_light_juggle_streak") != null:
+					n.set(&"_air_light_juggle_streak", 0)
+				if n.get(&"_air_raw_a4_count") != null:
+					n.set(&"_air_raw_a4_count", 0)
 	_last_jump_frame = _frame_counter
 	var jump_input := input_buffer.frame_at(0)
 	_last_jump_from_up = jump_input != null and jump_input.actions.has(&"aim_up") \
@@ -1064,7 +1308,7 @@ func _move_horizontal(delta: float, frame: InputBuffer.Frame, move_scale: float)
 		move_scale = clampf(float(_guard_config().get("movementScale", 0.85)), 0.0, 1.0)
 	elif charge_frames >= 0:
 		move_scale = charge_movement_scale
-	elif state == State.ATTACK and current_move == charge_move and charge_move != null:
+	elif state == State.ATTACK and (current_move == charge_move or current_move == combo_k_cleave_move) and current_move != null:
 		# 11-01 用户：出招时大幅减速，“后摇不要减速了”
 		move_scale = charge_attack_movement_scale if current_move.phase_at(move_frame) != &"recovery" else 1.0
 	elif not is_on_floor() and state == State.ATTACK and finisher_intent == &"" \
@@ -1110,13 +1354,51 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 	var airborne := not is_on_floor() and air_frames > coyote_frames
 	if not air_combo.is_empty():
 		airborne = not is_on_floor()
-	var dash_dir := _dash_edge_direction(_unconsumed_edge_frame(&"dash_modifier"))
-	if dash_move != null and dash_dir != 0:
-		if _dash_allowed():
-			_pending_dash_direction = dash_dir
-			return &"dash"
-		# 空中次数用完：吃掉这一下，免得边沿留在缓冲里、落地后自己冲出去
-		_take_edge(&"dash_modifier")
+
+	if combat_rework_enabled:
+		if _has_edge(&"attack_heavy"):
+			if airborne:
+				return &"air_slam" if _rework_wants_slam(frame) else &"air_drive"
+			if _short_dash_ticks > 0 or _post_dash_window > 0:
+				return &"dash_heavy"
+			if flash_heavy_timer > 0.0:
+				return &"flash_heavy"
+			if _combo_k_stage() > 0:
+				return &"combo_k"
+			return &"heavy_charge"
+		if (_short_dash_ticks > 0 or _post_dash_window > 0) and _has_edge(&"attack_light"):
+			if aim_up and is_on_floor():
+				return &"up"
+			if (_post_dash_was_pursuit or _pursuit_target != null) and airborne:
+				if _wants_air_slam(frame):
+					return &"air_slam"
+				if not air_combo.is_empty():
+					return &"air_combo"
+			# 地面冲刺斩仅在瞬步冲刺进行中（含同帧 Shift+J / 双击+J）派生；若已穿敌点亮锋芒且松开闪避与方向键单点 J，则立即回身劈出锋芒强普
+			var keen_turn_slash := keen_edge_timer > 0.0 and _dash_passed_enemy != null \
+					and frame != null and not frame.actions.has(&"dash_modifier") \
+					and not frame.actions.has(&"short_dash") and absf(frame.axis.x) <= 0.15
+			if _short_dash_ticks > 0 and dash_move != null and not keen_turn_slash:
+				_pending_dash_direction = _rework_followup_dir(frame)
+				return &"dash_strike"
+	else:
+		# 双击 A / D = 冲刺斩（11-03 用户：“冲刺斩改成 aa 或 dd”），朝双击的那一边。
+		# 和下面的 dash_modifier 是同一套出招逻辑，只是入口不同。
+		var tap_dir := _double_tap_direction()
+		if dash_move != null and tap_dir != 0:
+			var tap_seq := _newest_press_seq(&"move_left" if tap_dir < 0 else &"move_right")
+			if tap_seq >= 0:
+				_double_tap_seq = tap_seq      # 记下这一次双击（残影不足也消费掉，避免回格后自动冲出）
+				if _dash_allowed():
+					_pending_dash_direction = tap_dir
+					return &"dash"
+		var dash_dir := _dash_edge_direction(_unconsumed_edge_frame(&"dash_modifier"))
+		if dash_move != null and dash_dir != 0:
+			if _dash_allowed():
+				_pending_dash_direction = dash_dir
+				return &"dash"
+			# 空中次数用完：吃掉这一下，免得边沿留在缓冲里、落地后自己冲出去
+			_take_edge(&"dash_modifier")
 
 	if airborne and _has_edge(&"attack_light"):
 		var finisher := _wants_air_finisher()
@@ -1137,7 +1419,10 @@ func _resolve_attack_command(frame: InputBuffer.Frame) -> StringName:
 		_take_edge(&"attack_light")
 		return &""
 	if _has_edge(&"attack_ranged"):
-		return &"ranged"
+		if combat_rework_enabled and ranged_cooldown > 0:
+			_take_edge(&"attack_ranged")
+		else:
+			return &"ranged"
 	if aim_up and _has_edge(&"attack_light"):
 		return &"up"
 	if _has_edge(&"attack_light"):
@@ -1194,15 +1479,61 @@ func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 	match cmd:
 		&"dash":
 			_take_edge(&"dash_modifier")
+			if not consume_shadow(1):
+				return
 			var direction := _pending_dash_direction
 			_dash_in_air = not is_on_floor() and air_frames > coyote_frames
 			if _dash_in_air:
+				_air_normal_hit_chain = 0
+				_air_a4_braked_this_flight = false
+			if _dash_in_air and not air_dash_unlimited:
 				_air_dash_left = maxi(_air_dash_left - 1, 0)
 			_cancel_locomotion()
 			_set_facing(direction)
-			_start_move(dash_left_move if direction < 0 and dash_left_move != null else dash_move, false)
+			_start_move(_dash_move_for(direction), false)
+		&"dash_strike":
+			_take_edge(&"attack_light")
+			_take_edge(&"dash_modifier")
+			_take_edge(&"short_dash")
+			_post_dash_window = 0
+			_post_dash_was_pursuit = false
+			_dash_passed_enemy = null
+			var ds_dir := _pending_dash_direction if _pending_dash_direction != 0 else facing
+			_dash_in_air = not is_on_floor() and air_frames > coyote_frames
+			if _dash_in_air:
+				_air_normal_hit_chain = 0
+				_air_a4_braked_this_flight = false
+			if _dash_in_air and not air_dash_unlimited:
+				_air_dash_left = maxi(_air_dash_left - 1, 0)
+			_cancel_locomotion()
+			_set_facing(ds_dir)
+			_start_move(_dash_move_for(ds_dir), false)
+		&"dash_heavy":
+			_take_edge(&"attack_heavy")
+			_post_dash_window = 0
+			_post_dash_was_pursuit = false
+			var dh_dir := _rework_followup_dir(frame)
+			_dash_passed_enemy = null
+			_set_facing(dh_dir)
+			_start_instant_heavy(1.0 if _consume_flash_heavy() else 0.80, 10)
+		&"flash_heavy":
+			_take_edge(&"attack_heavy")
+			_consume_flash_heavy()
+			if frame != null and absf(frame.axis.x) > 0.15:
+				_set_facing(1 if frame.axis.x > 0.0 else -1)
+			_start_instant_heavy(1.0, 14)
+		&"combo_k":
+			var ck_stage := _combo_k_stage()
+			if ck_stage > 0:
+				_start_combo_k_finisher(ck_stage, frame)
+			else:
+				_start_heavy_charge(frame)
+		&"heavy_charge":
+			_start_heavy_charge(frame)
 		&"air_combo":
 			_take_edge(&"attack_light")
+			_post_dash_window = 0
+			_post_dash_was_pursuit = false
 			_start_air_combo_move()
 		&"charge":
 			_start_charge()
@@ -1227,13 +1558,24 @@ func _begin_command(cmd: StringName, frame: InputBuffer.Frame) -> void:
 				return
 			if not is_on_floor() and air_frames > coyote_frames:
 				return
-			# 连段断太久就从头起手（但"取消不重置"——见 _end_attack）
-			if frames_since_attack > combo_keep_frames:
+			if combat_rework_enabled and light_combo.size() >= 4 and _consume_keen_edge():
+				combo_index = light_combo.size() - 1
+				_rework_next_light = 0
+				_rework_combo_timer = 0
+				var kmv: Resource = light_combo[combo_index]
+				_start_move(kmv, false, &"", true)
+				move_frame = mini(3, maxi(int(kmv.startup_frames) - 2, 0))
+				_check_swing_cue(kmv)
+				return
+			# 实战下被打断（瞬步 / 弹刀 / 挨打受击 / 走位 / 挥空）仍在窗口内继续下一段；训练场保持旧规则
+			if combat_rework_enabled:
+				combo_index = _rework_next_light if _rework_combo_timer > 0 else 0
+			elif frames_since_attack > combo_keep_frames:
 				combo_index = 0
 			_start_move(light_combo[clampi(combo_index, 0, light_combo.size() - 1)], false)
 
 
-func _start_move(mv: Resource, is_up: bool) -> void:
+func _start_move(mv: Resource, is_up: bool, intent_override: StringName = &"", keen: bool = false) -> void:
 	if mv == null:
 		return
 	if not locomotion_animation.is_empty():
@@ -1241,17 +1583,19 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 	_cancel_locomotion()
 	_stop_guard()
 	_reaction_guard_held = false
+	_short_dash_ticks = 0
 	action_serial += 1
 	action_idle_frames = 0
 	_dash_facing = facing
 	current_move = mv
-	_charge_authored_hop = mv == charge_move and not mv.root_motion_y.is_empty() \
+	_keen_swing_active = keen
+	_charge_authored_hop = (mv == charge_move or mv == combo_k_cleave_move) and not mv.root_motion_y.is_empty() \
 			and float(mv.root_motion_y.min()) < -0.1 and is_on_floor()
 	_charge_hop_started = false
 	_charge_hop_origin_y = global_position.y
-	finisher_intent = &""
-	_uppercut_jump_pending = is_up and (mv == up_strike_move or mv == air_up_move) and _can_jump()
-	if not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
+	finisher_intent = intent_override
+	_uppercut_jump_pending = is_up and (mv == up_strike_move or mv == air_up_move or mv == combo_k_launch_move) and _can_jump()
+	if not combat_rework_enabled and finisher_intent == &"" and not air_combo.is_empty() and mv == air_combo[air_combo.size() - 1] and not is_on_floor():
 		var intent_frame := input_buffer.frame_at(0)
 		if intent_frame != null and intent_frame.axis.x * float(facing) > 0.4:
 			finisher_intent = &"drive"
@@ -1259,17 +1603,62 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 		_charge_t = 0.0
 	current_is_up = is_up
 	move_frame = 0
+	# 空中冲刺斩的"空中版本"（11-03 用户：前后摇大幅度缩短）：直接跳过前面几帧起手，
+	# 空中一秒都不能等；后摇由 air_frames().recovery 决定（见 _process_dash_attack）。
+	if is_dash_move(mv) and _dash_in_air and mv.air_startup_frames >= 0:
+		move_frame = maxi(mv.startup_frames - int(mv.air_frames().startup), 0)
 	if _melee != null and mv.hitbox.size.x > 0:
-		_melee_base_offset_x = absf(mv.hitbox.position.x)
-		_melee.position.y = mv.hitbox.position.y + foot_offset
+		# 下沿往下多给一截：跳起来压着打、或者跳得比敌人高，也擦得到
+		var extra_down := MELEE_VERTICAL_FORGIVENESS
+		if not is_on_floor():
+			extra_down += MELEE_AIR_DOWN_REACH
+		var reach: Vector2 = mv.hitbox.size
+		# 空中版本（11-03 用户：空中冲刺斩"上下范围加大两倍"）：以盒子中心为轴拉高，
+		# 上下各多出一截，冲过头、冲在敌人下方都还能擦到。
+		if _dash_in_air and mv.air_hitbox_height_scale > 1.0:
+			reach.y *= mv.air_hitbox_height_scale
+		# 以下都是朝右、相对她中心的坐标；_sync_melee_offset 再按面向翻
+		var cx := absf(mv.hitbox.position.x)
+		var cy: float = mv.hitbox.position.y + foot_offset
+		var front := (cx + reach.x * 0.5) * MELEE_REACH_SCALE
+		var back := minf(cx - reach.x * 0.5, -MELEE_BACK_REACH)
+		var top := cy - reach.y * 0.5 * MELEE_REACH_SCALE
+		var bottom := cy + reach.y * 0.5 * MELEE_REACH_SCALE + extra_down
+		var body := _body_half_size()
+		back = minf(back, -(body.x + MELEE_BODY_MARGIN))
+		top = minf(top, -(body.y + MELEE_BODY_MARGIN))
+		bottom = maxf(bottom, body.y + MELEE_BODY_MARGIN)
+		_melee_base_offset_x = (front + back) * 0.5
+		_melee.position.y = (top + bottom) * 0.5
 		var shape: RectangleShape2D = _melee.get_node("CollisionShape2D").shape
-		shape.size = mv.hitbox.size
+		shape.size = Vector2(front - back, bottom - top)
 		_sync_melee_offset()
 	state = State.ATTACK
 	link_open = false
 	last_swing_hit = false
 	_hit_this_swing.clear()
+	_damage_announced = false
+	_dash_stopped = false
+	_dash_cross_target = null
 	swing_hit_count = 0
+	var lc_idx := light_combo.find(mv)
+	if lc_idx >= 0:
+		combo_index = lc_idx
+		if combat_rework_enabled:
+			if lc_idx >= light_combo.size() - 1:
+				_rework_next_light = 0
+				_rework_combo_timer = 0
+			else:
+				_rework_next_light = lc_idx + 1
+				_rework_combo_timer = rework_combo_keep_frames
+	var ac_idx := air_combo.find(mv)
+	if ac_idx >= 0 and combat_rework_enabled and intent_override == &"":
+		if ac_idx >= air_combo.size() - 1:
+			_rework_next_air = 0
+			_rework_air_combo_timer = 0
+		else:
+			_rework_next_air = ac_idx + 1
+			_rework_air_combo_timer = rework_combo_keep_frames
 	if _is_light_finisher(mv) and air_combo.is_empty():
 		_air_light_left = maxi(_air_light_left, 1)
 	# 前摇反向蓄力（设计文档 §8.4 Anticipation）
@@ -1278,7 +1667,7 @@ func _start_move(mv: Resource, is_up: bool) -> void:
 		windup = Vector2(1.10, 0.90)
 	_set_visual_scale(windup)
 	_squash_timer = 4
-	move_started.emit(mv, combo_index if light_combo.has(mv) else -1)
+	move_started.emit(mv, combo_index if lc_idx >= 0 else -1)
 	_swing_cued = false
 	_check_swing_cue(mv)
 
@@ -1296,6 +1685,7 @@ func _start_charge() -> void:
 	if charge_move == null:
 		return
 	_take_edge(&"attack_light")
+	_charge_action = &"attack_light"
 	_cancel_locomotion()
 	_stop_guard()
 	action_serial += 1
@@ -1308,6 +1698,45 @@ func _start_charge() -> void:
 	charge_started.emit()
 
 
+func _start_heavy_charge(frame: InputBuffer.Frame = null) -> void:
+	if charge_move == null:
+		return
+	_take_edge(&"attack_heavy")
+	_charge_action = &"attack_heavy"
+	_post_dash_window = 0
+	_post_dash_was_pursuit = false
+	if _dash_passed_enemy != null and is_instance_valid(_dash_passed_enemy) and (frame == null or absf(frame.axis.x) <= 0.15):
+		var bdx := _dash_passed_enemy.global_position.x - global_position.x
+		if absf(bdx) > 4.0:
+			_set_facing(1 if bdx > 0.0 else -1)
+	elif frame != null and absf(frame.axis.x) > 0.15:
+		_set_facing(1 if frame.axis.x > 0.0 else -1)
+	_dash_passed_enemy = null
+	_cancel_locomotion()
+	_stop_guard()
+	action_serial += 1
+	action_idle_frames = 0
+	charge_frames = 0
+	_charge_accum = 0.0
+	current_move = null
+	state = State.NEUTRAL
+	link_open = false
+	charge_started.emit()
+
+
+func _start_instant_heavy(power: float, skip_startup_cap: int = 12) -> void:
+	if charge_move == null:
+		return
+	_charge_t = clampf(power, 0.0, 1.0)
+	last_charge_frames = roundi(_charge_t * float(maxi(heavy_full_charge_frames, 1)))
+	charge_frames = -1
+	_charge_accum = 0.0
+	_start_move(charge_move, false)
+	move_frame = mini(skip_startup_cap, maxi(charge_move.startup_frames - 6, 0))
+	_check_swing_cue(charge_move)
+	charge_released.emit(last_charge_frames, _charge_t > 0.35)
+
+
 ## K：发射一发远程弹丸。
 ##
 ## 刻意【不】改 combo_index、也不走 _start_move —— 所以：
@@ -1316,6 +1745,10 @@ func _start_charge() -> void:
 func _start_ranged() -> void:
 	if ranged_move == null:
 		return
+	if combat_rework_enabled:
+		if ranged_cooldown > 0:
+			return
+		ranged_cooldown = rework_ranged_cooldown_frames
 	action_serial += 1
 	action_idle_frames = 0
 	if air_combo.is_empty():
@@ -1337,7 +1770,30 @@ func _start_ranged() -> void:
 		p.queue_free()
 		return
 	parent.add_child(p)
-	p.global_position = global_position + Vector2(ranged_offset.x * float(facing), ranged_offset.y)
+	var spawn_pos := global_position + Vector2(ranged_offset.x * float(facing), ranged_offset.y)
+	p.global_position = spawn_pos
+	if combat_rework_enabled and is_inside_tree() and p.get(&"velocity_y") != null:
+		var aim_target: Node2D = null
+		var best_score := INF
+		for n in get_tree().get_nodes_in_group(&"shade"):
+			if not (n is Node2D) or not is_instance_valid(n) or int(n.get(&"state")) == 9:
+				continue
+			var s2d := n as Node2D
+			var dx := (s2d.global_position.x - spawn_pos.x) * float(facing)
+			var dy := s2d.global_position.y - spawn_pos.y
+			if dx < 16.0 or dx > 760.0 or absf(dy) > 320.0:
+				continue
+			var air_bonus := -220.0 if int(n.get(&"state")) == 6 else 0.0
+			var sc := dx + absf(dy) * 0.6 + air_bonus
+			if sc < best_score:
+				best_score = sc
+				aim_target = s2d
+		if aim_target != null:
+			var adx := maxf(absf(aim_target.global_position.x - spawn_pos.x), 36.0)
+			var ady := aim_target.global_position.y - spawn_pos.y
+			if absf(ady) > 22.0:
+				var flight_t := adx / maxf(ranged_speed, 1.0)
+				p.set(&"velocity_y", clampf(ady / maxf(flight_t, 0.03), -680.0, 480.0))
 	if p.has_signal(&"hit_target"):
 		p.hit_target.connect(_on_projectile_hit)
 	# 连段保留窗口要放长：远程是"存连段"的中转，不能因为它把连段过期掉
@@ -1347,6 +1803,8 @@ func _start_ranged() -> void:
 
 func _on_projectile_hit(target: Node, point: Vector2) -> void:
 	last_swing_hit = true
+	if combat_rework_enabled and target != null and is_instance_valid(target) and int(target.get(&"_pin_frames")) > 0:
+		_grant_keen_edge(keen_edge_duration)
 	hit_confirmed.emit(target, ranged_move, point)
 
 
@@ -1370,7 +1828,8 @@ func _process_charge(delta: float, frame: InputBuffer.Frame) -> void:
 		_charge_accum -= 1.0
 		charge_frames += 1
 	var cm := charge_move
-	var cap: int = cm.max_charge_frames
+	var use_heavy_rework := combat_rework_enabled and _charge_action == &"attack_heavy"
+	var cap: int = heavy_full_charge_frames if use_heavy_rework else cm.max_charge_frames
 	var t := clampf(float(charge_frames) / float(maxi(cap, 1)), 0.0, 1.0)
 
 	# 蓄力表现：越攒越"缩"，同时抖起来
@@ -1389,7 +1848,11 @@ func _process_charge(delta: float, frame: InputBuffer.Frame) -> void:
 		_start_ranged()
 
 	# 蓄满只封顶伤害，继续按住仍保持；松开才释放。
-	var released := not frame.actions.has(&"attack_light")
+	var released := not frame.actions.has(_charge_action)
+	if use_heavy_rework:
+		if released:
+			_release_charge()
+		return
 	if released and charge_frames >= cm.min_charge_frames:
 		_release_charge()
 		return
@@ -1405,12 +1868,21 @@ func _process_charge(delta: float, frame: InputBuffer.Frame) -> void:
 func _release_charge() -> void:
 	last_charge_frames = charge_frames
 	var cm := charge_move
-	var t := clampf(float(charge_frames) / float(maxi(cm.max_charge_frames, 1)), 0.0, 1.0)
+	var use_heavy_rework := combat_rework_enabled and _charge_action == &"attack_heavy"
+	var cap: int = heavy_full_charge_frames if use_heavy_rework else cm.max_charge_frames
+	var t := clampf(float(charge_frames) / float(maxi(cap, 1)), 0.0, 1.0)
+	var is_quick_tap := use_heavy_rework and charge_frames <= heavy_tap_threshold_frames
+	if is_quick_tap:
+		t = maxf(0.45, t)
 	# 存进"这一刀的实际数值"，命中时用
 	_charge_t = t
 	charge_frames = -1
 	_charge_accum = 0.0
 	_start_move(cm, false)
+	if use_heavy_rework:
+		var skip := 10 if is_quick_tap else 6
+		move_frame = mini(skip, maxi(cm.startup_frames - 6, 0))
+		_check_swing_cue(cm)
 	charge_released.emit(last_charge_frames, t > 0.35)
 
 
@@ -1424,6 +1896,11 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 	if guard_reactions.has(mv) or parry_reactions.has(mv):
 		_process_guard_reaction(delta, frame, mv)
 		return
+	# 空中自由打断（11-03 用户：“空中冲刺斩应该能打断和被打断任何招式，空中攻击同理”）：
+	# 人在天上时，只要「正在出的这一招」或「想出的下一招」有一边是空中招，
+	# 就允许立刻切——不看前摇/判定/后摇，也不要求先开接招窗口。
+	if _try_air_interrupt(mv, frame):
+		return
 
 	if _uppercut_jump_pending and move_frame >= maxi(mv.startup_frames - 1, 0):
 		_uppercut_jump_pending = false
@@ -1434,7 +1911,9 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			return
 	_check_swing_cue(mv)
 	var phase: StringName = mv.phase_at(move_frame)
-	if mv == dash_move or mv == dash_left_move:
+	if is_dash_move(mv) and _dash_in_air:
+		phase = _air_dash_phase(mv, move_frame)
+	if is_dash_move(mv):
 		_process_dash_attack(delta, mv, phase, frame)
 		return
 	# 11-01 用户：“蓄力很容易按不出来，我需要轻松就能蓄力”。以前要等这一刀的接招点才看按没按住，
@@ -1451,22 +1930,37 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 		_move_horizontal(delta, frame, mv.startup_movement_scale)
 
 	elif phase == &"active":
+		if combat_rework_enabled and is_on_floor() and last_swing_hit and _has_edge(&"attack_heavy") and flash_heavy_timer <= 0.0:
+			var ck_hit := _combo_k_stage()
+			if ck_hit > 0:
+				_start_combo_k_finisher(ck_hit, frame)
+				return
 		# 弹刀【不做攻击判定】—— 它是防守动作，"谁在窗口里打我我就弹谁"
 		# 这条判定在 take_hit 那一侧。让它顺手打一下的话，0 伤害 0 击退的一击
 		# 仍然会把怪推进 LAUNCHED → 倒地 26 帧，等于白送一个击倒。
-		if not _is_parry_move(mv) and not guard_reactions.has(mv) and not parry_reactions.has(mv):
+		# 伤害窗口（11-03 重击）：只有「挥到底」那一截结算，前面挥过去只有风没有判定。
+		if not _is_parry_move(mv) and not guard_reactions.has(mv) and not parry_reactions.has(mv) \
+				and mv.damages_at(move_frame):
+			if not _damage_announced:
+				_damage_announced = true
+				damage_window_opened.emit(mv)
 			_do_hit_check(mv)
 			if hitstop_this_tick:
 				return
+			if combat_rework_enabled and is_on_floor() and last_swing_hit and _has_edge(&"attack_heavy") and flash_heavy_timer <= 0.0:
+				var ck_now := _combo_k_stage()
+				if ck_now > 0:
+					_start_combo_k_finisher(ck_now, frame)
+					return
 		# 命中前冲：只在判定帧的头几帧推一次，做出"撞上去"的顿挫
-		if is_on_floor() and mv != charge_move and move_frame == mv.startup_frames and mv.lunge > 0.0 and absf(frame.axis.x) < 0.15:
+		if is_on_floor() and mv != charge_move and mv != combo_k_cleave_move and move_frame == mv.startup_frames and mv.lunge > 0.0 and absf(frame.axis.x) < 0.15:
 			velocity.x = float(facing) * mv.lunge
 		_move_horizontal(delta, frame, mv.movement_scale)
 
 	elif phase == &"recovery":
 		# Uppercut takeoff already spent its jump. After the strike, J may start
 		# normal air attacks without requiring another jump or waiting the long ground tail.
-		if not is_on_floor() and (mv == up_strike_move or mv == air_up_move) \
+		if not is_on_floor() and (mv == up_strike_move or mv == air_up_move or mv == combo_k_launch_move) \
 				and not air_combo.is_empty() and _resolve_light_press():
 			if charge_frames >= 0:
 				_process_charge(delta, frame)
@@ -1475,6 +1969,12 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 			_apply_air_attack_gravity(delta, current_move)
 			_move_with_root_motion(delta, current_move)
 			return
+		# 方向 1：J+K 轻重派生终结技 —— 地面 light_1..3 一进后摇即可按 K 零蓄力瞬发派生！
+		if combat_rework_enabled and is_on_floor() and _has_edge(&"attack_heavy") and flash_heavy_timer <= 0.0:
+			var ck_rec := _combo_k_stage()
+			if ck_rec > 0:
+				_start_combo_k_finisher(ck_rec, frame)
+				return
 		# 挑飞取消（试玩版，launcher_cancel=true 时）：地面招式的后摇一开始就能 W+J 接上挑，
 		# 和"后摇按 W 跳起取消"同一时机。让"打满失衡 → 眩晕 → 立刻挑飞"这一步不被长后摇拖住。
 		if launcher_cancel and not link_open and is_on_floor() and up_strike_move != null \
@@ -1514,6 +2014,29 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 				_link_into(&"attack_ranged")
 				if air_combo.is_empty() or not air_combo.has(mv):
 					return
+			if combat_rework_enabled and _has_edge(&"attack_heavy"):
+				if not is_on_floor():
+					_start_air_finisher(&"slam" if _rework_wants_slam(frame) else &"drive")
+					if current_move != null:
+						_move_horizontal(delta, frame, 1.0)
+						_apply_air_attack_gravity(delta, current_move)
+						_move_with_root_motion(delta, current_move)
+					return
+				if flash_heavy_timer > 0.0:
+					_take_edge(&"attack_heavy")
+					_consume_flash_heavy()
+					if absf(frame.axis.x) > 0.15:
+						_set_facing(1 if frame.axis.x > 0.0 else -1)
+					_start_instant_heavy(1.0, 14)
+					return
+				var ck_link := _combo_k_stage()
+				if ck_link > 0:
+					_start_combo_k_finisher(ck_link, frame)
+					return
+				_start_heavy_charge(frame)
+				if charge_frames >= 0:
+					_process_charge(delta, frame)
+				return
 			# J：按住 → 蓄力斩；点按 → 推进连段
 			if _resolve_light_press():
 				if charge_frames >= 0:
@@ -1541,7 +2064,7 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 				_end_attack()
 			return
 
-	if mv == charge_move and _try_buffered_jump(frame):
+	if (mv == charge_move or mv == combo_k_cleave_move) and _try_buffered_jump(frame):
 		move_frame += 1
 		if move_frame >= mv.total_frames():
 			_end_attack()
@@ -1575,6 +2098,8 @@ func _process_attack(delta: float, frame: InputBuffer.Frame) -> void:
 ##   · 当前招式就是蓄力斩本身 → 否则它自己的后摇里会不停续上蓄力，死循环
 ## 空中也能蓄力（11-01 用户：“跳起来的时候也能蓄力”），见 _air_light_hold_state。
 func _should_charge_on_hold() -> bool:
+	if combat_rework_enabled:
+		return false
 	if charge_move == null or current_move == charge_move:
 		return false
 	return _attack_hold_frames >= hold_to_charge_frames
@@ -1585,7 +2110,7 @@ func _should_charge_on_hold() -> bool:
 ## 代价：空中点按 J 要到松手那一帧才出刀（晚了按键时长那几帧）。
 ## 提前按下、在上一刀里就松开的缓冲输入不受影响（松手了直接是 0）。
 func _air_light_hold_state() -> int:
-	if charge_move == null:
+	if combat_rework_enabled or charge_move == null:
 		return 0
 	if _attack_hold_frames >= hold_to_charge_frames:
 		return 1
@@ -1609,6 +2134,15 @@ func _update_attack_hold(frame: InputBuffer.Frame) -> void:
 		_attack_hold_frames += 1
 	else:
 		_attack_hold_frames = 0
+	var is_new_heavy: bool = frame.pressed_this_frame.has(&"attack_heavy") \
+			and frame.seq != _consumed_edge.get(&"attack_heavy_press", -1)
+	if is_new_heavy:
+		_consumed_edge[&"attack_heavy_press"] = frame.seq
+		_heavy_hold_frames = 1
+	elif frame.actions.has(&"attack_heavy"):
+		_heavy_hold_frames += 1
+	else:
+		_heavy_hold_frames = 0
 
 
 ## J 的"点按 / 按住"分流。**只在取消窗口里调用**。
@@ -1689,27 +2223,52 @@ func _link_into(action: StringName) -> void:
 		return
 	if light_combo.is_empty():
 		return
-	combo_index = mini(combo_index + 1, light_combo.size() - 1)
-	_start_move(light_combo[combo_index], false)
+	if combat_rework_enabled and light_combo.size() >= 4 and _consume_keen_edge():
+		combo_index = light_combo.size() - 1
+		_rework_next_light = 0
+		_rework_combo_timer = 0
+		var kmv: Resource = light_combo[combo_index]
+		_start_move(kmv, false, &"", true)
+		move_frame = mini(3, maxi(int(kmv.startup_frames) - 2, 0))
+		_check_swing_cue(kmv)
+		return
+	# 终结段后面再按 J 回到第一段；实战下统一按 _rework_next_light 推进，被打断与正常连按共享同一续连指针
+	if combat_rework_enabled:
+		combo_index = _rework_next_light if _rework_combo_timer > 0 else 0
+	elif current_move != null and _is_light_finisher(current_move):
+		combo_index = 0
+	else:
+		combo_index = mini(combo_index + 1, light_combo.size() - 1)
+	_start_move(light_combo[clampi(combo_index, 0, light_combo.size() - 1)], false)
 
 
 func _end_attack() -> void:
 	var guard_reaction := guard_reactions.has(current_move) or parry_reactions.has(current_move)
+	var ended_finisher := current_move != null and _is_light_finisher(current_move)
 	_reaction_guard_held = false
+	_keen_swing_active = false
 	current_move = null
 	current_is_up = false
 	state = State.NEUTRAL
 	frames_since_attack = 0
-	# 连段指针的规则：
-	#   · 打中了 → 保留（"取消连段不重置"）
-	#   · 完全挥空 → 归零
-	# 这样"打空一下"会断连段，但"取消/走位后接着打"不会。
-	if not last_swing_hit:
-		combo_index = 0
+	# 连段指针的规则：实战开启「被打断也继续」，窗口内无论挥空、取消还是穿插其他招式均保留下一段进度
+	if combat_rework_enabled:
+		combo_index = _rework_next_light if _rework_combo_timer > 0 else 0
+	elif not last_swing_hit or ended_finisher:
+		combo_index = 0   # 第三段打完（打中也一样）下一刀从第一段起
 	link_open = false
 	var last_input := input_buffer.frame_at(0)
 	if guard_reaction and last_input != null and last_input.actions.has(&"parry"):
 		_start_guard(false)
+
+
+## 她自己身体的半宽半高（受击盒，中心在她原点；读不到时按 50×156）
+func _body_half_size() -> Vector2:
+	if _hurtbox != null:
+		var cs := _hurtbox.get_node_or_null(^"CollisionShape2D") as CollisionShape2D
+		if cs != null and cs.shape is RectangleShape2D:
+			return (cs.shape as RectangleShape2D).size * 0.5
+	return Vector2(25.0, 78.0)
 
 
 func _do_hit_check(mv: Resource) -> void:
@@ -1725,21 +2284,31 @@ func _do_hit_check(mv: Resource) -> void:
 			continue
 		if not owner_node.has_method(&"take_hit"):
 			continue
-		if owner_node.get("hp") != null and float(owner_node.get("hp")) <= 0.0:
+		if owner_node.get("hp") != null and float(owner_node.get("hp")) <= 0.0 and not bool(owner_node.get("overkilled")):
 			continue
-		# 只打身前（朝向那一侧），避免背对敌人也能命中
+		# 只打身前（朝向那一侧），避免背对敌人也能命中；但和她身体重合、身后不到一个身位的照样算
+		# （判定盒后沿已经盖到身后 MELEE_BACK_REACH，这里只挡掉更远的背后目标）
 		var dx: float = owner_node.global_position.x - global_position.x
-		if absf(dx) > 1.0 and signf(dx) != float(facing):
+		if dx * float(facing) < -(MELEE_BACK_REACH + 50.0):
 			continue
 
 		_hit_this_swing[owner_node.get_instance_id()] = true
 		var point: Vector2 = (global_position + owner_node.global_position) * 0.5
+		# 空中冲刺斩：记住砍中的敌人，冲过它以后再停（见 _try_dash_cross_stop）
+		if not is_on_floor() and current_move != null \
+				and is_dash_move(current_move) \
+				and (_dash_cross_target == null or not is_instance_valid(_dash_cross_target)):
+			_dash_cross_target = owner_node
 		var hp_before: Variant = owner_node.get(&"hp")
-		var parried: bool = owner_node.take_hit(mv, facing, point, _charge_t, current_is_up, attack_damage_mul, self)
+		var shell_before: float = float(owner_node.get(&"shell_hp")) if owner_node.get(&"shell_hp") != null else 0.0
+		var state_before: int = int(owner_node.get(&"state")) if owner_node.get(&"state") != null else -1
+		var keen_mul := 1.75 if (combat_rework_enabled and _keen_swing_active) else 1.0
+		var parried: bool = owner_node.take_hit(mv, facing, point, _charge_t, current_is_up, attack_damage_mul * keen_mul, self)
 		if parried:
 			continue
-		if hp_before != null and float(owner_node.get(&"hp")) < float(hp_before) \
-				and (owner_node.is_in_group(&"shade") or owner_node.is_in_group(&"dummy")):
+		var dealt_or_overkill := (hp_before != null and float(owner_node.get(&"hp")) < float(hp_before)) \
+				or bool(owner_node.get(&"overkilled"))
+		if dealt_or_overkill and (owner_node.is_in_group(&"shade") or owner_node.is_in_group(&"dummy")):
 			_on_melee_mobility_hit(mv)
 			_count_air_jump_refund(mv)
 		last_swing_hit = true
@@ -1751,29 +2320,102 @@ func _do_hit_check(mv: Resource) -> void:
 			hitstop_frames = maxi(hitstop_frames, mv.hitstop_frames + charge_bonus)
 			hitstop_this_tick = hitstop_frames > 0
 		_set_visual_scale(mv.squash)
-		_squash_timer = 2
+		_squash_timer = 5 if combat_rework_enabled else 2
+		if combat_rework_enabled and ult_frame < 0 and (not mv.hitstop_first_only or swing_hit_count == 1):
+			var shell_after: float = float(owner_node.get(&"shell_hp")) if owner_node.get(&"shell_hp") != null else 0.0
+			var state_after: int = int(owner_node.get(&"state")) if owner_node.get(&"state") != null else -1
+			var mid_hit := StringName(mv.get(&"id"))
+			if (shell_before > 0.0 and shell_after > 0.0) or (state_before == 10 and state_after == 10):
+				_hit_recoil_x = -float(facing) * 18.0
+				_hit_recoil_vel_x = float(facing) * 240.0
+			elif _keen_swing_active or mid_hit in [&"light_4", &"air_light_4", &"combo_k_cleave", &"combo_k_launch", &"combo_k_pierce", &"combo_k_pierce_left", &"charge_1"] or finisher_intent != &"":
+				_hit_recoil_x = -float(facing) * 16.5
+				_hit_recoil_vel_x = float(facing) * 660.0
+				_squash_timer = 6
+			elif mid_hit in [&"light_3", &"air_light_3"]:
+				_hit_recoil_x = -float(facing) * 12.5
+				_hit_recoil_vel_x = float(facing) * 480.0
+			else:
+				_hit_recoil_x = -float(facing) * 9.0
+				_hit_recoil_vel_x = float(facing) * 360.0
+			_sync_visual_pivot()
 		hit_confirmed.emit(owner_node, mv, point)
 
 
 func _on_melee_mobility_hit(mv: Resource) -> void:
-	if not is_on_floor() and not mv.is_ranged() and finisher_intent == &"" \
-			and hit_fall_slow_frames > 0 and _air_slow_hit_tick != tick_count:
-		_air_slow_hit_tick = tick_count
-		_air_hit_slow_frames = hit_fall_slow_frames
-		if velocity.y > 0.0:
-			velocity.y *= hit_fall_speed_scale
+	if not is_on_floor() and not mv.is_ranged() and finisher_intent == &"":
+		if combat_rework_enabled:
+			var mid := StringName(mv.get(&"id")) if mv != null else &""
+			if mid == &"air_light_4" or mv == air_up_move:
+				if _air_slow_hit_tick != tick_count:
+					_air_slow_hit_tick = tick_count
+					# 强化空普命中：仅在本次腾空/追影首轮或锋芒触发时刹停下坠并给 5 帧缓冲；不按跳/追影直接复读第 2 次空 A4 时零刹车与减重
+					if mv == air_up_move or _keen_swing_active or not _air_a4_braked_this_flight:
+						_air_a4_braked_this_flight = true
+						if velocity.y > 90.0:
+							velocity.y = 90.0
+						_air_hit_slow_frames = maxi(_air_hit_slow_frames, 5)
+				return
+			if mid in [&"air_light_1", &"air_light_2", &"air_light_3"]:
+				if _air_slow_hit_tick != tick_count:
+					_air_slow_hit_tick = tick_count
+					_air_normal_hit_chain += 1
+					# 削弱普通普攻滞空：单次起跳/追影内前 3 刀递减微缓冲（6→4→3 帧）刚好衔接第 4 刀强普，第 4 刀起不按跳/追影直接零减重坠地
+					if hit_fall_slow_frames > 0 and _air_normal_hit_chain <= 3:
+						var frames_lut := [6, 4, 3]
+						var scale_lut := [0.55, 0.70, 0.80]
+						_air_hit_slow_frames = maxi(_air_hit_slow_frames, int(frames_lut[_air_normal_hit_chain - 1]))
+						if velocity.y > 0.0:
+							velocity.y *= float(scale_lut[_air_normal_hit_chain - 1])
+				return
+		if hit_fall_slow_frames > 0 and _air_slow_hit_tick != tick_count:
+			_air_slow_hit_tick = tick_count
+			_air_hit_slow_frames = hit_fall_slow_frames
+			if velocity.y > 0.0:
+				velocity.y *= hit_fall_speed_scale
 
 
-## 冲刺斩 / W+J / 空中 J（空中三连、下砸、横扫都用 air_combo 里的招）每打中 air_jump_refund_hits 下 → +1 次空中跳。
+## 打中返还空中跳（11-12 重做：普通普攻命中绝不给跳，强化普攻命中才给跳）：
+##   · 实战重做模式下：普通普攻（light_1..3 / air_light_1..3）一律不返还跳跃；
+##     唯有强化普攻（地面第 4 段 light_4 / 空中第 4 段 air_light_4，含紫电锋芒直出强普）及专门追空招命中 → +1 段跳
+##   · 训练场旧模式下保持原契约不变
 func _count_air_jump_refund(mv: Resource) -> void:
-	if air_jump_refund_hits <= 0:
+	var mid := StringName(mv.get(&"id")) if mv != null else &""
+	if combat_rework_enabled:
+		if mid in [&"light_1", &"light_2", &"light_3", &"air_light_1", &"air_light_2", &"air_light_3"]:
+			return
+		if (light_combo.has(mv) and mid != &"light_4") or (air_combo.has(mv) and mid != &"air_light_4"):
+			return
+	var is_dash := is_dash_move(mv)
+	var airborne_move := (mid == &"air_light_4" or mv == air_up_move) if combat_rework_enabled else (air_combo.has(mv) or mv == air_up_move)
+	var air_like := true
+	var need := 0
+	if airborne_move:
+		need = air_hit_refund_hits
+	elif mv == up_strike_move or mv == combo_k_launch_move or mid == &"light_4":
+		need = launcher_refund_hits
+	elif is_dash:
+		# 只认 _dash_in_air（出招那一帧定的），不去看当前 is_on_floor：
+		# 冲刺到台边那一帧脚已经离地，那样会被当成空中冲刺斩白送一段跳
+		if _dash_in_air:
+			need = air_hit_refund_hits      # 空中冲刺斩：和空中招式同一套
+		else:
+			need = air_jump_refund_hits     # 地面冲刺斩：默认 0
+			air_like = false
+	else:
 		return
-	if not (mv == dash_move or mv == dash_left_move or mv == up_strike_move or mv == air_up_move or air_combo.has(mv)):
+	if need <= 0:
 		return
-	_refund_hits += 1
-	if _refund_hits < air_jump_refund_hits:
-		return
-	_refund_hits = 0
+	if air_like:
+		_refund_hits_air += 1
+		if _refund_hits_air < need:
+			return
+		_refund_hits_air = 0
+	else:
+		_refund_hits += 1
+		if _refund_hits < need:
+			return
+		_refund_hits = 0
 	if bonus_air_jumps >= air_jump_refund_max:
 		return
 	bonus_air_jumps += 1
@@ -1869,7 +2511,7 @@ func _enter_down() -> void:
 		# 轻击：落地就站稳，马上能动（短无敌防止被连着打到起不来）
 		_soft_knock = false
 		state = State.NEUTRAL
-		combo_index = 0
+		combo_index = (_rework_next_light if _rework_combo_timer > 0 else 0) if combat_rework_enabled else 0
 		velocity.x *= 0.3
 		_set_visual_scale(Vector2(1.12, 0.9))
 		_squash_timer = 4
@@ -1895,7 +2537,7 @@ func _process_down(delta: float) -> void:
 	down_frames -= 1
 	if down_frames <= 0:
 		state = State.NEUTRAL
-		combo_index = 0
+		combo_index = (_rework_next_light if _rework_combo_timer > 0 else 0) if combat_rework_enabled else 0
 		_set_visual_scale(Vector2.ONE)
 		hp = maxf(hp, 1.0)
 
@@ -1980,7 +2622,10 @@ func has_super_armor() -> bool:
 		return false
 	if charge_frames >= 0:
 		return true
-	return state == State.ATTACK and charge_move != null and current_move == charge_move
+	return state == State.ATTACK and (
+		(charge_move != null and current_move == charge_move)
+		or (combo_k_cleave_move != null and current_move == combo_k_cleave_move)
+	)
 
 
 ## 现在处于"招架判定帧"吗 —— 弹刀唯一的**时间**条件。
@@ -2041,6 +2686,10 @@ func _do_parry(attacker: Node, point: Vector2) -> void:
 	_squash_timer = 5
 	# 弹开算"有效动作"：连段指针不该因为这一下被当成挥空而归零
 	last_swing_hit = true
+	refund_shadow(max_shadow_charges)
+	if combat_rework_enabled:
+		_grant_flash_heavy(flash_heavy_duration)
+		_grant_keen_edge(keen_edge_duration)
 	attacker.call(&"on_parried", self)
 	parry_success.emit(attacker, point)
 
@@ -2089,11 +2738,39 @@ func reset_state(pos: Vector2) -> void:
 	global_position = pos
 	velocity = Vector2.ZERO
 	hp = max_hp
+	shadow_charges = max_shadow_charges
+	_shadow_regen_timer = 0.0
+	_short_dash_ticks = 0
+	if flash_heavy_timer > 0.0:
+		flash_heavy_timer = 0.0
+		flash_heavy_ready_changed.emit(false)
+	if keen_edge_timer > 0.0:
+		keen_edge_timer = 0.0
+		keen_edge_ready_changed.emit(false)
+	_keen_swing_active = false
+	_keen_cross_locks.clear()
+	ranged_cooldown = 0
+	_post_dash_window = 0
+	_post_dash_was_pursuit = false
+	_pursuit_target = null
+	_pursuit_offset = Vector2.ZERO
+	_dash_preserving_charge = false
+	_dash_passed_enemy = null
+	_perfect_dodge_locks.clear()
+	_charge_action = &"attack_light"
+	_heavy_hold_frames = 0
+	_air_normal_hit_chain = 0
+	_air_a4_braked_this_flight = false
+	shadow_changed.emit(shadow_charges, max_shadow_charges)
 	state = State.NEUTRAL
 	current_move = null
 	current_is_up = false
 	move_frame = 0
 	combo_index = 0
+	_rework_next_light = 0
+	_rework_combo_timer = 0
+	_rework_next_air = 0
+	_rework_air_combo_timer = 0
 	link_open = false
 	last_swing_hit = false
 	frames_since_attack = 100
@@ -2109,11 +2786,14 @@ func reset_state(pos: Vector2) -> void:
 	hitstop_this_tick = false
 	_attack_hold_frames = 0
 	_squash_timer = 0
+	_hit_recoil_x = 0.0
+	_hit_recoil_vel_x = 0.0
 	down_frames = 0
 	ground_frames = 0
 	air_frames = 0
 	_air_jumps_left = extra_air_jumps
 	_refund_hits = 0
+	_refund_hits_air = 0
 	bonus_air_jumps = 0
 	_ground_jump_used = false
 	_air_light_left = air_light_uses
@@ -2148,7 +2828,10 @@ func _wants_air_slam(frame: InputBuffer.Frame) -> bool:
 
 
 ## 空中已经出过至少一刀后，按住前方 + J：直接出横扫终结（把敌人水平打飞去撞墙/撞人）
+## 实战模式（1A）下主动横轰由独立重击键 K 负责，确保按着方向键追怪点 J 能打满四连直出空中强普
 func _wants_air_drive(frame: InputBuffer.Frame) -> bool:
+	if combat_rework_enabled:
+		return false
 	return frame != null and frame.axis.x * float(facing) > 0.5 and absf(frame.axis.y) < 0.5 \
 			and not air_combo.is_empty() and air_combo_index >= 1 \
 			and not is_on_floor()
@@ -2171,15 +2854,33 @@ func _start_air_slam() -> void:
 func _start_air_finisher(intent: StringName) -> void:
 	_air_hit_slow_frames = 0
 	_take_edge(&"attack_light")
+	if combat_rework_enabled:
+		_take_edge(&"attack_heavy")
+		_post_dash_window = 0
+		_post_dash_was_pursuit = false
+		_dash_passed_enemy = null
+		var latest := input_buffer.frame_at(0)
+		if latest != null and absf(latest.axis.x) > 0.15:
+			_set_facing(1 if latest.axis.x > 0.0 else -1)
 	air_combo_index = air_combo.size()
-	_start_move(air_combo[air_combo.size() - 1], false)
+	# 11-03 用户：“下落攻击我希望有单独动作模组”——下砸用自己的招式资源（air_plunge），
+	# 不再借用空中第三刀；没配才退回旧行为。空中 K 横轰（drive）保持借用 air_combo[2] 横斩模组。
+	var move: Resource = null
+	if intent == &"slam" and air_plunge_move != null:
+		move = air_plunge_move
+	if move == null and not air_combo.is_empty():
+		if combat_rework_enabled and intent == &"drive" and air_combo.size() >= 3:
+			move = air_combo[2]
+		else:
+			move = air_combo[air_combo.size() - 1]
+	_start_move(move, false, intent)
 	finisher_intent = intent
 	if intent == &"slam":
-		velocity.y = maxf(velocity.y, 240.0)
+		velocity.y = maxf(velocity.y, PLUNGE_SPEED)
 
 
 func is_busy() -> bool:
-	return state != State.NEUTRAL
+	return state != State.NEUTRAL or _short_dash_ticks > 0
 
 func is_in_hitstop() -> bool:
 	return hitstop_frames > 0 or hitstop_this_tick
@@ -2267,8 +2968,10 @@ func _lerp_visual_scale(t: float) -> void:
 	_sync_visual_pivot()
 
 func _sync_visual_pivot() -> void:
+	if _visual == null:
+		return
 	# Stretch around the foot position, so the detailed sprite does not slide through the floor.
-	_visual.position.y = foot_offset * (1.0 - _visual.scale.y)
+	_visual.position = Vector2(_hit_recoil_x, foot_offset * (1.0 - _visual.scale.y))
 
 
 # ------------------------------------------------------- Desktop action flow
@@ -2335,21 +3038,44 @@ func _reset_air_combo() -> void:
 func _start_air_combo_move() -> void:
 	if is_on_floor() or air_combo.is_empty():
 		return
+	if combat_rework_enabled:
+		if air_combo.size() >= 4 and _consume_keen_edge():
+			air_combo_index = air_combo.size()
+			_rework_next_air = 0
+			_rework_air_combo_timer = 0
+			var kmv: Resource = air_combo[air_combo.size() - 1]
+			_start_move(kmv, false, &"", true)
+			move_frame = mini(2, maxi(int(kmv.startup_frames) - 2, 0))
+			_check_swing_cue(kmv)
+			return
+		var idx := (_rework_next_air if _rework_air_combo_timer > 0 else 0) % air_combo.size()
+		air_combo_index = idx + 1
+		_start_move(air_combo[idx], false)
+		return
 	air_combo_index %= air_combo.size()
 	var mv: Resource = air_combo[air_combo_index]
 	air_combo_index += 1
 	_start_move(mv, false)
 
 func _apply_air_attack_gravity(delta: float, _mv: Resource) -> void:
-	if _mv == charge_move and _charge_authored_hop:
+	if (_mv == charge_move or _mv == combo_k_cleave_move) and _charge_authored_hop:
 		return
 	if finisher_intent == &"slam" and not is_on_floor():
-		velocity.y = move_toward(velocity.y, PLUNGE_SPEED, 5200.0 * delta)
+		# 几乎瞬移：一次就顶到 PLUNGE_SPEED（不再"加速到"），落地那一帧由 move_and_slide 接住
+		velocity.y = PLUNGE_SPEED
 		return
 	# Whiffs follow normal gravity; confirmed hits can briefly slow the descent.
 	_apply_gravity(delta, _air_gravity())
 
 func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: InputBuffer.Frame = null) -> void:
+	# 空中斩中人以后停在敌人另一侧（11-03 用户：“在空中的时候，斩到人就会在敌人另一边停下”）：
+	# 停住以后这一招只剩“落下来”，不再按位移曲线往前推。
+	if _dash_stopped:
+		_process_dash_stopped(delta, mv)
+		return
+	if _dash_in_air and _dash_cross_target != null and is_instance_valid(_dash_cross_target):
+		if _try_dash_cross_stop(_dash_cross_target):
+			return
 	if phase == &"active":
 		_do_hit_check(mv)
 		if hitstop_this_tick:
@@ -2366,11 +3092,81 @@ func _process_dash_attack(delta: float, mv: Resource, phase: StringName, frame: 
 		velocity.y = 0.0    # 空中冲刺斩：冲刺段平着冲出去，后摇再开始下落
 	else:
 		_apply_gravity(delta, _air_gravity())
+	var prev_x := global_position.x
 	move_and_slide()
+	if combat_rework_enabled and (mv == combo_k_pierce_move or mv == combo_k_pierce_left_move):
+		_track_passed_enemy(prev_x)
 	move_frame += 1
-	if move_frame >= mv.total_frames():
+	if move_frame >= (_air_dash_total(mv) if _dash_in_air else mv.total_frames()):
+		var ended_pierce := mv == combo_k_pierce_move or mv == combo_k_pierce_left_move
 		_end_attack()
 		velocity.x = 0.0
+		if ended_pierce and _dash_passed_enemy != null and is_instance_valid(_dash_passed_enemy):
+			var bdx := _dash_passed_enemy.global_position.x - global_position.x
+			if absf(bdx) > 4.0:
+				_set_facing(1 if bdx > 0.0 else -1)
+			_dash_passed_enemy = null
+
+## 空中冲刺斩的帧段判定（11-03）：用招式数据的"空中版本"帧数（起手更短、后摇更短），
+## 而不是招式原值。地面冲刺斩仍走 `mv.phase_at()`。
+func _air_dash_phase(mv: Resource, f: int) -> StringName:
+	var a: Dictionary = mv.air_frames()
+	var s: int = a.startup
+	var total: int = a.total
+	if f < s:
+		return &"startup"
+	if f < s + int(a.active):
+		return &"active"
+	if f < total:
+		return &"recovery"
+	return &"done"
+
+
+## 空中冲刺斩的整招帧数（收招判定用）
+func _air_dash_total(mv: Resource) -> int:
+	return int(mv.air_frames().total)
+
+
+## 空中冲刺斩砍中敌人后，从它身上穿过去、在**另一侧**停住。
+##
+## 【为什么是穿过去再停，而不是原地停】冲刺斩的卖点是“从人身上冲过去”，
+## 停在敌人一侧等于把这一招变成了普通突进；停到另一侧才有“错身而过”的爽感，
+## 而且停的位置离敌人半个身子多一点，落地后立刻能回头接刀。
+## 只在空中生效（`_dash_in_air`）：地面冲刺斩照旧冲完整个距离。
+func _try_dash_cross_stop(t: Node2D) -> bool:
+	var margin: float = float(t.get(&"half_w")) + 52.0
+	var past := (global_position.x - t.global_position.x) * float(_dash_facing)
+	if past < margin:
+		return false
+	# 站到敌人另一侧（不依赖这一帧冲了多远，直接贴到该停的位置，避免高速一帧冲过头）
+	global_position.x = t.global_position.x + float(_dash_facing) * margin
+	velocity = Vector2.ZERO
+	_dash_stopped = true
+	_dash_in_air = false          # 冲刺段结束：开始正常下落
+	_dash_cross_target = null
+	hitstop_frames = maxi(hitstop_frames, 8)
+	hitstop_this_tick = true
+	# 穿过去以后回头面对它（11-03 用户：“空中冲刺斩能击飞然后……”）：不然人站在敌人另一侧、
+	# 朝向还是冲刺方向，接下来那刀会因为"只打身前"直接挥空，等于白穿。
+	if absf(t.global_position.x - global_position.x) > 1.0:
+		_set_facing(1 if t.global_position.x > global_position.x else -1)
+	if current_move != null:
+		move_frame = maxi(move_frame, current_move.startup_frames + current_move.active_frames)
+	return true
+
+
+## 停住之后的收尾：不再有位移，只在下落 + 走完后摇。
+func _process_dash_stopped(delta: float, mv: Resource) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 6000.0 * delta)
+	velocity.y = move_toward(velocity.y, 0.0, 6000.0 * delta) if is_on_floor() else velocity.y
+	_apply_gravity(delta, _air_gravity())
+	move_and_slide()
+	move_frame += 1
+	# 这里不再强行把朝向顶回冲刺方向：急停时已经回头面对敌人了，再顶回去就白回头
+	if move_frame >= _air_dash_total(mv) or is_on_floor():
+		velocity.x = 0.0
+		_end_attack()
+
 
 ## 冲刺斩的后摇取消：弹刀 / 跳随时；接招点之后可以 冲刺 / J / K，再晚一点按方向键直接收招。
 func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame) -> bool:
@@ -2388,12 +3184,28 @@ func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame)
 			return true
 		if _has_edge(&"attack_ranged"):
 			_link_into(&"attack_ranged")
+		if combat_rework_enabled and _has_edge(&"attack_heavy"):
+			if not is_on_floor():
+				_start_air_finisher(&"slam" if _rework_wants_slam(frame) else &"drive")
+				return true
+			if flash_heavy_timer > 0.0:
+				_take_edge(&"attack_heavy")
+				_consume_flash_heavy()
+				_start_instant_heavy(1.0, 14)
+				return true
+			_start_heavy_charge(frame)
+			if charge_frames >= 0:
+				_process_charge(delta, frame)
+			return true
 		# 空中冲刺斩之后的 J 接空中连段
 		if not is_on_floor() and _has_edge(&"attack_light") and _resolve_light_press():
 			return true
 		if _has_edge(&"attack_light") and not light_combo.is_empty():
-			# 冲刺斩之后的 J 从第一刀起（W+J 仍是上挑）
-			combo_index = -1
+			# 实战下冲刺斩突进贴脸后按 J 可接着续连未完成的地面普攻；否则从第一刀起（W+J 仍是上挑）
+			if combat_rework_enabled and _rework_combo_timer > 0:
+				combo_index = _rework_next_light
+			else:
+				combo_index = -1
 			_link_into(&"attack_light")
 			return true
 	if _try_move_cancel(mv):
@@ -2404,7 +3216,7 @@ func _dash_recovery_cancel(delta: float, mv: Resource, frame: InputBuffer.Frame)
 
 ## 后摇里按 Shift：直接接一次冲刺斩（方向以按键那一帧为准）。
 func _try_dash_cancel() -> bool:
-	if dash_move == null:
+	if combat_rework_enabled or dash_move == null:
 		return false
 	var f := _unconsumed_edge_frame(&"dash_modifier")
 	var dir := _dash_edge_direction(f)
@@ -2415,9 +3227,90 @@ func _try_dash_cancel() -> bool:
 	return true
 
 
-## 现在能不能放冲刺斩：地上（含土狼时间）随时；空中每次腾空 air_dash_uses 次。
+## 这一招算不算「空中自由打断」的一员：空中三连 / 空中上挑 / 下落攻击 / 空中冲刺斩。
+func _is_air_interrupt_move(mv: Resource) -> bool:
+	if mv == null:
+		return false
+	if is_dash_move(mv):
+		return true
+	return air_combo.has(mv) or mv == air_up_move or mv == air_plunge_move
+
+
+## 这一招 / 这条指令是不是「空中攻击」（不含空中冲刺斩）。
+func _is_air_attack_move(mv: Resource) -> bool:
+	if mv == null:
+		return false
+	return air_combo.has(mv) or mv == air_up_move or mv == air_plunge_move
+
+
+func _is_air_attack_command(cmd: StringName) -> bool:
+	return cmd in [&"air_combo", &"air_up", &"air_slam", &"air_drive"]
+
+
+## 这条指令算不算「空中招」（空中冲刺斩 / 空中攻击）。
+func _is_air_interrupt_command(cmd: StringName) -> bool:
+	if cmd == &"dash" or cmd == &"dash_strike":
+		return true          # 人已经在空中，_dash_move_for 会给空中那套
+	return _is_air_attack_command(cmd)
+
+
+## 空中抢招：人在天上时，「空中冲刺斩 / 空中攻击」可以切掉别的招式。
+##
+## 【为什么不复用 link_open】那套只在前摇/判定过去之后才开窗口，正好和用户要的相反：
+## 他要的是"空中冲刺斩能打断任何招式"，也就是出刀起手那一帧就能被抢。
+##
+## 【唯一的例外：空中攻击不能打断空中攻击】（用户 11-03 补充：“空中攻击应该是能打断空中攻击以外的”）
+## 空中三连之间仍然要走正常接招窗口，否则连按 J 就能一路平推，空连没有节奏也没有判定意义。
+func _try_air_interrupt(mv: Resource, frame: InputBuffer.Frame) -> bool:
+	if is_on_floor():
+		return false
+	var cmd := _resolve_attack_command(frame)
+	# 只有「空中冲刺斩 / 空中攻击」有抢招权：K 远射、弹刀、蓄力仍然不打断空中连段
+	# （10-xx 定的"K 不冻结、不回退空中连段"那条规则继续有效）。
+	if not _is_air_interrupt_command(cmd):
+		return false
+	if _is_air_attack_move(mv) and _is_air_attack_command(cmd):
+		var heavy_finisher_chain: bool = combat_rework_enabled and _has_edge(&"attack_heavy") \
+				and mv != air_plunge_move and finisher_intent == &"" \
+				and (last_swing_hit or mv.phase_at(move_frame) == &"recovery")
+		if not heavy_finisher_chain:
+			return false          # 空中攻击 × 空中攻击：不抢，交给接招窗口
+	_begin_command(cmd, frame)
+	return true
+
+
+## 现在能不能放冲刺斩：地上（含土狼时间）随时；空中默认无限（`air_dash_unlimited`），
+## 关掉那个开关就回到"每次腾空 air_dash_uses 次"。
 func _dash_allowed() -> bool:
-	return is_on_floor() or air_frames <= coyote_frames or _air_dash_left > 0
+	if unlimited_dash:
+		return true
+	if shadow_cost_enabled and shadow_charges < 1:
+		return false
+	if is_on_floor() or air_frames <= coyote_frames:
+		return true
+	return air_dash_unlimited or _air_dash_left > 0
+
+
+## 冲刺斩用哪一套招式资源：空中用独立的那对（air_dash_*），没配就退回地面那对。
+## 11-03 用户：“空中冲刺斩我也希望当成单独动作”——独立资源才能单独给帧数、判定盒，以后单独换动画。
+func _dash_move_for(direction: int) -> Resource:
+	var use_air := _dash_in_air
+	var left: Resource = air_dash_left_move if use_air else dash_left_move
+	var right: Resource = air_dash_move if use_air else dash_move
+	if left == null:
+		left = dash_left_move
+	if right == null:
+		right = dash_move
+	return left if direction < 0 and left != null else right
+
+
+## 是不是冲刺斩（地面 / 空中各自的招式资源都算）。11-03 起空中冲刺斩是独立招式，
+## 所以判"这一发是不是冲刺斩"不能只比 dash_move。
+func is_dash_move(mv: Resource) -> bool:
+	if mv == null:
+		return false
+	return mv == dash_move or mv == dash_left_move or mv == air_dash_move or mv == air_dash_left_move \
+			or mv == combo_k_pierce_move or mv == combo_k_pierce_left_move
 
 
 ## 冲刺斩键（Shift / 右键 / 手柄 B，动作名沿用 dash_modifier）这一下朝哪边：按着 A / D 就朝那边，
@@ -2429,18 +3322,62 @@ func _dash_edge_direction(f: InputBuffer.Frame) -> int:
 	return dir if dir != 0 else facing
 
 
+## 双击方向 = 冲刺斩（11-03 用户：“冲刺斩改成 aa 或 dd”）。
+##
+## 【为什么从输入缓冲里找，而不是在 _physics_process 里攒状态】顿帧时
+## `_physics_process` 会直接 return，实时攒的"上一次点方向"会在顿帧里过期；
+## 缓冲里留着最近几帧的按下边沿，顿帧结束照样认得出这是一次双击。
+## 【为什么不复用 dash_modifier】Shift / 右键 / 手柄 B 都还留着当别名，
+## 双击是"键盘上更顺手的那个"，老手感不拆。
+func _double_tap_direction() -> int:
+	var span := mini(input_buffer.frame_count(), double_tap_frames + 2)
+	for d in [-1, 1]:
+		var act: StringName = &"move_left" if d < 0 else &"move_right"
+		var presses: Array[int] = []
+		for i in span:
+			var f := input_buffer.frame_at(i)
+			if f == null or not f.pressed_this_frame.has(act):
+				continue
+			presses.append(i)          # i 越小越新：presses[0] 是最近一次按下
+		if presses.size() < 2:
+			continue
+		if int(presses[0]) - int(presses[1]) > double_tap_frames:
+			continue
+		var newest := input_buffer.frame_at(presses[0])
+		if newest == null or newest.seq == _double_tap_seq:
+			continue               # 这一次双击已经用掉了
+		return d
+	return 0
+
+
+## 缓冲里那个方向最近一次按下的 seq（双击出招时用来记账，避免一发双击连出好几刀）
+func _newest_press_seq(action: StringName) -> int:
+	for i in input_buffer.frame_count():
+		var f := input_buffer.frame_at(i)
+		if f != null and f.pressed_this_frame.has(action):
+			return f.seq
+	return -1
+
+
 ## 收招尾巴的"方向键取消"：接招点之后再过 move_cancel_delay 帧，
 ## 没有待处理的攻击/弹刀输入、又按着方向 → 直接收招，这一帧就开始跑。
 ## 打中过的话连段指针往前推一格（马上再按 J 接下一刀，而不是从头再来）。
 func _try_move_cancel(mv: Resource) -> bool:
 	if mv.move_cancel_delay < 0 or not is_on_floor() or input_direction == 0:
 		return false
-	if move_frame < mv.startup_frames + mv.active_frames + mv.cancel_frame + mv.move_cancel_delay:
+	# 后摇被移动打断的时机：默认是接招点；招式自己写了 move_cancel_after_active 就按"判定段结束 + N 帧"算
+	var gate: int = mv.startup_frames + mv.active_frames + mv.cancel_frame + mv.move_cancel_delay
+	if mv.move_cancel_after_active >= 0:
+		gate = mv.startup_frames + mv.active_frames + mv.move_cancel_after_active
+	if move_frame < gate:
 		return false
-	if _has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"parry") or _has_edge(&"dash_modifier"):
+	if _has_edge(&"attack_light") or _has_edge(&"attack_heavy") or _has_edge(&"attack_ranged") \
+			or _has_edge(&"parry") or _has_edge(&"dash_modifier") or _has_edge(&"short_dash"):
 		return false
 	var index := light_combo.find(mv)
-	if last_swing_hit and index >= 0:
+	if combat_rework_enabled and index >= 0:
+		combo_index = _rework_next_light if _rework_combo_timer > 0 else 0
+	elif last_swing_hit and index >= 0:
 		combo_index = index + 1 if index + 1 < light_combo.size() else 0
 	_end_attack()
 	return true
@@ -2506,11 +3443,12 @@ func _clamp_root_motion(step_px: float) -> float:
 ## 普通招式：输入/惯性速度 + 本帧根位移，一起交给物理（撞墙会停住）。
 ## 根位移只作用这一帧，不留在 velocity 里，免得变成惯性滑步。
 func _move_with_root_motion(delta: float, mv: Resource) -> void:
+	var is_cleave_like := mv == charge_move or mv == combo_k_cleave_move
 	var root_step := 0.0
-	if ((is_on_floor() or finisher_intent != &"") and mv != charge_move) \
-			or (mv == charge_move and not mv.root_motion_x.is_empty()):
+	if ((is_on_floor() or finisher_intent != &"") and not is_cleave_like) \
+			or (is_cleave_like and not mv.root_motion_x.is_empty()):
 		root_step = _root_motion_step(mv)
-	var hop_active := mv == charge_move and _charge_authored_hop
+	var hop_active := is_cleave_like and _charge_authored_hop
 	var hop := 0.0
 	if hop_active:
 		var clip: Dictionary = _sprite_config().get("animations", {}).get(mv.animation, {})
@@ -2567,7 +3505,8 @@ func is_guarding() -> bool:
 	return latest != null and latest.actions.has(&"parry")
 
 func _process_guard(delta: float, frame: InputBuffer.Frame, started: bool = false) -> bool:
-	if not frame.actions.has(&"parry") and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier")):
+	if not frame.actions.has(&"parry") and (_has_edge(&"attack_light") or _has_edge(&"attack_heavy") \
+			or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier") or _has_edge(&"short_dash")):
 		_stop_guard()
 		return false
 	if not started:
@@ -2604,7 +3543,8 @@ func _process_guard(delta: float, frame: InputBuffer.Frame, started: bool = fals
 func _process_guard_reaction(delta: float, frame: InputBuffer.Frame, mv: Resource) -> void:
 	var held := frame.actions.has(&"parry")
 	_reaction_guard_held = held
-	if not held and (_has_edge(&"attack_light") or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier")):
+	if not held and (_has_edge(&"attack_light") or _has_edge(&"attack_heavy") \
+			or _has_edge(&"attack_ranged") or _has_edge(&"dash_modifier") or _has_edge(&"short_dash")):
 		_end_attack()
 		_process_neutral(delta, frame)
 		return
@@ -2644,6 +3584,14 @@ func _interrupt_action_flow() -> void:
 	_uppercut_jump_pending = false
 	_air_hit_slow_frames = 0
 	_reaction_guard_held = false
+	_keen_swing_active = false
+	_short_dash_ticks = 0
+	_pursuit_target = null
+	_pursuit_offset = Vector2.ZERO
+	_dash_preserving_charge = false
+	_post_dash_window = 0
+	_post_dash_was_pursuit = false
+	_dash_passed_enemy = null
 	_cancel_locomotion()
 	_stop_guard()
 	_reset_air_combo()
@@ -2651,7 +3599,760 @@ func _interrupt_action_flow() -> void:
 	_charge_accum = 0.0
 
 func is_combat_action_active() -> bool:
-	return state == State.ATTACK or charge_frames >= 0 or _guard_active
+	return state == State.ATTACK or charge_frames >= 0 or _guard_active or _short_dash_ticks > 0
+
+
+# ---------------------------------------------------------------- 残影池与瞬步 / 追影冲刺（1A + 无限闪 + 四连强化 A）
+
+## 启用实战重设计：无限闪（零残影消耗）+ 地面四段普攻（被打断续连 + 阶梯式顿帧震屏 A1 → A2 → A3 → 强化 A4）
+func enable_combat_rework() -> void:
+	combat_rework_enabled = true
+	unlimited_dash = true
+	shadow_cost_enabled = false
+	air_dash_unlimited = true
+	shadow_charges = max_shadow_charges
+	if light_combo.size() == 3 and light_combo[0] != null and light_combo[1] != null and light_combo[2] != null:
+		var m1: MoveDefinition = light_combo[0] as MoveDefinition
+		var m2: MoveDefinition = light_combo[1] as MoveDefinition
+		var m3: MoveDefinition = light_combo[2] as MoveDefinition
+		# 削弱纯基础普攻直伤（原 4 刀共 66 → 现 34），把爆发让位给「J+K 派生树」与「紫电锋芒强普」
+		m1.damage = 5.5
+		m2.damage = 6.5
+		m3.damage = 8.5
+		# 阶梯式刀刀入肉曲线：普通 3 刀大幅收紧攻方顿帧（2/3/4 帧 + 仅首目标触发 hitstop_first_only）杜绝靠顿帧悬停；第 4 刀强普保留明显重顿帧反差
+		m1.hitstop_first_only = true
+		m2.hitstop_first_only = true
+		m3.hitstop_first_only = true
+		if hitstop_multiplier <= 0.0:
+			m1.hitstop_frames = 0
+			m1.victim_hitstop_frames = 0
+			m2.hitstop_frames = 0
+			m2.victim_hitstop_frames = 0
+			m3.hitstop_frames = 0
+			m3.victim_hitstop_frames = 0
+		else:
+			m1.hitstop_frames = maxi(roundi(2.0 * hitstop_multiplier), 1)
+			m1.victim_hitstop_frames = maxi(roundi(7.0 * hitstop_multiplier), m1.hitstop_frames + 3)
+			m2.hitstop_frames = maxi(roundi(3.0 * hitstop_multiplier), m1.hitstop_frames + 1)
+			m2.victim_hitstop_frames = maxi(roundi(10.0 * hitstop_multiplier), m1.victim_hitstop_frames + 2)
+			m3.hitstop_frames = maxi(roundi(4.0 * hitstop_multiplier), m2.hitstop_frames + 1)
+			m3.victim_hitstop_frames = maxi(roundi(13.0 * hitstop_multiplier), m2.victim_hitstop_frames + 2)
+		m1.shake_amount = maxf(m1.shake_amount * 1.45, 15.0)
+		m1.squash = Vector2(1.30, 0.76)
+		m2.shake_amount = maxf(m2.shake_amount * 1.55, 20.0)
+		m2.squash = Vector2(1.38, 0.70)
+		# 第 3 刀重刃压迫蓄势，紧凑过渡不提前击飞断连，稳稳喂入第 4 刀强化 A 或 J→J→J→K 断岳崩裂
+		m3.forces_launch = false
+		m3.launch_speed = 0.0
+		m3.knockback = 240.0
+		m3.cancel_frame = mini(m3.cancel_frame, 5)
+		m3.shake_amount = maxf(m3.shake_amount * 1.35, 29.0)
+		m3.squash = Vector2(1.54, 0.54)
+		var base4: MoveDefinition = (up_strike_move if up_strike_move != null else light_combo[2]) as MoveDefinition
+		var m4: MoveDefinition = base4.duplicate()
+		m4.id = &"light_4"
+		m4.display_name = "第四刀 · 强化普攻"
+		m4.command = &"light"
+		m4.direction = 0
+		m4.damage = 13.5
+		m4.forces_launch = true
+		m4.knockback = 460.0
+		m4.launch_speed = 980.0
+		m4.lunge = 210.0
+		m4.wall_damage_factor = 0.85
+		m4.hitbox = Rect2(Vector2(148.0, -112.0), Vector2(310.0, 236.0))
+		m4.hitstop_first_only = true
+		if hitstop_multiplier <= 0.0:
+			m4.hitstop_frames = 0
+			m4.victim_hitstop_frames = 0
+		else:
+			m4.hitstop_frames = maxi(roundi(13.0 * hitstop_multiplier), m3.hitstop_frames + 7)
+			m4.victim_hitstop_frames = maxi(roundi(20.0 * hitstop_multiplier), m3.victim_hitstop_frames + 6)
+		m4.shake_amount = maxf(m3.shake_amount * 1.55, 45.0)
+		m4.squash = Vector2(1.78, 0.38)
+		m4.move_cancel_after_active = 6
+		m1.next_move = m2
+		m2.next_move = m3
+		m3.next_move = m4
+		m4.next_move = null
+		light_combo = [m1, m2, m3, m4]
+	if air_combo.size() == 3 and air_combo[0] != null and air_combo[1] != null and air_combo[2] != null:
+		var am1: MoveDefinition = air_combo[0] as MoveDefinition
+		var am2: MoveDefinition = air_combo[1] as MoveDefinition
+		var am3: MoveDefinition = air_combo[2] as MoveDefinition
+		var am4: MoveDefinition = am3.duplicate()
+		am1.damage = 6.0
+		am2.damage = 7.0
+		am3.damage = 8.5
+		# 空中四段普攻阶梯式打击曲线：收紧普通空 1..3 顿帧（2/3/4 帧 + 仅首目标触发 hitstop_first_only）杜绝滞空，保留空中强普 空4 爆发反差
+		am1.hitstop_first_only = true
+		am2.hitstop_first_only = true
+		am3.hitstop_first_only = true
+		if hitstop_multiplier <= 0.0:
+			am1.hitstop_frames = 0
+			am1.victim_hitstop_frames = 0
+			am2.hitstop_frames = 0
+			am2.victim_hitstop_frames = 0
+			am3.hitstop_frames = 0
+			am3.victim_hitstop_frames = 0
+		else:
+			am1.hitstop_frames = maxi(roundi(2.0 * hitstop_multiplier), 1)
+			am1.victim_hitstop_frames = maxi(roundi(6.0 * hitstop_multiplier), am1.hitstop_frames + 3)
+			am2.hitstop_frames = maxi(roundi(3.0 * hitstop_multiplier), am1.hitstop_frames + 1)
+			am2.victim_hitstop_frames = maxi(roundi(9.0 * hitstop_multiplier), am1.victim_hitstop_frames + 2)
+			am3.hitstop_frames = maxi(roundi(4.0 * hitstop_multiplier), am2.hitstop_frames + 1)
+			am3.victim_hitstop_frames = maxi(roundi(12.0 * hitstop_multiplier), am2.victim_hitstop_frames + 2)
+		am1.shake_amount = maxf(am1.shake_amount * 1.42, 14.0)
+		am1.squash = Vector2(1.28, 0.76)
+		am2.shake_amount = maxf(am2.shake_amount * 1.52, 19.0)
+		am2.squash = Vector2(1.36, 0.70)
+		am3.forces_launch = false
+		am3.launch_speed = 320.0
+		am3.knockback = 180.0
+		am3.cancel_frame = mini(am3.cancel_frame, 4)
+		am3.shake_amount = maxf(am3.shake_amount * 1.32, 27.0)
+		am3.squash = Vector2(1.52, 0.56)
+		am4.id = &"air_light_4"
+		am4.display_name = "空中第四刀 · 强化空斩"
+		am4.command = &"light"
+		am4.is_air = true
+		am4.direction = 0
+		am4.damage = 14.5
+		am4.forces_launch = true
+		am4.knockback = 420.0
+		am4.launch_speed = 760.0
+		am4.wall_damage_factor = 0.85
+		am4.hitbox = Rect2(Vector2(132.0, -108.0), Vector2(276.0, 252.0))
+		am4.hitstop_first_only = true
+		if hitstop_multiplier <= 0.0:
+			am4.hitstop_frames = 0
+			am4.victim_hitstop_frames = 0
+		else:
+			am4.hitstop_frames = maxi(roundi(12.0 * hitstop_multiplier), am3.hitstop_frames + 6)
+			am4.victim_hitstop_frames = maxi(roundi(19.0 * hitstop_multiplier), am3.victim_hitstop_frames + 6)
+		am4.shake_amount = maxf(am3.shake_amount * 1.55, 42.0)
+		am4.squash = Vector2(1.74, 0.40)
+		am1.next_move = am2
+		am2.next_move = am3
+		am3.next_move = am4
+		am4.next_move = null
+		air_combo = [am1, am2, am3, am4]
+	if ranged_move != null:
+		ranged_move.damage = 5.0
+		ranged_speed = maxf(ranged_speed, 1180.0)
+	# 方向 1：三式 J+K 轻重派生终结技（零蓄力等待，按连段阶数自动派生破势重招）
+	if up_strike_move != null:
+		var c1: MoveDefinition = (up_strike_move as MoveDefinition).duplicate()
+		c1.id = &"combo_k_launch"
+		c1.display_name = "一式 · 升龙挑月"
+		c1.command = &"heavy"
+		c1.direction = 1
+		c1.is_charge = false
+		c1.damage = 18.0
+		c1.forces_launch = true
+		c1.launch_speed = 1020.0
+		c1.knockback = 150.0
+		c1.lunge = 175.0
+		c1.wall_damage_factor = 0.72
+		c1.hitbox = Rect2(Vector2(128.0, -118.0), Vector2(268.0, 248.0))
+		c1.hitstop_frames = maxi(roundi(12 * hitstop_multiplier), 12)
+		c1.victim_hitstop_frames = maxi(roundi(18 * hitstop_multiplier), 18)
+		c1.shake_amount = 24.5
+		c1.squash = Vector2(0.80, 1.38)
+		c1.next_move = null
+		combo_k_launch_move = c1
+	if dash_move != null:
+		var c2: MoveDefinition = (dash_move as MoveDefinition).duplicate()
+		c2.id = &"combo_k_pierce"
+		c2.display_name = "二式 · 穿云破阵"
+		c2.command = &"heavy"
+		c2.direction = 0
+		c2.is_charge = false
+		c2.damage = 22.0
+		c2.forces_launch = true
+		c2.launch_speed = 680.0
+		c2.knockback = 560.0
+		c2.wall_damage_factor = 0.85
+		c2.hitstop_frames = maxi(roundi(13 * hitstop_multiplier), 13)
+		c2.victim_hitstop_frames = maxi(roundi(19 * hitstop_multiplier), 19)
+		c2.shake_amount = 26.5
+		c2.squash = Vector2(1.48, 0.58)
+		c2.next_move = null
+		combo_k_pierce_move = c2
+	if dash_left_move != null:
+		var c2l: MoveDefinition = (dash_left_move as MoveDefinition).duplicate()
+		c2l.id = &"combo_k_pierce_left"
+		c2l.display_name = "二式 · 穿云破阵"
+		c2l.command = &"heavy"
+		c2l.direction = 0
+		c2l.is_charge = false
+		c2l.damage = 22.0
+		c2l.forces_launch = true
+		c2l.launch_speed = 680.0
+		c2l.knockback = 560.0
+		c2l.wall_damage_factor = 0.85
+		c2l.hitstop_frames = maxi(roundi(13 * hitstop_multiplier), 13)
+		c2l.victim_hitstop_frames = maxi(roundi(19 * hitstop_multiplier), 19)
+		c2l.shake_amount = 26.5
+		c2l.squash = Vector2(1.48, 0.58)
+		c2l.next_move = null
+		combo_k_pierce_left_move = c2l
+	if charge_move != null:
+		var c3: MoveDefinition = (charge_move as MoveDefinition).duplicate()
+		c3.id = &"combo_k_cleave"
+		c3.display_name = "三式 · 断岳崩裂"
+		c3.command = &"heavy"
+		c3.direction = 0
+		c3.is_charge = false
+		c3.damage = 38.0
+		c3.charge_damage_bonus = 1.0
+		c3.charge_knockback_bonus = 1.0
+		c3.charge_hitstop_bonus = 0
+		c3.forces_launch = true
+		c3.launch_speed = 560.0
+		c3.knockback = 760.0
+		c3.wall_damage_factor = 0.95
+		c3.hitstop_frames = maxi(roundi(18 * hitstop_multiplier), 18)
+		c3.victim_hitstop_frames = maxi(roundi(26 * hitstop_multiplier), 26)
+		c3.shake_amount = 38.5
+		c3.squash = Vector2(1.64, 0.45)
+		c3.screen_flash = maxf(c3.screen_flash, 0.35)
+		c3.next_move = null
+		combo_k_cleave_move = c3
+
+
+func consume_shadow(cost: int = 1) -> bool:
+	if unlimited_dash or not shadow_cost_enabled or cost <= 0:
+		return true
+	if shadow_charges < cost:
+		return false
+	shadow_charges -= cost
+	if shadow_charges < max_shadow_charges and _shadow_regen_timer <= 0.0:
+		_shadow_regen_timer = shadow_regen_seconds
+	shadow_changed.emit(shadow_charges, max_shadow_charges)
+	return true
+
+
+func refund_shadow(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	var prev := shadow_charges
+	shadow_charges = clampi(shadow_charges + amount, 0, max_shadow_charges)
+	if shadow_charges >= max_shadow_charges:
+		_shadow_regen_timer = 0.0
+	if shadow_charges != prev:
+		shadow_changed.emit(shadow_charges, max_shadow_charges)
+
+
+func _tick_shadow_regen(delta: float) -> void:
+	if shadow_charges >= max_shadow_charges:
+		_shadow_regen_timer = 0.0
+		return
+	if shadow_regen_seconds <= 0.0:
+		return
+	if _shadow_regen_timer <= 0.0:
+		_shadow_regen_timer = shadow_regen_seconds
+	else:
+		_shadow_regen_timer = minf(_shadow_regen_timer, shadow_regen_seconds)
+	_shadow_regen_timer -= delta
+	if _shadow_regen_timer <= 0.0:
+		shadow_charges = mini(shadow_charges + 1, max_shadow_charges)
+		_shadow_regen_timer = shadow_regen_seconds if shadow_charges < max_shadow_charges else 0.0
+		shadow_changed.emit(shadow_charges, max_shadow_charges)
+
+
+func _grant_flash_heavy(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	var was_ready := flash_heavy_timer > 0.0
+	flash_heavy_timer = maxf(flash_heavy_timer, duration)
+	if not was_ready and flash_heavy_timer > 0.0:
+		flash_heavy_ready_changed.emit(true)
+
+
+func _consume_flash_heavy() -> bool:
+	if flash_heavy_timer <= 0.0:
+		return false
+	flash_heavy_timer = 0.0
+	flash_heavy_ready_changed.emit(false)
+	return true
+
+
+func is_keen_swing() -> bool:
+	return _keen_swing_active
+
+
+func _grant_keen_edge(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	var was_ready := keen_edge_timer > 0.0
+	keen_edge_timer = maxf(keen_edge_timer, duration)
+	if not was_ready and keen_edge_timer > 0.0:
+		keen_edge_ready_changed.emit(true)
+
+
+func _consume_keen_edge() -> bool:
+	if keen_edge_timer <= 0.0:
+		return false
+	keen_edge_timer = 0.0
+	keen_edge_ready_changed.emit(false)
+	return true
+
+
+func can_chain_cancel() -> bool:
+	return state == State.ATTACK and current_move != null \
+			and move_frame >= int(current_move.startup_frames) + int(current_move.active_frames) + int(current_move.cancel_frame)
+
+
+func _combo_k_stage() -> int:
+	if not combat_rework_enabled or not is_on_floor():
+		return 0
+	if state == State.ATTACK and current_move != null:
+		var lc_idx := light_combo.find(current_move)
+		if lc_idx >= 0 and lc_idx <= 2:
+			return lc_idx + 1
+		return 0
+	if state == State.NEUTRAL and _short_dash_ticks <= 0 and _post_dash_window <= 0 \
+			and frames_since_attack <= 18 and _rework_combo_timer > 0 \
+			and _rework_next_light >= 1 and _rework_next_light <= 3:
+		return _rework_next_light
+	return 0
+
+
+func _start_combo_k_finisher(stage_idx: int, frame: InputBuffer.Frame = null) -> void:
+	_take_edge(&"attack_heavy")
+	_post_dash_window = 0
+	_post_dash_was_pursuit = false
+	_dash_passed_enemy = null
+	charge_frames = -1
+	_charge_accum = 0.0
+	if frame != null and absf(frame.axis.x) > 0.15:
+		_set_facing(1 if frame.axis.x > 0.0 else -1)
+	_rework_next_light = 0
+	_rework_combo_timer = 0
+	combo_index = 0
+	match stage_idx:
+		1:
+			var m_launch: Resource = combo_k_launch_move if combo_k_launch_move != null else up_strike_move
+			if m_launch == null:
+				return
+			_start_move(m_launch, true)
+			move_frame = mini(2, maxi(int(m_launch.startup_frames) - 2, 0))
+			_check_swing_cue(m_launch)
+			combo_finisher_triggered.emit(m_launch, 1)
+		2:
+			_dash_in_air = false
+			var m_pierce: Resource = combo_k_pierce_left_move if facing < 0 and combo_k_pierce_left_move != null else combo_k_pierce_move
+			if m_pierce == null:
+				m_pierce = _dash_move_for(facing)
+			if m_pierce == null:
+				return
+			_start_move(m_pierce, false)
+			move_frame = mini(3, maxi(int(m_pierce.startup_frames) - 3, 0))
+			_check_swing_cue(m_pierce)
+			combo_finisher_triggered.emit(m_pierce, 2)
+		3:
+			var m_cleave: Resource = combo_k_cleave_move if combo_k_cleave_move != null else charge_move
+			if m_cleave == null:
+				return
+			_start_move(m_cleave, false)
+			move_frame = mini(12, maxi(int(m_cleave.startup_frames) - 6, 0))
+			_check_swing_cue(m_cleave)
+			combo_finisher_triggered.emit(m_cleave, 3)
+
+
+func _rework_wants_slam(frame: InputBuffer.Frame) -> bool:
+	if frame != null and frame.axis.y > 0.5:
+		return true
+	var edge := _unconsumed_edge_frame(&"attack_heavy")
+	return edge != null and edge.axis.y > 0.5
+
+
+func _rework_followup_dir(frame: InputBuffer.Frame) -> int:
+	if frame != null and absf(frame.axis.x) > 0.15:
+		return 1 if frame.axis.x > 0.0 else -1
+	if _dash_passed_enemy != null and is_instance_valid(_dash_passed_enemy):
+		var bdx := _dash_passed_enemy.global_position.x - global_position.x
+		if absf(bdx) > 4.0:
+			return 1 if bdx > 0.0 else -1
+	return facing
+
+
+func is_short_dashing() -> bool:
+	return _short_dash_ticks > 0
+
+
+func is_shadow_pursuing() -> bool:
+	return _short_dash_ticks > 0 and _pursuit_target != null
+
+
+## 1A 半空智能索敌「追影冲刺」：寻找前方 <= pursuit_range_x（总距 <= pursuit_max_distance）的浮空影怪；
+## 若玩家明确按住反方向键（explicit_dir 与敌人方向相反），绝不强吸，尊重后撤闪避意图。
+func _find_pursuit_target(explicit_dir: int) -> Node2D:
+	if not combat_rework_enabled or not is_inside_tree():
+		return null
+	var best: Node2D = null
+	var best_dist := INF
+	for n in get_tree().get_nodes_in_group(&"shade"):
+		if not (n is Node2D) or not is_instance_valid(n):
+			continue
+		if int(n.get(&"state")) != 6:   # Shade.State.LAUNCHED == 6（含未落地的 overkilled 躯体）
+			continue
+		if n.has_method(&"on_ground") and bool(n.call(&"on_ground")):
+			continue
+		var s2d := n as Node2D
+		var pinned := n.get(&"_pin_frames") != null and int(n.get(&"_pin_frames")) > 0
+		var range_mul := 1.45 if pinned else 1.0
+		var dx := s2d.global_position.x - global_position.x
+		var dy := s2d.global_position.y - global_position.y
+		if absf(dx) > pursuit_range_x * range_mul or dy > (240.0 if pinned else 190.0):
+			continue
+		var dist := Vector2(dx, dy).length()
+		if dist > pursuit_max_distance * range_mul:
+			continue
+		if explicit_dir != 0:
+			if absf(dx) > 36.0 and signf(dx) != float(explicit_dir):
+				continue
+		else:
+			if dx * float(facing) < -48.0:
+				continue
+		if dist < best_dist:
+			best_dist = dist
+			best = s2d
+	return best
+
+
+func _check_perfect_dodge() -> void:
+	if not combat_rework_enabled or not is_inside_tree():
+		return
+	for n in get_tree().get_nodes_in_group(&"shade"):
+		if not (n is Node2D) or not is_instance_valid(n):
+			continue
+		var st := int(n.get(&"state"))
+		if st != 2 and st != 3:   # WINDUP == 2, STRIKE == 3
+			continue
+		if st == 2:
+			var spec_d: Variant = n.get(&"spec")
+			var windup_total := int(spec_d.get("windup", 24)) if spec_d is Dictionary else 24
+			if int(n.get(&"state_frames")) < maxi(windup_total - 14, 1):
+				continue
+		var s2d := n as Node2D
+		if absf(s2d.global_position.x - global_position.x) > 205.0 \
+				or absf(s2d.global_position.y - global_position.y) > 140.0:
+			continue
+		var lock_id := s2d.get_instance_id()
+		if tick_count - int(_perfect_dodge_locks.get(lock_id, -999)) < 28:
+			continue
+		_perfect_dodge_locks[lock_id] = tick_count
+		refund_shadow(1)
+		_grant_flash_heavy(flash_heavy_duration)
+		_grant_keen_edge(keen_edge_duration)
+		perfect_dodge_triggered.emit(s2d, global_position)
+		return
+	for proj in get_tree().get_nodes_in_group(&"shade_projectile"):
+		if not (proj is Node2D) or not is_instance_valid(proj):
+			continue
+		var p2d := proj as Node2D
+		if absf(p2d.global_position.x - global_position.x) > 95.0 \
+				or absf(p2d.global_position.y - global_position.y) > 95.0:
+			continue
+		var plock := p2d.get_instance_id()
+		if tick_count - int(_perfect_dodge_locks.get(plock, -999)) < 28:
+			continue
+		_perfect_dodge_locks[plock] = tick_count
+		refund_shadow(1)
+		_grant_flash_heavy(flash_heavy_duration)
+		_grant_keen_edge(keen_edge_duration)
+		perfect_dodge_triggered.emit(p2d, global_position)
+		return
+
+
+func _track_passed_enemy(prev_x: float) -> void:
+	if not combat_rework_enabled or not is_inside_tree():
+		return
+	var cur_x := global_position.x
+	var move_dx := cur_x - prev_x
+	var move_dir := signf(move_dx)
+	var min_x := minf(prev_x, cur_x) - 24.0
+	var max_x := maxf(prev_x, cur_x) + 24.0
+	for n in get_tree().get_nodes_in_group(&"shade"):
+		if not (n is Node2D) or not is_instance_valid(n) or int(n.get(&"state")) == 9:
+			continue
+		var s2d := n as Node2D
+		if absf(s2d.global_position.y - global_position.y) > 130.0:
+			continue
+		var ex := s2d.global_position.x
+		if ex >= min_x and ex <= max_x:
+			_dash_passed_enemy = s2d
+			if absf(move_dx) > 1.0 and (ex - prev_x) * move_dir >= -14.0 and (cur_x - ex) * move_dir >= -8.0:
+				var eid := s2d.get_instance_id()
+				if tick_count - int(_keen_cross_locks.get(eid, -999)) >= 108:
+					_keen_cross_locks[eid] = tick_count
+					_grant_keen_edge(keen_edge_duration)
+
+
+## 原生高速穿身瞬步（及 1A 追影冲刺 / 蓄力闪斩）：耗 1 格残影，穿敌不挡，后续任意帧可出刀 / 跳跃 / 弹刀自由取消。
+func start_short_dash(dir: int = 0, frame: InputBuffer.Frame = null) -> bool:
+	if ult_frame >= 0 or state in [State.LAUNCHED, State.DOWN, State.DEAD] or _short_dash_ticks > 0:
+		return false
+	if combat_rework_enabled and not _dash_allowed():
+		return false
+	if not consume_shadow(1):
+		return false
+	var explicit_dir := signi(dir)
+	var chosen := explicit_dir
+	if chosen == 0:
+		var latest := frame if frame != null else input_buffer.frame_at(0)
+		if latest != null and absf(latest.axis.x) > 0.15:
+			chosen = 1 if latest.axis.x > 0.0 else -1
+		else:
+			chosen = facing
+
+	var preserve_charge := combat_rework_enabled and charge_frames >= 0 \
+			and _charge_action == &"attack_heavy" \
+			and frame != null and frame.actions.has(&"attack_heavy")
+	var saved_cf := charge_frames
+	var saved_accum := _charge_accum
+	var saved_act := _charge_action
+	var keep_combo := last_swing_hit and current_move != null and not _is_light_finisher(current_move)
+
+	if combat_rework_enabled and frame != null:
+		# 清除冲刺前残留的旧攻击边沿，避免紧急闪避被几帧前的缓冲攻击误打断；同帧按下的 Shift+J/K 则完整保留
+		if not frame.pressed_this_frame.has(&"attack_light"):
+			_take_edge(&"attack_light")
+		if not frame.pressed_this_frame.has(&"attack_heavy"):
+			_take_edge(&"attack_heavy")
+
+	_interrupt_action_flow()
+	current_move = null
+	current_is_up = false
+	finisher_intent = &""
+	state = State.NEUTRAL
+	link_open = false
+	if preserve_charge:
+		charge_frames = saved_cf
+		_charge_accum = saved_accum
+		_charge_action = saved_act
+		_dash_preserving_charge = true
+	if combat_rework_enabled:
+		combo_index = _rework_next_light if _rework_combo_timer > 0 else 0
+	elif not keep_combo and frames_since_attack > combo_keep_frames:
+		combo_index = 0
+	frames_since_attack = 0
+	_landing_lag = 0
+	hitstop_frames = 0
+	hitstop_this_tick = false
+	_air_normal_hit_chain = 0
+	_air_a4_braked_this_flight = false
+
+	var same_tick_attack := combat_rework_enabled and frame != null \
+			and (frame.pressed_this_frame.has(&"attack_light") or frame.pressed_this_frame.has(&"attack_heavy"))
+	var pursuit: Node2D = null
+	if combat_rework_enabled and not preserve_charge and not same_tick_attack:
+		pursuit = _find_pursuit_target(explicit_dir)
+
+	if combat_rework_enabled and not is_on_floor() and air_frames > coyote_frames and not air_dash_unlimited:
+		_air_dash_left = maxi(_air_dash_left - 1, 0)
+
+	if pursuit != null:
+		var pdx := pursuit.global_position.x - global_position.x
+		var pdir := (1 if pdx > 0.0 else -1) if absf(pdx) > 12.0 else chosen
+		var enemy_hw := float(pursuit.get(&"half_w")) if pursuit.get(&"half_w") != null else 24.0
+		_pursuit_target = pursuit
+		_pursuit_offset = Vector2(-float(pdir) * (enemy_hw + 42.0), -12.0)
+		_set_facing(pdir)
+		_short_dash_dir = pdir
+		_short_dash_ticks = maxi(pursuit_frames, 1)
+		invuln_frames = maxi(invuln_frames, _short_dash_ticks + 4)
+		ground_frames = 0
+		air_frames = maxi(air_frames, coyote_frames + 1)
+		_ground_jump_used = true
+		_reset_air_combo()
+		_air_light_left = maxi(_air_light_left, 1)
+		if pursuit.get(&"velocity") is Vector2:
+			var pv: Vector2 = pursuit.get(&"velocity")
+			if pv.y > -240.0:
+				pursuit.set(&"velocity", Vector2(pv.x * 0.55, -260.0))
+		if pursuit.get(&"_air_light_juggle_streak") != null:
+			pursuit.set(&"_air_light_juggle_streak", 0)
+		if pursuit.get(&"_air_raw_a4_count") != null:
+			pursuit.set(&"_air_raw_a4_count", 0)
+		_set_visual_scale(Vector2(1.28, 0.76))
+		_squash_timer = _short_dash_ticks
+		action_serial += 1
+		action_idle_frames = 0
+		shadow_pursuit_started.emit(pursuit, global_position)
+		short_dash_started.emit(_short_dash_dir, global_position)
+		return true
+
+	_set_facing(chosen)
+	_short_dash_dir = chosen
+	var dur := step_dash_frames if combat_rework_enabled else short_dash_frames
+	_short_dash_ticks = maxi(dur, 1)
+	invuln_frames = maxi(invuln_frames, _short_dash_ticks + (3 if combat_rework_enabled else 2))
+	_set_visual_scale(Vector2(1.24, 0.80))
+	_squash_timer = _short_dash_ticks
+	action_serial += 1
+	action_idle_frames = 0
+	short_dash_started.emit(_short_dash_dir, global_position)
+	return true
+
+
+func _try_rework_dash_input(frame: InputBuffer.Frame) -> bool:
+	var tap_dir := _double_tap_direction()
+	if tap_dir != 0:
+		var tap_seq := _newest_press_seq(&"move_left" if tap_dir < 0 else &"move_right")
+		if tap_seq >= 0:
+			_double_tap_seq = tap_seq
+			if _dash_allowed():
+				return start_short_dash(tap_dir, frame)
+			return false
+	var f_sd := _unconsumed_edge_frame(&"short_dash")
+	var f_dm := _unconsumed_edge_frame(&"dash_modifier")
+	var f := f_sd if f_sd != null else f_dm
+	if f == null:
+		return false
+	_take_edge(&"short_dash")
+	_take_edge(&"dash_modifier")
+	if not _dash_allowed():
+		return false
+	var dir := 0
+	if absf(f.axis.x) > 0.15:
+		dir = 1 if f.axis.x > 0.0 else -1
+	elif frame != null and absf(frame.axis.x) > 0.15:
+		dir = 1 if frame.axis.x > 0.0 else -1
+	return start_short_dash(dir, frame)
+
+
+func _try_short_dash_input(frame: InputBuffer.Frame) -> bool:
+	var f := _unconsumed_edge_frame(&"short_dash")
+	if f == null:
+		return false
+	_take_edge(&"short_dash")
+	var dir := 0
+	if absf(f.axis.x) > 0.15:
+		dir = 1 if f.axis.x > 0.0 else -1
+	elif frame != null and absf(frame.axis.x) > 0.15:
+		dir = 1 if frame.axis.x > 0.0 else -1
+	return start_short_dash(dir, frame)
+
+
+func _process_short_dash(delta: float, frame: InputBuffer.Frame, started_this_tick: bool = false) -> void:
+	if combat_rework_enabled:
+		_check_perfect_dodge()
+		if _dash_preserving_charge and charge_frames >= 0:
+			_charge_accum += maxf(charge_rate_scale, 0.05)
+			while _charge_accum >= 1.0:
+				_charge_accum -= 1.0
+				charge_frames += 1
+			if frame != null and not frame.actions.has(_charge_action):
+				_short_dash_ticks = 0
+				_dash_preserving_charge = false
+				velocity.x = 0.0
+				var cdir := _rework_followup_dir(frame)
+				_dash_passed_enemy = null
+				_set_facing(cdir)
+				_release_charge()
+				if state == State.ATTACK and current_move != null:
+					_process_attack(delta, frame)
+				return
+
+	var can_cancel_attack := not started_this_tick
+	if combat_rework_enabled and not _dash_preserving_charge:
+		if _pursuit_target != null and is_instance_valid(_pursuit_target):
+			var goal_now := _pursuit_target.global_position + _pursuit_offset
+			can_cancel_attack = (not started_this_tick) and (global_position.distance_to(goal_now) <= 110.0 or _short_dash_ticks <= 1)
+		else:
+			can_cancel_attack = true
+
+	if can_cancel_attack and not _dash_preserving_charge:
+		# 保留出刀 / 弹刀自由取消手感：瞬步任意帧（含同帧 Shift+J/K）输入攻击或弹刀即刻收闪出刀
+		var cmd := _resolve_attack_command(frame)
+		if cmd != &"":
+			var was_pursuit := _pursuit_target != null
+			if was_pursuit:
+				_reset_air_combo()
+				_air_light_left = maxi(_air_light_left, 1)
+				if is_instance_valid(_pursuit_target):
+					var adx := _pursuit_target.global_position.x - global_position.x
+					if absf(adx) > 2.0:
+						_set_facing(1 if adx > 0.0 else -1)
+			_short_dash_ticks = 0
+			_pursuit_target = null
+			_pursuit_offset = Vector2.ZERO
+			_post_dash_was_pursuit = was_pursuit
+			velocity.x = 0.0
+			if not combat_rework_enabled and frame != null and absf(frame.axis.x) > 0.15:
+				_set_facing(1 if frame.axis.x > 0.0 else -1)
+			elif combat_rework_enabled and cmd in [&"light", &"up", &"air_combo", &"air_up", &"ranged", &"parry"]:
+				if frame != null and absf(frame.axis.x) > 0.15:
+					_set_facing(1 if frame.axis.x > 0.0 else -1)
+				elif _dash_passed_enemy != null and is_instance_valid(_dash_passed_enemy):
+					var bdx := _dash_passed_enemy.global_position.x - global_position.x
+					if absf(bdx) > 4.0:
+						_set_facing(1 if bdx > 0.0 else -1)
+					_dash_passed_enemy = null
+			_begin_command(cmd, frame)
+			if state == State.ATTACK and current_move != null:
+				_process_attack(delta, frame)
+			elif _guard_active:
+				_process_guard(delta, frame, true)
+			elif charge_frames >= 0:
+				_process_charge(delta, frame)
+			return
+
+	if combat_rework_enabled and _pursuit_target != null:
+		if is_instance_valid(_pursuit_target) and int(_pursuit_target.get(&"state")) != 9:
+			var goal := _pursuit_target.global_position + _pursuit_offset
+			if _pursuit_target.has_method(&"level_y"):
+				var lvl_y := float(_pursuit_target.call(&"level_y"))
+				if is_finite(lvl_y):
+					goal.y = minf(goal.y, lvl_y - foot_offset - 95.0)
+			var step_vec := (goal - global_position) / float(maxi(_short_dash_ticks, 1))
+			velocity = step_vec / maxf(delta, 0.000001)
+			var fdx := _pursuit_target.global_position.x - global_position.x
+			if absf(fdx) > 2.0:
+				_set_facing(1 if fdx > 0.0 else -1)
+			move_and_slide()
+			_check_perfect_dodge()
+			_short_dash_ticks -= 1
+			if _short_dash_ticks <= 0:
+				var end_dx := _pursuit_target.global_position.x - global_position.x
+				if absf(end_dx) > 2.0:
+					_set_facing(1 if end_dx > 0.0 else -1)
+				velocity = Vector2(0.0, -740.0)
+				_air_hit_slow_frames = maxi(_air_hit_slow_frames, 26)
+				_reset_air_combo()
+				_air_light_left = maxi(_air_light_left, 1)
+				_post_dash_window = 12
+				_post_dash_was_pursuit = true
+				_pursuit_target = null
+				_pursuit_offset = Vector2.ZERO
+			return
+		_pursuit_target = null
+		_pursuit_offset = Vector2.ZERO
+
+	var prev_x := global_position.x
+	_set_facing(_short_dash_dir)
+	var dash_spd := step_dash_speed if combat_rework_enabled else short_dash_speed
+	velocity.x = float(_short_dash_dir) * dash_spd
+	velocity.y = 0.0
+	move_and_slide()
+	if combat_rework_enabled:
+		_track_passed_enemy(prev_x)
+		_check_perfect_dodge()
+	_short_dash_ticks -= 1
+	if _short_dash_ticks <= 0:
+		velocity.x = 0.0
+		if combat_rework_enabled:
+			_dash_preserving_charge = false
+			_post_dash_window = 11
+			_post_dash_was_pursuit = false
+			if _dash_passed_enemy != null and is_instance_valid(_dash_passed_enemy) \
+					and (frame == null or absf(frame.axis.x) <= 0.15):
+				var bdx := _dash_passed_enemy.global_position.x - global_position.x
+				if absf(bdx) > 4.0:
+					_set_facing(1 if bdx > 0.0 else -1)
 
 
 # ---------------------------------------------------------------- 大招（第四轮）

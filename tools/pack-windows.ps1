@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $Godot = Join-Path $Root "engine\Godot_v4.7.2-stable_win64_console.exe"
 $OutDir = Join-Path $Root "dist"
-$ExeName = "yuexia-trial.exe"
+$ExeName = "nightcrow-rain-trial.exe"
 $OutExe = Join-Path $OutDir $ExeName
 $TemplatesDir = Join-Path $env:APPDATA "Godot\export_templates\4.7.2.stable"
 $Tpz = Join-Path $env:TEMP "godot-templates\Godot_v4.7.2-stable_export_templates.tpz"
@@ -74,7 +74,7 @@ function Restore-GdIgnore {
 
 Ensure-Templates
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
-Get-Process -Name "yuexia-trial" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name "nightcrow-rain-trial" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 if (Test-Path $OutExe) { Remove-Item -Force $OutExe }
 
@@ -95,16 +95,18 @@ finally {
 $sizeMb = [math]::Round((Get-Item $OutExe).Length / 1MB, 1)
 $readmePath = Join-Path $OutDir "README.txt"
 $readmeLines = @(
-	"Yuexia Di'an trial build",
+	"Rain Street (Nightcrow) - playable build",
 	"",
-	"Double-click yuexia-trial.exe to play. Godot does not need to be installed.",
+	"Double-click nightcrow-rain-trial.exe to play. Godot does not need to be installed.",
+	"Keyboard: A/D move, W/Space jump, J attack (hold = heavy), W+J launcher, S+J air dive,",
+	"double-tap A/D dash slash, K ranged, L parry, R ultimate, Esc pause.",
 	"",
 	"Approx size: $sizeMb MB."
 )
 [System.IO.File]::WriteAllLines($readmePath, $readmeLines, [System.Text.UTF8Encoding]::new($false))
 
 Start-Sleep -Seconds 2
-$zip = Join-Path $OutDir "yuexia-trial.zip"
+$zip = Join-Path $OutDir "nightcrow-rain-trial.zip"
 if (Test-Path $zip) { Remove-Item -Force $zip }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [System.IO.Compression.ZipFile]::Open($zip, 'Create')

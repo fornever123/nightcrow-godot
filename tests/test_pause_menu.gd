@@ -92,6 +92,17 @@ func run() -> void:
 		await key(KEY_ESCAPE)
 		check(not stage.pause_menu.opened, "结算 / 已暂停时 Esc 不会再开暂停菜单")
 		paused = false
+		# 回到标题（首页线 11-05）
+		stage.trial_completed = false
+		await key(KEY_ESCAPE)
+		for i in 4:
+			await key(KEY_DOWN)
+		check(stage.pause_menu.index == 4 and stage.pause_menu.MAIN_ITEMS[4] == "回到标题", "主菜单第 5 项是“回到标题”")
+		await key(KEY_ENTER)
+		for i in 10:
+			await process_frame
+		check(not paused and Engine.time_scale == 1.0 and current_scene != null
+				and current_scene.scene_file_path == "res://scenes/yg_title_zhanzhong.tscn", "“回到标题”解除暂停并进入首页")
 	_finish()
 
 

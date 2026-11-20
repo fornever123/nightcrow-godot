@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "note": "修改器的参数清单。只收录已核对过游戏真的在读、在雨街试玩里生效的项。path 以 battle/ 或 encounters/ 开头；数组按元素 id 定位。scale：界面显示值 = 存储值 × scale。",
+  "pages": [
+    {
+      "id": "player",
+      "title": "主角",
+      "hint": "跑、跳、血量和防守。",
+      "sections": [
+        {
+          "title": "跑动",
+          "items": [
+            {"path": "battle/characters/player/speed", "label": "跑动速度", "help": "越大跑得越快。", "min": 200, "max": 1600, "step": 10, "unit": "像素/秒"},
+            {"path": "battle/characters/player/acceleration", "label": "起步快慢", "help": "越大越快跑到全速。", "min": 1000, "max": 40000, "step": 100},
+            {"path": "battle/characters/player/deceleration", "label": "刹车快慢", "help": "越大松手后停得越快。", "min": 1000, "max": 40000, "step": 100}
+          ]
+        },
+        {
+          "title": "跳跃",
+          "items": [
+            {"path": "battle/characters/player/jumpSpeed", "derive": "jumpHeight", "label": "跳跃高度", "help": "一段跳能跳多高。", "min": 100, "max": 800, "step": 5, "unit": "像素"},
+            {"path": "battle/characters/player/jumpTimeToPeak", "label": "升到最高点的时间", "help": "越小起跳越猛。", "min": 0.15, "max": 0.8, "step": 0.01, "unit": "秒"},
+            {"path": "battle/characters/player/jumpTimeToDescent", "label": "落回地面的时间", "help": "越小下落越快。", "min": 0.15, "max": 0.8, "step": 0.01, "unit": "秒"},
+            {"path": "battle/characters/player/maxJumps", "label": "跳跃次数", "help": "2 就是二段跳。", "min": 1, "max": 6, "step": 1, "unit": "次"},
+            {"path": "battle/characters/player/airControl", "label": "空中转向", "help": "0 空中基本不能改方向，1 和地面一样灵活。", "min": 0, "max": 1, "step": 0.05},
+            {"path": "battle/characters/player/maxFallSpeed", "label": "最快下落速度", "help": "下落速度的上限。", "min": 300, "max": 4000, "step": 50, "unit": "像素/秒"},
+            {"path": "battle/characters/player/jumpCutGravityScale", "label": "松手跳矮的力度", "help": "上升时松开跳跃键，下落有多快。1 就是不跳矮。", "min": 1, "max": 5, "step": 0.1, "unit": "倍"},
+            {"path": "battle/characters/player/heavyLandingHeight", "label": "重落地的高度", "help": "从多高落下算重落地。", "min": 100, "max": 1500, "step": 10, "unit": "像素"},
+            {"path": "battle/characters/player/heavyLandingLagFrames", "label": "重落地的硬直", "help": "重落地后多久不能动。", "min": 0, "max": 60, "step": 1, "unit": "帧"}
+          ]
+        },
+        {
+          "title": "空中连段",
+          "items": [
+            {"path": "battle/characters/player/airCombat/airJumpRefundMax", "label": "命中送跳的上限", "help": "一次腾空最多靠打中敌人换回几段跳。", "min": 1, "max": 10, "step": 1, "unit": "段"},
+            {"path": "battle/characters/player/airCombat/airHitRefundHits", "label": "空中打中几下送一跳", "help": "空中三连、空中上挑、下落攻击等。", "min": 1, "max": 6, "step": 1, "unit": "下"},
+            {"path": "battle/characters/player/airCombat/launcherRefundHits", "label": "上挑和空中冲刺斩打中几下送一跳", "help": "0 就是不送。", "min": 0, "max": 6, "step": 1, "unit": "下"},
+            {"path": "battle/characters/player/airCombat/airJumpRefundHits", "label": "地面冲刺斩打中几下送一跳", "help": "0 就是不送。", "min": 0, "max": 6, "step": 1, "unit": "下"},
+            {"path": "battle/characters/player/airCombat/airDashUnlimited", "type": "bool", "label": "空中冲刺斩不限次数", "help": "开启后在空中能一直用。"},
+            {"path": "battle/characters/player/airCombat/hitFallSlowFrames", "label": "打中后慢坠多久", "help": "空中出刀打中后，下落变慢的时长。", "min": 0, "max": 120, "step": 1, "unit": "帧"},
+            {"path": "battle/characters/player/airCombat/hitFallSpeedScale", "scale": 100, "label": "慢坠时保留的下落速度", "help": "越小打中后越能挂在空中。", "min": 0, "max": 100, "step": 1, "unit": "%"},
+            {"path": "battle/characters/player/airCombat/hitFallGravityScale", "scale": 100, "label": "慢坠时的重力", "help": "越小打中后越能挂在空中。", "min": 0, "max": 100, "step": 1, "unit": "%"},
+            {"path": "battle/characters/player/airCombat/uppercutInputFrames", "label": "上挑的按键宽容", "help": "W 和 J 相隔多久内都算上挑。", "min": 1, "max": 30, "step": 1, "unit": "帧"}
+          ]
+        },
+        {
+          "title": "重力",
+          "items": [
+            {"path": "battle/characters/player/airAttackGravity", "label": "空中出刀时的重力", "help": "越小出刀时掉得越慢。", "min": 200, "max": 4000, "step": 20},
+            {"path": "battle/characters/player/knockGravity", "label": "被打飞时的重力", "help": "越大被打飞后落得越快。", "min": 200, "max": 4000, "step": 20}
+          ]
+        },
+        {
+          "title": "生命与防守",
+          "items": [
+            {"path": "battle/characters/player/maxHp", "label": "最大生命", "help": "主角的总血量。", "min": 1, "max": 1000, "step": 5},
+            {"path": "encounters/rules/parryWindow", "label": "弹刀窗口", "help": "按弹刀键后多久内算成功。越大越容易。", "min": 1, "max": 40, "step": 1, "unit": "帧"},
+            {"path": "battle/characters/player/sprite/guard/damageMultiplier", "scale": 100, "label": "格挡时受到的伤害", "help": "按住格挡没弹到时，还要吃多少伤害。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"path": "battle/characters/player/sprite/guard/movementScale", "scale": 100, "label": "格挡时的移速", "help": "相对正常跑速。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"path": "encounters/rules/waveHeal", "label": "清一波回多少血", "help": "每清完一波敌人回复的生命。", "min": 0, "max": 200, "step": 5}
+          ]
+        },
+        {
+          "title": "蓄力与操作",
+          "items": [
+            {"path": "battle/characters/player/chargeMovementScale", "scale": 100, "label": "蓄力时的移速", "help": "按住 J 蓄力时相对正常跑速。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"path": "battle/characters/player/chargeAttackMovementScale", "scale": 100, "label": "重击出招时的移速", "help": "蓄力斩前摇和判定段相对正常跑速。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"path": "battle/runtime/holdToChargeFrames", "label": "按住多久算蓄力", "help": "按住 J 满这么久转入蓄力。", "min": 3, "max": 60, "step": 1, "unit": "帧"},
+            {"path": "battle/runtime/attackBufferFrames", "label": "连招预输入", "help": "提前多久按下一刀也能接上。", "min": 1, "max": 64, "step": 1, "unit": "帧"},
+            {"path": "battle/runtime/comboKeepFrames", "label": "连段保持时间", "help": "一刀结束后多久内按还算下一段。", "min": 1, "max": 180, "step": 1, "unit": "帧"}
+          ]
+        },
+        {
+          "title": "大招能量",
+          "items": [
+            {"path": "encounters/rules/ultGainHit", "label": "打人攒能量", "help": "按造成的伤害乘这个倍数攒能量。", "min": 0, "max": 5, "step": 0.1, "unit": "倍"},
+            {"path": "encounters/rules/ultGainHurt", "label": "挨打攒能量", "help": "按掉的血乘这个倍数攒能量。", "min": 0, "max": 5, "step": 0.1, "unit": "倍"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moves",
+      "title": "招式",
+      "hint": "每一招的威力、范围、快慢和手感。",
+      "template": "moves",
+      "moves": [
+        {"id": "light_1", "label": "第一刀", "group": "地面三连"},
+        {"id": "light_2", "label": "第二刀", "group": "地面三连"},
+        {"id": "light_3", "label": "第三刀", "group": "地面三连"},
+        {"id": "up_strike", "label": "上挑（W+J）", "group": "地面特殊"},
+        {"id": "charge_1", "label": "重击（按住 J）", "group": "地面特殊"},
+        {"id": "dash_slash", "label": "冲刺斩", "group": "地面特殊", "linked": ["dash_slash_left"], "burst": true},
+        {"id": "ranged_1", "label": "远射（K）", "group": "地面特殊"},
+        {"id": "air_light_1", "label": "空中第一刀", "group": "空中"},
+        {"id": "air_light_2", "label": "空中第二刀", "group": "空中"},
+        {"id": "air_light_3", "label": "空中第三刀", "group": "空中"},
+        {"id": "air_plunge", "label": "下落攻击", "group": "空中"},
+        {"id": "air_dash_slash", "label": "空中冲刺斩", "group": "空中", "linked": ["air_dash_slash_left"], "burst": true}
+      ],
+      "sections": [
+        {
+          "title": "威力",
+          "items": [
+            {"key": "damage", "label": "伤害", "help": "打中一下掉多少血。", "min": 0, "max": 200, "step": 1},
+            {"key": "knockbackX", "label": "击退力度", "help": "把敌人往前推多远。", "min": 0, "max": 1500, "step": 10},
+            {"key": "launchY", "label": "击飞力度", "help": "把敌人往上打多高。", "min": 0, "max": 1800, "step": 10},
+            {"key": "forcesLaunch", "type": "bool", "label": "打中必定挑飞", "help": "开启后不管击飞力度多小，敌人都会离地。"},
+            {"key": "wallDamageFactor", "scale": 100, "label": "撞墙伤害", "help": "敌人被打去撞墙时，额外伤害的比例。", "min": 0, "max": 200, "step": 5, "unit": "%"}
+          ]
+        },
+        {
+          "title": "范围",
+          "preview": "hitbox",
+          "items": [
+            {"key": "hitbox/width", "label": "判定框宽度", "help": "越大横向越容易打中。", "min": 10, "max": 1600, "step": 5, "unit": "像素"},
+            {"key": "hitbox/height", "label": "判定框高度", "help": "越大上下越容易打中。", "min": 10, "max": 800, "step": 5, "unit": "像素"},
+            {"key": "hitbox/x", "label": "判定框往前多少", "help": "框的中心离人多远。正数在身前。", "min": -200, "max": 1000, "step": 5, "unit": "像素"},
+            {"key": "hitbox/y", "label": "判定框高低", "help": "框的中心离脚底多高。负数在脚底上方。", "min": -500, "max": 300, "step": 5, "unit": "像素"}
+          ]
+        },
+        {
+          "title": "快慢",
+          "note": "总帧数 = 前摇 + 判定 + 接招前 + 收招。60 帧是 1 秒。",
+          "items": [
+            {"phase": "startup", "label": "前摇", "help": "按键到开始有判定。越小出手越快。", "min": 1, "max": 90, "step": 1, "unit": "帧", "excludeBurst": true},
+            {"phase": "active", "label": "判定", "help": "能打中人的时长。", "min": 1, "max": 60, "step": 1, "unit": "帧", "excludeBurst": true},
+            {"phase": "recovery", "label": "接招前", "help": "判定结束到能接下一招。越小连得越快。", "min": 1, "max": 90, "step": 1, "unit": "帧", "excludeBurst": true},
+            {"phase": "tail", "label": "收招", "help": "能接招之后到动作完全结束。", "min": 1, "max": 120, "step": 1, "unit": "帧", "excludeBurst": true},
+            {"key": "burstSpeed", "only": ["dash_slash", "air_dash_slash"], "label": "中段加速", "help": "冲刺中段放快几倍，距离不变。", "min": 1, "max": 4, "step": 0.05, "unit": "倍"},
+            {"key": "airStartupFrames", "only": ["air_dash_slash"], "label": "前摇", "help": "空中冲刺斩的前摇。", "min": 0, "max": 30, "step": 1, "unit": "帧"},
+            {"key": "airRecoveryFrames", "only": ["air_dash_slash"], "label": "后摇", "help": "空中冲刺斩的后摇。", "min": 1, "max": 60, "step": 1, "unit": "帧"},
+            {"key": "moveCancelDelay", "default": -1, "label": "后摇多久能跑动取消", "help": "判定结束后多少帧按方向键能取消。-1 表示走默认规则。", "min": -1, "max": 60, "step": 1, "unit": "帧", "only": ["light_1", "light_2", "light_3", "up_strike", "dash_slash", "air_dash_slash"]},
+            {"key": "moveCancelAfterActive", "only": ["charge_1"], "label": "后摇多久能跑动取消", "help": "判定结束后多少帧按方向键能取消。", "min": 0, "max": 139, "step": 1, "unit": "帧"}
+          ]
+        },
+        {
+          "title": "手感",
+          "items": [
+            {"key": "hitstop", "scale": 60, "label": "自己的顿帧", "help": "打中时主角停多久。", "min": 0, "max": 30, "step": 1, "unit": "帧"},
+            {"key": "victimHitstop", "scale": 60, "label": "敌人的顿帧", "help": "打中时敌人停多久。", "min": 0, "max": 30, "step": 1, "unit": "帧"},
+            {"key": "shakeAmount", "label": "震屏", "help": "打中时屏幕抖多大。还要乘“打击感”页的总倍率。", "min": 0, "max": 60, "step": 1},
+            {"key": "lunge", "label": "出招前冲", "help": "地面出刀时往前冲的速度。重击不用这一项。", "min": 0, "max": 1200, "step": 10, "exclude": ["charge_1", "air_light_1", "air_light_2", "air_light_3", "air_plunge", "air_dash_slash"]},
+            {"key": "movementSpeedMultiplier", "scale": 100, "label": "出招时的移速", "help": "出刀时按方向键还能走多快。", "min": 0, "max": 100, "step": 5, "unit": "%", "exclude": ["charge_1", "air_light_1", "air_light_2", "air_light_3", "air_plunge", "air_dash_slash"]},
+            {"key": "squashX", "label": "受击横向形变", "help": "敌人被打时压扁拉宽。1 不变形。", "min": 0.25, "max": 2, "step": 0.05},
+            {"key": "squashY", "label": "受击纵向形变", "help": "敌人被打时压扁拉高。1 不变形。", "min": 0.25, "max": 2, "step": 0.05},
+            {"key": "hitstopFirstOnly", "type": "bool", "default": false, "label": "一刀只顿一次", "help": "一刀扫到一群时只停第一下。"}
+          ]
+        },
+        {
+          "title": "重击专属",
+          "only": ["charge_1"],
+          "items": [
+            {"key": "maxHold", "scale": 60, "label": "蓄满要多久", "help": "按住多久算满蓄力。", "min": 3, "max": 180, "step": 1, "unit": "帧"},
+            {"key": "chargeDamageBonus", "label": "满蓄力伤害", "help": "满蓄力时伤害乘几倍。", "min": 1, "max": 5, "step": 0.1, "unit": "倍"},
+            {"key": "chargeKnockbackBonus", "label": "满蓄力击退", "help": "满蓄力时击退乘几倍。", "min": 1, "max": 5, "step": 0.1, "unit": "倍"},
+            {"key": "chargeHitstopBonus", "scale": 60, "label": "满蓄力额外顿帧", "help": "满蓄力时多停多久。", "min": 0, "max": 30, "step": 1, "unit": "帧"},
+            {"key": "damageFromFrac", "scale": 100, "label": "判定段从哪里开始算伤害", "help": "85 表示判定段后 15% 才掉血。", "min": 0, "max": 100, "step": 5, "unit": "%"}
+          ]
+        },
+        {
+          "title": "远射专属",
+          "only": ["ranged_1"],
+          "items": [
+            {"key": "projectile/speed", "label": "飞行速度", "help": "刀气飞多快。", "min": 100, "max": 3000, "step": 20, "unit": "像素/秒"},
+            {"key": "projectile/life", "label": "飞行时长", "help": "飞多久消失。", "min": 0.1, "max": 5, "step": 0.1, "unit": "秒"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feel",
+      "title": "打击感与镜头",
+      "hint": "全局的顿帧、震屏和镜头。",
+      "sections": [
+        {
+          "title": "打击感",
+          "items": [
+            {"path": "battle/feedback/hitstopMultiplier", "label": "顿帧总倍率", "help": "所有招式的顿帧一起放大或缩小。0 没有顿帧。", "min": 0, "max": 3, "step": 0.05, "unit": "倍"},
+            {"path": "battle/feedback/shakeMultiplier", "label": "震屏总倍率", "help": "所有招式的震屏一起放大或缩小。0 不震。", "min": 0, "max": 3, "step": 0.05, "unit": "倍"},
+            {"path": "battle/feedback/squashStrength", "label": "主角形变强度", "help": "主角被打、落地时的挤压。0 保持原画。", "min": 0, "max": 1, "step": 0.05},
+            {"path": "battle/feedback/parryHitstop", "scale": 60, "label": "弹刀成功的顿帧", "help": "弹刀成功时停多久。", "min": 0, "max": 30, "step": 1, "unit": "帧"},
+            {"path": "battle/feedback/effectsEnabled", "type": "bool", "label": "命中特效", "help": "关掉后命中、撞击、落地都没有特效。"},
+            {"path": "battle/ui/showDamageNumbers", "type": "bool", "label": "伤害数字", "help": "打中时跳数字。"},
+            {"path": "battle/ui/showMoveHints", "type": "bool", "label": "底部操作提示", "help": "屏幕底部的键位提示。"}
+          ]
+        },
+        {
+          "title": "镜头",
+          "items": [
+            {"path": "battle/camera/maxShake", "label": "震屏上限", "help": "再猛的一击也不超过这个幅度。", "min": 0, "max": 80, "step": 1},
+            {"path": "battle/camera/shakeDecay", "label": "震屏回稳速度", "help": "越大抖完停得越快。", "min": 1, "max": 30, "step": 0.5},
+            {"path": "battle/camera/followLerp", "label": "镜头跟随速度", "help": "越大镜头跟得越紧。", "min": 0.02, "max": 1, "step": 0.01},
+            {"path": "battle/camera/lookAhead", "label": "镜头前瞻", "help": "镜头往前方多看多远。", "min": 0, "max": 400, "step": 10, "unit": "像素"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "enemies",
+      "title": "敌人",
+      "hint": "四种敌人的强度和行为。",
+      "template": "enemies",
+      "kinds": [
+        {"id": "grunt", "label": "影卒", "blurb": "杂兵，靠近砍一刀。"},
+        {"id": "brute", "label": "甲影", "blurb": "厚血慢速，出刀时霸体。"},
+        {"id": "archer", "label": "影弓", "blurb": "拉开距离射箭。"},
+        {"id": "bomber", "label": "影爆", "blurb": "抛炸弹。"}
+      ],
+      "sections": [
+        {
+          "title": "强度",
+          "items": [
+            {"key": "hp", "label": "生命", "help": "要打多少伤害才死。", "min": 1, "max": 2000, "step": 5},
+            {"key": "damage", "label": "伤害", "help": "打中主角掉多少血。", "min": 0, "max": 100, "step": 1},
+            {"key": "knock", "label": "击退主角的力度", "help": "打中主角时把主角推多远。", "min": 0, "max": 1500, "step": 10},
+            {"key": "armor", "type": "bool", "label": "出刀时霸体", "help": "开启后出刀时不会被打断。"},
+            {"key": "weight", "label": "被打飞的程度", "help": "越小越难打飞。1 是普通。", "min": 0.3, "max": 2, "step": 0.05, "unit": "倍"}
+          ]
+        },
+        {
+          "title": "移动与出手",
+          "items": [
+            {"key": "speed", "label": "移动速度", "help": "越大追得越快。", "min": 0, "max": 800, "step": 10, "unit": "像素/秒"},
+            {"key": "range", "label": "出手距离", "help": "离主角多近开始出手。", "min": 40, "max": 1200, "step": 10, "unit": "像素"},
+            {"key": "windup", "label": "前摇", "help": "举刀到出手。越大越容易躲和弹。", "min": 1, "max": 90, "step": 1, "unit": "帧"},
+            {"key": "strike", "label": "判定", "help": "这一刀能打中的时长。", "min": 1, "max": 30, "step": 1, "unit": "帧"},
+            {"key": "recover", "label": "后摇", "help": "出完手的破绽。越大越好打。", "min": 1, "max": 120, "step": 1, "unit": "帧"},
+            {"key": "cool_min", "label": "两次出手最短间隔", "help": "间隔在最短和最长之间随机。", "min": 0, "max": 300, "step": 5, "unit": "帧"},
+            {"key": "cool_max", "label": "两次出手最长间隔", "help": "间隔在最短和最长之间随机。", "min": 0, "max": 300, "step": 5, "unit": "帧"},
+            {"key": "lunge", "label": "出刀前冲", "help": "出刀时往前冲的速度。", "min": 0, "max": 800, "step": 10, "only": ["grunt", "brute"]},
+            {"key": "keep_min", "label": "和主角保持的最近距离", "help": "近过这个距离就后退。", "min": 100, "max": 1000, "step": 10, "unit": "像素", "only": ["archer", "bomber"]},
+            {"key": "keep_max", "label": "和主角保持的最远距离", "help": "远过这个距离就靠近。", "min": 100, "max": 1200, "step": 10, "unit": "像素", "only": ["archer", "bomber"]}
+          ]
+        },
+        {
+          "title": "反应",
+          "items": [
+            {"key": "guard", "scale": 100, "label": "举刀格挡的概率", "help": "主角逼近时有多大可能举刀。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"key": "roll", "scale": 100, "label": "翻滚闪避的概率", "help": "主角逼近时有多大可能翻滚。", "min": 0, "max": 100, "step": 5, "unit": "%"},
+            {"key": "guard_frames", "label": "格挡持续时间", "help": "举刀举多久。", "min": 0, "max": 120, "step": 1, "unit": "帧"},
+            {"key": "down", "label": "倒地时长", "help": "被打倒后多久爬起来。", "min": 0, "max": 120, "step": 1, "unit": "帧"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "waves",
+      "title": "波次",
+      "hint": "三处封印里每一波出什么敌人。",
+      "template": "waves",
+      "path": "encounters/waves",
+      "sealLabels": ["钟楼广场", "廊桥", "河岸石阶"],
+      "maxAttackers": {"min": 1, "max": 8},
+      "kindRef": "enemies"
+    },
+    {
+      "id": "scene",
+      "title": "场景",
+      "hint": "雨街的楼、地形、灯、前景、远层和雨。",
+      "template": "scene",
+      "defaults": {
+        "layout/backdrop/sky/tex": "res://assets/image/rain_street/sky.png",
+        "layout/backdrop/far/tex": "res://assets/image/rain_street/far_city.png",
+        "layout/backdrop/depth": [
+          {"tex": "res://assets/image/rain_street/depth_deep_row_20261106.png", "scroll": 0.48, "bottom": 500},
+          {"tex": "res://assets/image/rain_street/depth_back_row_20261106.png", "scroll": 0.72, "bottom": 560}
+        ]
+      },
+      "sections": [
+        {
+          "title": "天空和远景",
+          "items": [
+            {"path": "layout/backdrop/sky/scroll", "default": 0.02, "label": "天空跟镜头的程度", "help": "越小越像贴在屏幕上不动。", "min": 0, "max": 1, "step": 0.01},
+            {"path": "layout/backdrop/sky/screenH", "default": 820, "label": "天空显示高度", "help": "天空图在屏幕上有多高。", "min": 400, "max": 1600, "step": 10, "unit": "像素"},
+            {"path": "layout/backdrop/sky/shift", "default": 370, "label": "天空左右挪", "help": "决定月亮落在屏幕哪边。", "min": -2000, "max": 2000, "step": 10, "unit": "像素"},
+            {"path": "layout/backdrop/far/scroll", "default": 0.3, "label": "远景跟镜头的程度", "help": "越小看起来越远。", "min": 0, "max": 1, "step": 0.01},
+            {"path": "layout/backdrop/far/top", "default": -781, "label": "远景高低", "help": "越小天际线越高。", "min": -2500, "max": 800, "step": 10}
+          ]
+        },
+        {
+          "title": "雨",
+          "items": [
+            {"path": "layout/backdrop/rain/drops", "default": 450, "label": "雨量（碰到地面的）", "help": "落到平台和街面会溅水的雨滴数。", "min": 0, "max": 2000, "step": 10, "unit": "滴"},
+            {"path": "layout/backdrop/rain/through", "default": 300, "label": "雨量（淡雨）", "help": "不碰撞、一直落进河里的淡雨。", "min": 0, "max": 2000, "step": 10, "unit": "滴"},
+            {"path": "layout/backdrop/rain/speed", "default": 1350, "label": "雨速", "help": "雨落多快。", "min": 200, "max": 3000, "step": 10},
+            {"path": "layout/backdrop/rain/wind", "default": -0.2, "label": "风", "help": "负数往左飘，正数往右飘。", "min": -1, "max": 1, "step": 0.01}
+          ]
+        }
+      ]
+    }
+  ]
+}

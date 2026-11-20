@@ -1,0 +1,21 @@
+{
+  "note": "tools/art/boss_dial_prep.py 生成。坐标都是 dial_frame.png 的像素。",
+  "size": [
+    1672,
+    941
+  ],
+  "center": [
+    833.0,
+    436.0
+  ],
+  "radius": 406.0,
+  "hub": [
+    836.0,
+    425.0
+  ],
+  "ledge_row": 748,
+  "glass_origin": [
+    423,
+    26
+  ]
+}

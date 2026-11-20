@@ -1,0 +1,71 @@
+{
+  "note": "「错拍」全部可调参数。改完重开 OPEN_DSH.bat 生效。",
+  "delay": {
+    "base": 0.6,
+    "step": 0.1,
+    "lightOffset": -0.12,
+    "shadowOffset": 0.12,
+    "comboKeepSeconds": 2.5,
+    "historySeconds": 1.6
+  },
+  "player": {
+    "hp": 100.0,
+    "speed": 310.0,
+    "gravity": 1900.0,
+    "jumpSpeed": 760.0,
+    "airControl": 0.72,
+    "attackMovement": 0.32,
+    "dashSpeed": 1020.0,
+    "dashTime": 0.30,
+    "dashCooldown": 0.45,
+    "hurtTime": 0.32,
+    "invulnTime": 0.75,
+    "damage": [14.0, 18.0, 34.0],
+    "beatMultiplier": 1.5
+  },
+  "shade": {
+    "grunt": {
+      "name": "白蜕·驻时侍从",
+      "hp": 115.0,
+      "speed": 168.0,
+      "range": 150.0,
+      "windup": 0.50,
+      "strike": 0.14,
+      "recover": 0.42,
+      "damage": 9.0,
+      "reach": 160.0,
+      "bodyWidth": 58.0,
+      "bodyHeight": 132.0,
+      "height": 1.0,
+      "flicker": 0.0
+    },
+    "brute": {
+      "name": "白蜕·抱钟苦修士",
+      "hp": 260.0,
+      "speed": 108.0,
+      "range": 176.0,
+      "windup": 0.72,
+      "strike": 0.18,
+      "recover": 0.62,
+      "damage": 16.0,
+      "reach": 196.0,
+      "bodyWidth": 78.0,
+      "bodyHeight": 168.0,
+      "height": 1.22,
+      "flicker": 0.55
+    }
+  },
+  "umbra": {
+    "max": 5,
+    "gainPerHit": 1,
+    "previewCost": 1,
+    "previewTime": 2.0,
+    "freezeCost": 2,
+    "freezeTime": 1.2
+  },
+  "waves": [
+    {"label": "第一拍 · 它总比你先动", "hint": "砍紫色的影子，别砍本体", "shades": ["grunt", "grunt"]},
+    {"label": "第二拍 · 影子开始偏离", "hint": "站进灯光里，延迟会变短", "shades": ["grunt", "grunt", "grunt"]},
+    {"label": "第三拍 · 追上时间", "hint": "连击到 0，刀光会变白", "shades": ["brute", "grunt", "grunt"]}
+  ]
+}

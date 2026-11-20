@@ -47,7 +47,7 @@ uniform sampler2D uFx : filter_linear, repeat_disable;
 const vec3 VIO = vec3(.54, .40, 1.0);
 const vec3 GRY = vec3(.82, .82, .86);
 const vec3 WHT = vec3(1.0, .96, 1.08);
-const vec3 GLD = vec3(1.0, .88, .68);
+const vec3 GLD = vec3(.96, .96, 1.0);   // [YG-MARK] 11-08 换 G03：画面只有黑白，原来是暖金 (1.0, .88, .68)
 
 vec2 P(vec2 uv) { return uv * uRes; }
 vec2 toUv(vec2 p) { return p / uRes; }
@@ -77,7 +77,7 @@ void cut_slice(vec4 tc, vec4 ta, float idx, inout vec2 p, inout vec3 add, inout 
 	float sw = exp(-pow((a - ta.z * 2400.0) / 50.0, 2.0)) * exp(-ta.z * 3.5) * 15.0;
 	float fk = .7 + .3 * vn(vec2(ui * .02 - uTime * 6.0, idx * 7.0));
 	add += (WHT * exp(-a / 1.2) * 2.1 * step(tear_w, .5) + (WHT * 1.8 + VIO * 1.4) * tear_edge
-			+ VIO * exp(-max(a - tear_w, 0.0) / 8.0) * .55 + GRY * exp(-a / 60.0) * .05)
+			+ VIO * exp(-max(a - tear_w, 0.0) / 8.0) * .55 + GRY * exp(-a / 60.0) * .018 * blade_env * blade_env)   // [YG-MARK] 11-08 换 G03：原来 .05 且两头被一刀切，黑水上是一块方形灰晕
 			* ta.y * fk * smoothstep(1.18, .88, u_norm);
 	p -= sd * (ta.x * d * blade_env + n * (min(ta.x * .12, 1.8) * blade_env + sw));
 }
@@ -148,7 +148,7 @@ void fragment() {
 	}
 	// [YG-MARK] 11-05 更高级：刀口中间最亮、两头收细（原来 .29 宽、两头还留 12% 亮度，读起来是一根匀的亮线）
 	float al = exp(-pow(u / (uRes.x * .24), 2.0));
-	float ef = smoothstep(uRes.x * .56, uRes.x * .2, abs(u));
+	float ef = smoothstep(uRes.x * .62, uRes.x * .4, abs(u));   // [YG-MARK] 11-08 换 G03：白线贯穿全屏，原来 .56 / .2
 	float cw = mix(.32, 1.0, al);
 	float vb = .78 + .22 * sin(uTime * .8);
 	// 鼠标靠近刀口时的能量共鸣
@@ -159,7 +159,7 @@ void fragment() {
 	float arc_disp = (vn(vec2(u * .032 - uTime * 6.5, floor(uTime * 14.0) * .7)) - .5) * 8.5 * (al + m_res * .8)
 			+ (vn(vec2(u * .11 + uTime * 13.0, 3.7)) - .5) * 3.5;
 	float arc = exp(-abs(s - gap * sd - arc_disp) / 1.1) * step(.42, vn(vec2(u * .02 + uTime * 3.5, 8.0))) * (al * .85 + m_res) * on * (1.0 - uOpen);
-	vec3 seam = WHT * exp(-ae / (.82 * cw)) * 2.1 * mix(.05, 1.15, al)
+	vec3 seam = WHT * exp(-ae / (.82 * cw)) * 2.1 * mix(.45, 1.15, al)   // [YG-MARK] 11-08 换 G03：两头原来 .05
 			+ VIO * exp(-ae / (3.6 * cw)) * .62 * (al * vb + m_res)
 			+ VIO * exp(-ae / 24.0) * .042 * al * vb
 			+ (WHT * 1.2 + VIO * 1.5) * arc + GLD * jag * .28;

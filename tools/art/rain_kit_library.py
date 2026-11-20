@@ -28,6 +28,7 @@ LIB = ROOT / "docs/视觉设计/雨夜河岸街/素材库"
 ART = ROOT / "assets/image/rain_street"
 BRIDGE = ROOT / "docs/视觉设计/雨夜河岸街/成图_廊桥素材"
 STEPS = ROOT / "docs/视觉设计/雨夜河岸街/成图_石阶素材"
+LANES = ROOT / "docs/视觉设计/雨夜河岸街/成图_巷口素材"
 PX = 1672 / 2710
 STREET, GALLERY = 580.0, 20.0
 FOOT = 576.0      # 切件的下沿（世界 y）：再往下是街面，由拼接脚本统一铺
@@ -190,6 +191,85 @@ def steps_parts(pieces, ref):
     pieces.append(piece_from_gpt("s5_河岸尽头", grade(k, *ref), s, bottom, attach_src=(0, k.shape[1]),
                                  stand=[(860, 1150, 352, "eave")], blocks=[(5, 1545, 705, "steps")],
                                  lamps=[(678, 705, "street", 705 - 150)], tags=["end"], seam=False))
+    codex_parts(pieces, ref)
+
+
+def dim_windows(k, boxes):
+    """把这些框里的暖光窗关掉（框是裁切后的源像素）：同一栋排屋用两次时亮的窗不一样"""
+    for x0, y0, x1, y1 in boxes:
+        roi = k[y0:y1, x0:x1]
+        warm = roi[..., 0] > roi[..., 2] + 12
+        lum = roi[..., :3].mean(2, keepdims=True)
+        roi[..., :3] = np.where(warm[..., None], lum * 0.22 * np.array([0.8, 0.95, 1.35]), roi[..., :3])
+
+
+def codex_parts(pieces, ref):
+    """Codex 出的 3 个部件（11-06）：排屋、大石阶、水门塔"""
+    f = lambda i: sorted(STEPS.glob(f"Codex原图_部件0{i}_*.png"))[0]
+    # 排屋：二层厚石板阳台 = y 300。烟囱帽 GPT 画成了红的（朱红只给钟楼），压回冷灰；三扇亮窗每个变体只留一扇
+    base = gpt(f(1), (325, 1347))
+    pots = base[20:62]
+    red = pots[..., 0] > pots[..., 2] + 10
+    pots[..., :3] = np.where(red[..., None], pots[..., :3].mean(2, keepdims=True) * np.array([0.86, 0.93, 1.08]), pots[..., :3])
+    bottom = alpha_bottom(base)
+    slab = refine_floor(base, 655, 200, 800)
+    s = (STREET - 300) / (bottom - slab)
+    win = {"左": (80, 735, 175, 865), "中": (410, 735, 490, 865), "右": (725, 735, 815, 865)}
+    for lit, name in (("中", "s1_排屋"), ("左", "s1_排屋_左窗亮")):
+        k = base.copy()
+        dim_windows(k, [b for n, b in win.items() if n != lit])
+        pieces.append(piece_from_gpt(name, grade(k, *ref), s, bottom, attach_src=(0, k.shape[1]),
+                                     stand=[(5, 1020, slab, "balcony"),
+                                            (115, 265, 432, "balcony"), (432, 592, 432, "balcony"), (755, 912, 432, "balcony"),
+                                            (55, 320, 240, "eave"), (375, 640, 240, "eave"), (695, 965, 240, "eave")],
+                                     lamps=[(win[lit][0] + 40, 790, "wall", 0)], tags=["house"], seam=False))
+    # 大石阶：高台和拱廊顶要差 298 才跳得上去（校验要求 ≤ 300），按这个定比例，高台约落在 y 306
+    k = gpt(f(2), (55, 1618))
+    bottom = alpha_bottom(k)
+    terrace = refine_floor(k, 572, 520, 1040)
+    arcade = refine_floor(k, 302, 300, 1250)
+    s = 298.0 / (terrace - arcade)
+    steps = []
+    for t in (1 / 3, 2 / 3):     # 两道石阶的斜线上各放两级台面（源像素，左边 (73,790) → (425,575)，右边对称）
+        sx, sy = 73 + 352 * t, 790 - 215 * t
+        hw = 60 / s
+        steps += [(sx - hw, sx + hw, sy, "balcony"), (k.shape[1] - sx - hw, k.shape[1] - sx + hw, sy, "balcony")]
+    pieces.append(piece_from_gpt("s2_大石阶", grade(k, *ref), s, bottom, attach_src=(0, k.shape[1]),
+                                 stand=[(425, 1135, terrace, "gallery"), (210, 1355, arcade, "bridge")] + steps,
+                                 lamps=[(38, 688, "street", 688 - 530), (1520, 688, "street", 688 - 530)], tags=["stairs"], seam=False))
+    # 水门塔：比例由关卡定（塔顶要能从石阶拱廊顶跳上去）；警示灯是冷白的，不进暖灯列表，街面倒影写在拼接方案里
+    k = gpt(f(3), (125, 895))
+    bottom = alpha_bottom(k)
+    gallery = refine_floor(k, 815, 150, 620)
+    walk = refine_floor(k, 248, 200, 480)
+    s = 0.70
+    pieces.append(piece_from_gpt("s3_水门塔", grade(k, *ref), s, bottom, attach_src=(0, k.shape[1]),
+                                 stand=[(5, 765, gallery, "gallery"), (110, 665, walk, "ridge")], tags=["tower"], seam=False))
+
+
+def lane_parts(pieces, ref):
+    """巷口 3 个部件（Codex，11-06）。图里都自带一截街面，切在建筑落地那一行，街面由拼接脚本统一铺"""
+    f = lambda i: sorted(LANES.glob(f"Codex原图_部件0{i}_*.png"))[0]
+    # 陡窄巷：两边楼的转角 + 中间往里收窄的巷子。放在竞技场左边界外、右楼藏在排屋后面，所以不给可站面
+    k = gpt(f(1), (20, 1002))[:1366]
+    pots = k[245:300, 870:]
+    red = pots[..., 0] > pots[..., 2] + 10
+    pots[..., :3] = np.where(red[..., None], pots[..., :3].mean(2, keepdims=True) * np.array([0.86, 0.93, 1.08]), pots[..., :3])
+    pieces.append(piece_from_gpt("l1_陡窄巷", grade(k, *ref), 0.8, 1365, attach_src=(0, k.shape[1]),
+                                 lamps=[(430, 860, "wall", 0)], tags=["lane"], seam=False))
+    # 过街楼拱门：比例让门洞和排屋的门一样高（用户 11-06 要放大），挑廊比排屋阳台高，从阳台跳得上去
+    k = gpt(f(2), (335, 1337))[:894]
+    slab = refine_floor(k, 468, 100, 900)
+    pieces.append(piece_from_gpt("l2_过街楼拱门", grade(k, *ref), 1.05, 893, attach_src=(0, k.shape[1]),
+                                 stand=[(15, 987, slab, "gallery"), (15, 987, 235, "eave")],
+                                 lamps=[(153, 640, "wall", 0), (848, 640, "wall", 0)], tags=["lane", "house"], seam=False))
+    # 上行石阶巷：楼顶和左右都被画面切了，只能放在别的建筑后面（桥洞里），切边让桥墩挡住。不给可站面
+    k = gpt(f(3), (0, 1672))[:879]
+    pieces.append(piece_from_gpt("l3_上行石阶巷", grade(k, *ref), 0.72, 878, attach_src=(0, k.shape[1]), tags=["lane", "behind"], seam=False))
+
+
+# 楼梯走真斜坡（11-06，件内世界坐标，对着成图量的）：换掉上面放在斜线上的一级级台面
+STAIRS = {"b5_尽头石阶": {"stand": [[0, 988.8, 20, "gallery"], [1935.8, 2018.8, 436, "steps"]], "slopes": [[988.8, 20, 1935.8, 436, "steps"]]}, "b5_石阶半边": {"stand": [[13.6, 371.8, 20, "gallery"], [1318.8, 1401.8, 436, "steps"]], "slopes": [[371.8, 20, 1318.8, 436, "steps"]]}, "b5_石阶半边_无木桶": {"stand": [[13.6, 371.8, 20, "gallery"], [1318.8, 1401.8, 436, "steps"]], "slopes": [[371.8, 20, 1318.8, 436, "steps"]]}, "s2_大石阶": {"stand": [[470.8, 1257.4, 307.5, "gallery"], [232.6, 1501.1, 9.5, "bridge"]], "slopes": [[3.3, 580, 470.8, 307.5, "steps"], [1257.4, 307.5, 1733.2, 580, "steps"]]}, "s5_河岸尽头": {"blocks": [[3.1, 727.4, 470.9, "steps"]], "slopes": [[727.4, 470.9, 962.4, 580, "steps"]]}}
 
 
 def main():
@@ -199,6 +279,9 @@ def main():
     section0(pieces)
     bridge_parts(pieces, ref)
     steps_parts(pieces, ref)
+    lane_parts(pieces, ref)
+    for p in pieces:
+        p.update(STAIRS.get(p["id"], {}))
     kit = {"note": __doc__.strip().splitlines()[0], "px_per_world": PX, "street": STREET, "pieces": {p["id"]: p for p in pieces}}
     (LIB / "kit.json").write_text(json.dumps(kit, ensure_ascii=False, indent=1), encoding="utf-8")
     for p in pieces:

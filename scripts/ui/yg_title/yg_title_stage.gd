@@ -18,16 +18,23 @@ extends Control
 ## 删除方法：见 docs/YG-首页断光-删除清单.md。
 
 const SimScript := preload("res://scripts/ui/yg_title/yg_title_sim.gd")
-const SH_LIGHT := preload("res://assets/shaders/yg_title/yg_light.gdshader")
-const SH_SHADOW := preload("res://assets/shaders/yg_title/yg_shadow.gdshader")
+## [YG-MARK] 11-08 换 G03：光层 / 影层 / 输出换成底图版。退回程序画的灰雾要改的不止这三行，
+## 还有 sim 的断口和字标、ui 的菜单、yg_comp 和 yg_part：全部列在 docs/YG-首页断光-删除清单.md。
+const SH_LIGHT := preload("res://assets/shaders/yg_title/yg_g03_light.gdshader")
+const SH_SHADOW := preload("res://assets/shaders/yg_title/yg_g03_shadow.gdshader")
 const SH_COMP := preload("res://assets/shaders/yg_title/yg_comp.gdshader")
 const SH_DOWN := preload("res://assets/shaders/yg_title/yg_bloom_down.gdshader")
 const SH_UP := preload("res://assets/shaders/yg_title/yg_bloom_up.gdshader")
-const SH_FINAL := preload("res://assets/shaders/yg_title/yg_final.gdshader")
+const SH_FINAL := preload("res://assets/shaders/yg_title/yg_g03_final.gdshader")
 const SH_PART := preload("res://assets/shaders/yg_title/yg_part.gdshader")
 
 const MARK_CUT := "res://assets/image/yg_title/mark_cut.webp"
 const MARK_WHOLE := "res://assets/image/yg_title/mark_whole.webp"
+const PLATE_LIGHT := "res://assets/image/yg_title/g03_light.webp"
+const PLATE_SHADOW := "res://assets/image/yg_title/g03_shadow.webp"
+const LOGO_G03 := "res://assets/image/yg_title/g03_logo.png"
+## 底图（1920×1080）上断口过屏幕中线的点，和 bake_g03_plate.py 打印的 C_Y 一致
+const PLATE_C := Vector2(960.0, 1080.0 * 0.4397)
 
 const MAXP := 6000
 const MAX_SCALE := 3.0      ## [YG-MARK] 设计尺寸的最多 3 倍（3840×2160）
@@ -64,6 +71,9 @@ var _acc_rects: Array = []
 
 var _tex_cut: Texture2D
 var _tex_whole: Texture2D
+var _tex_light: Texture2D
+var _tex_shadow: Texture2D
+var _tex_logo: Texture2D
 var _display: TextureRect
 
 var _bloom_levels := 6
@@ -77,6 +87,9 @@ func build(s: RefCounted, view_size: Vector2i) -> void:
 	_ch = max(2, view_size.y)
 	_tex_cut = load(MARK_CUT)
 	_tex_whole = load(MARK_WHOLE)
+	_tex_light = load(PLATE_LIGHT)
+	_tex_shadow = load(PLATE_SHADOW)
+	_tex_logo = load(LOGO_G03)
 	px_scale = target_scale()
 	_build_chain()
 
@@ -266,6 +279,9 @@ func step() -> void:
 	ml.set_shader_parameter("uBox", sim.box)
 	ml.set_shader_parameter("uLogoRect", Vector4(sim.logo_origin.x, sim.logo_origin.y, sim.logo_size.x, sim.logo_size.y))
 	ml.set_shader_parameter("uLogoW", _tex_whole)
+	ml.set_shader_parameter("uPlate", _tex_light)
+	ml.set_shader_parameter("uPlateC", PLATE_C)
+	ml.set_shader_parameter("uLogo", _tex_logo)
 
 	var pl := _pmat(_mm_light)
 	pl.set_shader_parameter("uRes", Vector2(sim.W, sim.H))
@@ -278,6 +294,10 @@ func step() -> void:
 	pl.set_shader_parameter("uDawn", maxf(dawn, 0.0))
 	pl.set_shader_parameter("uBox", sim.box)
 	pl.set_shader_parameter("uMode", 0.0)
+	pl.set_shader_parameter("uMono", 1.0)
+	pl.set_shader_parameter("uInkMask", 1.0)
+	pl.set_shader_parameter("uReveal", reveal)
+	pl.set_shader_parameter("uLogo", _tex_logo)
 	pl.set_shader_parameter("uStreak", 0.022)
 
 	# 影层
@@ -293,7 +313,9 @@ func step() -> void:
 	ms.set_shader_parameter("uFlowK", 1.0)
 	ms.set_shader_parameter("uBox", sim.box)
 	ms.set_shader_parameter("uLogoRect", Vector4(sim.logo_origin.x, sim.logo_origin.y, sim.logo_size.x, sim.logo_size.y))
-	ms.set_shader_parameter("uLogo", _tex_cut)
+	ms.set_shader_parameter("uPlate", _tex_shadow)
+	ms.set_shader_parameter("uPlateC", PLATE_C)
+	ms.set_shader_parameter("uLogo", _tex_logo)
 	ms.set_shader_parameter("uLogoW", _tex_whole)
 
 	var ps := _pmat(_mm_shadow)
@@ -307,6 +329,8 @@ func step() -> void:
 	ps.set_shader_parameter("uDawn", 1.0)
 	ps.set_shader_parameter("uBox", sim.box)
 	ps.set_shader_parameter("uMode", 1.0)
+	ps.set_shader_parameter("uMono", 1.0)
+	ps.set_shader_parameter("uRainK", 1.9)
 	ps.set_shader_parameter("uStreak", 0.022)
 
 	var pf := _pmat(_mm_fx)
@@ -407,7 +431,7 @@ func step() -> void:
 	mf.set_shader_parameter("uTime", sim.now)
 	mf.set_shader_parameter("uC", sim.C)
 	mf.set_shader_parameter("uN", sim.N)
-	mf.set_shader_parameter("uBloomK", 0.15)
+	mf.set_shader_parameter("uBloomK", 0.07)   # [YG-MARK] 11-08 换 G03：没有 ACES 压，原来的 .15 在黑水上一大片灰
 	mf.set_shader_parameter("uExpo", 1.0)
 	mf.set_shader_parameter("uImpact", impact)
 	mf.set_shader_parameter("uFlash", sim.flash)

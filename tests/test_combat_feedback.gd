@@ -136,14 +136,14 @@ func run() -> void:
 		await step(1,[&"attack_light"])
 	check(p.is_charging() and p.charge_frames>=stage.moves.charge_1.max_charge_frames,"满蓄力继续保持，松开才释放")
 	await step(1)
-	check(await wait_hit(d.max_hp, stage.moves.charge_1.startup_frames + 6),"满蓄力真实命中")
+	check(await wait_hit(d.max_hp, stage.moves.charge_1.startup_frames + stage.moves.charge_1.active_frames),"满蓄力真实命中（伤害窗口在判定段末尾，11-03 起要等判定段走完）")
 	check(p.hitstop_frames==stage.moves.charge_1.hitstop_frames+stage.moves.charge_1.charge_hitstop_bonus,"满蓄力为角色停顿添加 6 帧重量")
 	check(stage.camera._trauma>0,"蓄力重击才震屏")
 	var charge_source: Dictionary = {}
 	for source in stage.config.moves:
 		if source.id == "charge_1":
 			charge_source = source
-	check(view.frame_index==int(charge_source.activeFrameStart),"重击实际停在当前素材配置的起始命中图片")
+	check(view.frame_index>=int(charge_source.activeFrameEnd)-2,"重击停在这一刀挥到底那张图（11-03：伤害只在判定段末尾结算）")
 	check(d.last_hit_damage>26,"满蓄力造成加成伤害")
 	check(stage.audio.last_event=="hit_finisher","重击使用终结档命中声音")
 	p._start_move(stage.moves.light_1,false)

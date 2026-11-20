@@ -1,0 +1,140 @@
+{
+  "note": "Boss 场地「停船的河口」布局，tools/art/boss_arena_compose.py 生成。三段都是平地；arena = 这一段的背景设置（boss_backdrop.gd 读）。",
+  "arenaHalf": 2400,
+  "arenaSpacing": 6400,
+  "floors": {
+    "street": 580,
+    "f2": 300,
+    "f3": 20,
+    "roof": -260
+  },
+  "sections": [
+    {
+      "name": "河口码头",
+      "spawns": [
+        [
+          0,
+          580
+        ]
+      ],
+      "art": {
+        "near": "res://assets/image/boss_arena/s1_estuary_wharf.png",
+        "x0": -1620.0,
+        "y0": -480.0,
+        "width": 3280.53,
+        "water_y": 665
+      },
+      "platforms": [],
+      "blocks": [],
+      "slopes": [],
+      "lamps": [
+        [
+          -1009.0,
+          580.0,
+          "street",
+          325
+        ],
+        [
+          185.0,
+          470.9,
+          "street",
+          347.9
+        ],
+        [
+          975.5,
+          420.1,
+          "wall",
+          0.0
+        ]
+      ],
+      "arena": {
+        "depth": false,
+        "far": true,
+        "rays": 0.14
+      },
+      "foreground": []
+    },
+    {
+      "name": "船库",
+      "spawns": [
+        [
+          0,
+          580
+        ]
+      ],
+      "art": {
+        "near": "res://assets/image/boss_arena/s2_boathouse_temp.png",
+        "x0": -1620.0,
+        "y0": -610.0,
+        "width": 3280.53,
+        "water_y": 665
+      },
+      "platforms": [],
+      "blocks": [],
+      "slopes": [],
+      "lamps": [
+        [
+          -526.7,
+          -148.1,
+          "wall",
+          0.0
+        ]
+      ],
+      "arena": {
+        "interior": true,
+        "floor": [
+          8,
+          10,
+          16
+        ],
+        "rays": 0.0
+      },
+      "foreground": []
+    },
+    {
+      "name": "水门外",
+      "spawns": [
+        [
+          0,
+          580
+        ]
+      ],
+      "art": {
+        "near": "res://assets/image/boss_arena/s3_breakwater_near.png",
+        "x0": -1620.0,
+        "y0": -480.0,
+        "width": 3280.53,
+        "water_y": 665
+      },
+      "platforms": [],
+      "blocks": [],
+      "slopes": [],
+      "lamps": [
+        [
+          -829.0,
+          580.0,
+          "street",
+          325
+        ],
+        [
+          231.0,
+          580.0,
+          "street",
+          325
+        ],
+        [
+          1252.5,
+          470.9,
+          "street",
+          347.9
+        ]
+      ],
+      "arena": {
+        "depth": false,
+        "far": true,
+        "rays": 0.14
+      },
+      "foreground": []
+    }
+  ]
+}

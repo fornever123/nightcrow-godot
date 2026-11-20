@@ -1,0 +1,59 @@
+{
+  "belfry_m1": {
+    "tex": "res://assets/image/boss_duanchao/crimson_stage/belfry_arch_frame.png",
+    "norm": "res://assets/image/boss_duanchao/crimson_stage/belfry_arch_frame_n.png",
+    "width_px": 1536,
+    "height_px": 1024,
+    "hole_center_px": [
+      765.0,
+      503.0
+    ],
+    "hole_radius_px": 272.5
+  },
+  "distant_towers_m2": {
+    "tex": "res://assets/image/boss_duanchao/crimson_stage/mid_distant_towers.png",
+    "width_px": 1536,
+    "height_px": 1264
+  },
+  "fg_chains_f1": {
+    "left_tex": "res://assets/image/boss_duanchao/crimson_stage/fg_chain_left.png",
+    "right_tex": "res://assets/image/boss_duanchao/crimson_stage/fg_chain_right.png",
+    "slice_width_px": 256,
+    "slice_height_px": 1024
+  },
+  "tiles": {
+    "s1_left": {
+      "tex": "res://assets/image/boss_duanchao/crimson_stage/tile_s1_left.png",
+      "norm": "res://assets/image/boss_duanchao/crimson_stage/tile_s1_left_n.png",
+      "wing_3d_tex": "res://assets/image/boss_duanchao/crimson_stage/wing_s1_left_3d.png",
+      "wing_3d_norm": "res://assets/image/boss_duanchao/crimson_stage/wing_s1_left_3d_n.png",
+      "width_px": 1536,
+      "height_px": 1024,
+      "ground_px": 884,
+      "lamp_px": [
+        416.0,
+        684.0
+      ]
+    },
+    "s2_center": {
+      "tex": "res://assets/image/boss_duanchao/crimson_stage/tile_s2_center.png",
+      "norm": "res://assets/image/boss_duanchao/crimson_stage/tile_s2_center_n.png",
+      "width_px": 1536,
+      "height_px": 1024,
+      "ground_px": 742
+    },
+    "s3_right": {
+      "tex": "res://assets/image/boss_duanchao/crimson_stage/tile_s3_right.png",
+      "norm": "res://assets/image/boss_duanchao/crimson_stage/tile_s3_right_n.png",
+      "wing_3d_tex": "res://assets/image/boss_duanchao/crimson_stage/wing_s3_right_3d.png",
+      "wing_3d_norm": "res://assets/image/boss_duanchao/crimson_stage/wing_s3_right_3d_n.png",
+      "width_px": 1536,
+      "height_px": 1024,
+      "ground_px": 824,
+      "lamp_px": [
+        909.0,
+        652.5
+      ]
+    }
+  }
+}

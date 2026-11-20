@@ -1,19 +1,24 @@
 extends Node
 ## 战斗音效。两套声音：
-##  - 第二轮音效库 sfx_v3（tools/audio/make_sfx_v3.py 生成：原视频刀风切片 + 代码合成），
-##    每个事件 1–4 个变体，随机挑（不连续重复）+ 轻微随机音高；
-##  - 旧的 13 个 wav（CLIPS，配置 audio.events 可替换）：音效库缺了某个事件时兜底，
-##    蓄力 / 远射仍用它们。
+##  - 商业 3A 混合合成音效库 sfx_aaa_v5（tools/audio/make_sfx_aaa_v5.py 生成：
+##    192kHz/24-bit 真实冷兵器物理母带 + 模态谐振 + 紫电裂口 FM 合成，48kHz 立体声母带），
+##    按五路混音总线（Impact / Blade / Warning / Motion 侧链让路 / UI）分层输出，
+##    旧版 sfx_v3 完整保留在磁盘备查；
+##  - 旧的 13 个 wav（CLIPS，配置 audio.events 可替换）：音效库缺了某个事件时兜底。
 ## 招式 → 刀风、招式 → 命中档位都写在 battle.json 的 audio.swingByMove / audio.hitTier。
 const Feel := preload("res://scripts/core/feel_scale.gd")
 @export var enabled: bool = true
-@export var max_voices: int = 12
-const BUS_IMPACT := &"SFX_Impact"   ## 命中 / 撞墙 / 击飞：打击感的核心，永不压低
-const BUS_MOTION := &"SFX_Motion"   ## 跳跃 / 落地 / 挥空 / 蓄力 / 投掷：可让路
-const BUS_UI := &"SFX_UI"
+@export var max_voices: int = 14
+const BUS_IMPACT := &"SFX_Impact"     ## 命中 / 弹刀 / 破壳 / 撞墙 / 裂口：打击核心，永不压低
+const BUS_BLADE := &"SFX_Blade"       ## 主角挥刀破风 / 出鞘归鞘：挥刀声为主，独立不让路
+const BUS_WARNING := &"SFX_Warning"   ## 敌招蓄力预警 / 崩弦放箭：听声辨招独立频段
+const BUS_MOTION := &"SFX_Motion"     ## 脚步 / 起跳 / 轻落地：受 Impact 侧链压缩自动轻微让路
+const BUS_UI := &"SFX_UI"             ## 封场钟鸣 / 破晓清音
 const BUS_VOLUME_DB := {
 	BUS_IMPACT: 0.0,
-	BUS_MOTION: -4.0,
+	BUS_BLADE: 0.0,
+	BUS_WARNING: 0.0,
+	BUS_MOTION: -2.0,
 	BUS_UI: 0.0,
 }
 const BUS_BY_KEY := {
@@ -23,13 +28,13 @@ const BUS_BY_KEY := {
 	&"blade_hit": BUS_IMPACT,
 	&"parry": BUS_IMPACT,
 	&"shuriken_hit": BUS_IMPACT,
-	&"swing": BUS_MOTION,
-	&"blade_swing": BUS_MOTION,
-	&"shuriken_throw": BUS_MOTION,
+	&"swing": BUS_BLADE,
+	&"blade_swing": BUS_BLADE,
+	&"shuriken_throw": BUS_BLADE,
 	&"jump": BUS_MOTION,
 	&"land": BUS_MOTION,
-	&"charge_start": BUS_MOTION,
-	&"charge_release": BUS_MOTION,
+	&"charge_start": BUS_BLADE,
+	&"charge_release": BUS_IMPACT,
 }
 const HEADROOM_DB := -0.5
 const IMPACT_GAIN_MIN_DB := -2.5
@@ -56,10 +61,19 @@ const REPEAT_MAX_STEPS := 3        ## 最多压几档（防止密集连击把音
 const SAME_FRAME_MAX := 2          ## 同一物理帧同一事件最多响几次（横扫打中一群不叠成爆音）
 const SAME_FRAME_STEP_DB := -5.0   ## 同帧第二下压低多少
 const KEY_VOICE_MAX := 3           ## 同一事件同时最多几个声音（再多掐掉最老的）
-const BANK_DIR := "res://assets/audio/sfx_v3/"
-const BANK_BUS := {"impact": BUS_IMPACT, "motion": BUS_MOTION, "ui": BUS_UI}
+const BANK_DIR := "res://assets/audio/sfx_aaa_v5/"
+const LEGACY_BANK_DIR := "res://assets/audio/sfx_v3/"
+const BANK_BUS := {
+	"impact": BUS_IMPACT,
+	"blade": BUS_BLADE,
+	"warning": BUS_WARNING,
+	"motion": BUS_MOTION,
+	"ui": BUS_UI,
+}
 ## 音效库只解码一次（重开关卡 / 切训练场不再重复解码）
 static var _bank_cache: Dictionary = {}
+static var _bank_is_aaa_cache: bool = false
+var _is_aaa_bank: bool = false
 var _voices: Array[AudioStreamPlayer] = []
 var _same_frame: Dictionary = {}     ## 事件 → 上次发声的物理帧
 var _same_frame_n: Dictionary = {}   ## 事件 → 这一帧已响几次
@@ -137,18 +151,24 @@ func _load_clip(path: String) -> AudioStream:
 func _load_bank() -> void:
 	if not _bank_cache.is_empty():
 		_bank = _bank_cache
+		_is_aaa_bank = _bank_is_aaa_cache
 		return
-	var text := FileAccess.get_file_as_string(BANK_DIR + "manifest.json")
+	var bank_dir := BANK_DIR
+	var text := FileAccess.get_file_as_string(bank_dir + "manifest.json")
+	if text.is_empty():
+		bank_dir = LEGACY_BANK_DIR
+		text = FileAccess.get_file_as_string(bank_dir + "manifest.json")
 	var manifest: Variant = JSON.parse_string(text) if not text.is_empty() else null
 	if not (manifest is Dictionary):
 		push_warning("audio: 没有找到音效库 %smanifest.json，用旧音效" % BANK_DIR)
 		return
+	_is_aaa_bank = String(manifest.get("version", "")).begins_with("sfx_aaa_")
 	var clips: Dictionary = manifest.get("clips", {})
 	for key in clips:
 		var spec: Dictionary = clips[key]
 		var streams: Array = []
 		for f in spec.get("files", []):
-			var path := BANK_DIR + String(f)
+			var path := bank_dir + String(f)
 			var stream: AudioStream
 			if path.ends_with(".ogg.b64"):
 				var raw := Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
@@ -166,15 +186,18 @@ func _load_bank() -> void:
 		if streams.is_empty():
 			push_warning("audio: 音效库 %s 读不出来" % key)
 			continue
-		_bank[String(key)] = {
+		var entry := {
 			"streams": streams,
 			"bus": BANK_BUS.get(String(spec.get("bus", "impact")), BUS_IMPACT),
 			"jitter": float(spec.get("pitchJitter", 0.03)),
 			"peak_offset": float(spec.get("peakOffsetSeconds", 0.05)),
+			"pre_aligned": bool(spec.get("preAlignedSwing", false)) or spec.has("sourceVideo"),
 		}
 		if spec.has("sourceVideo"):
-			_bank[String(key)]["source_video"] = String(spec.sourceVideo)
+			entry["source_video"] = String(spec.sourceVideo)
+		_bank[String(key)] = entry
 	_bank_cache = _bank
+	_bank_is_aaa_cache = _is_aaa_bank
 
 
 func bank_size() -> int:
@@ -204,7 +227,7 @@ func play_swing_of(mv: Resource, stage: int = -1) -> void:
 	# Short startups may emit at frame zero rather than three frames early.
 	# Seek the raw whoosh forward just enough to keep its peak at the active frame.
 	var offset := 0.0
-	if _bank.get(key, {}).has("source_video"):
+	if bool(_bank.get(key, {}).get("pre_aligned", false)):
 		var cue_lead := float(_player.get("swing_cue_lead_frames")) if is_instance_valid(_player) else 3.0
 		var lead := minf(float(mv.startup_frames), cue_lead) / 60.0
 		offset = maxf(0.0, float(_bank[key].peak_offset) - lead)
@@ -219,8 +242,8 @@ func play_swing(strength: float = 0.5, stage: int = -1) -> void:
 
 ## 冲刺斩起步的“呼”（刀风另算）
 func play_dash() -> void:
-	# The selected dash recording already includes the rush and the sword.
-	if _bank.get("swing_dash", {}).has("source_video"):
+	# 冲刺斩母带本身已融合瞬步破风与剃刀横掠，避免与 swing_dash 叠双层刀风。
+	if bool(_bank.get("swing_dash", {}).get("pre_aligned", false)):
 		return
 	_play_bank("dash")
 
@@ -241,15 +264,24 @@ func play_step() -> void:
 
 
 func play_charge_start() -> void:
+	if _play_bank("charge_start"):
+		last_event = "charge_start"
+		return
 	_play_clip("charge_start", 0.0, 0.0)
 
 
 func play_charge_release(charged: bool) -> void:
+	if _play_bank("charge_release", -0.04 if charged else 0.0, 1.5 if charged else -1.5):
+		last_event = "charge_release"
+		return
 	_play_clip("charge_release", -0.05 if charged else 0.0,
 			1.5 if charged else 0.0)
 
 
 func play_ranged() -> void:
+	if _play_bank("ranged_throw"):
+		last_event = "shuriken_throw"
+		return
 	_play_clip("shuriken_throw", 0.08, 0.0)
 
 
@@ -263,10 +295,13 @@ func play_blade_hit(strength: float = 0.5, launched: bool = false) -> void:
 	_play_clip("launch" if launched else "blade_hit", strength * 0.02, _impact_gain_db(strength))
 
 
-## 弹刀（完美招架）
+## 弹刀（完美招架；满势阈值 >= 0.80 自动切重型大弹刀母带，保持 last_event = "parry"）
 func play_parry(strength: float = 0.7) -> void:
-	if not _play_bank("parry", 0.0, lerpf(-2.0, 0.0, clampf(strength, 0.0, 1.0))):
-		_play_clip("parry", PARRY_PITCH, lerpf(-3.5, 0.0, clampf(strength, 0.0, 1.0)))
+	var key := "parry_heavy" if (strength >= 0.80 and has_bank("parry_heavy")) else "parry"
+	if _play_bank(key, 0.0, lerpf(-1.8, 0.0, clampf(strength, 0.0, 1.0))):
+		last_event = "parry"
+		return
+	_play_clip("parry", PARRY_PITCH, lerpf(-3.5, 0.0, clampf(strength, 0.0, 1.0)))
 
 
 ## 格挡（按住 L 挡下）
@@ -275,7 +310,7 @@ func play_block() -> void:
 		_play_clip("parry", PARRY_PITCH - 0.2, -3.0)
 
 
-## 破防 / 眩晕
+## 破防 / 白金凝壳崩碎「破晓」
 func play_stun() -> void:
 	if not _play_bank("stun"):
 		_play_clip("parry", PARRY_PITCH, 0.0)
@@ -288,6 +323,9 @@ func play_hurt(strength: float = 0.5) -> void:
 
 
 func play_shuriken_hit(strength: float = 0.5) -> void:
+	if _play_bank("ranged_hit", 0.0, _impact_gain_db(strength)):
+		last_event = "shuriken_hit"
+		return
 	_play_clip("shuriken_hit", strength * 0.02, _impact_gain_db(strength))
 
 
@@ -296,9 +334,20 @@ func play_wall(strength: float = 0.7) -> void:
 		_play_clip("wall", strength * 0.06, _impact_gain_db(strength))
 
 
+## 冲击/砸地/裂口三档智能分流：<0.45 二连微震，0.45..1.02 重砸溅水，>1.02 紫电空间裂口崩裂
 func play_slam(strength: float = 1.0) -> void:
-	if not _play_bank("slam", 0.0, _impact_gain_db(strength)):
-		play_wall(0.9)
+	var key := "slam"
+	var db := _impact_gain_db(strength)
+	if strength < 0.45 and has_bank("impact_accent_light"):
+		key = "impact_accent_light"
+		db = 0.0
+	elif strength > 1.02 and has_bank("rift_burst"):
+		key = "rift_burst"
+		db = lerpf(-1.0, 0.5, clampf((strength - 1.0) / 0.3, 0.0, 1.0))
+	if _play_bank(key, 0.0, db):
+		last_event = "slam"
+		return
+	play_wall(0.9)
 
 
 ## 被挑飞（眩晕中挑得更高时）
@@ -485,7 +534,7 @@ func _play_bank(key: String, pitch: float = 0.0, volume_db: float = 0.0, offset:
 	var p := pitch + (_rng.randf_range(-jitter, jitter) if jitter > 0.0 else 0.0)
 	if entry.has("source_video"):
 		p = 0.0
-	var gain := volume_db + float(gain_db.get(key, 0.0)) + _repeat_trim(StringName(key))
+	var gain := volume_db + _configured_gain_db(key) + _repeat_trim(StringName(key))
 	var now := Engine.get_physics_frames()
 	if int(_same_frame.get(key, -1)) == now:
 		_same_frame_n[key] = int(_same_frame_n.get(key, 1)) + 1
@@ -540,17 +589,45 @@ func _play_stream(stream: AudioStream, pitch: float, volume_db: float, offset: f
 	return true
 
 
+func _configured_gain_db(key: String) -> float:
+	var g := float(gain_db.get(key, 0.0))
+	# battle.json 旧版为拉响塑料脚步写了 {"step": 6}；sfx_aaa_v5 已完成母带响度标定，不再叠加历史补偿。
+	if _is_aaa_bank and key == "step" and is_equal_approx(g, 6.0):
+		return 0.0
+	return g
+
+
 func _ensure_buses() -> void:
 	for n in BUS_VOLUME_DB.keys():
 		var bus_name: StringName = n
-		if AudioServer.get_bus_index(bus_name) >= 0:
-			continue
-		var idx := AudioServer.bus_count
-		AudioServer.add_bus(idx)
-		AudioServer.set_bus_name(idx, bus_name)
-		AudioServer.set_bus_send(idx, &"Master")
+		var idx := AudioServer.get_bus_index(bus_name)
+		if idx < 0:
+			idx = AudioServer.bus_count
+			AudioServer.add_bus(idx)
+			AudioServer.set_bus_name(idx, bus_name)
+			AudioServer.set_bus_send(idx, &"Master")
 		AudioServer.set_bus_volume_db(idx, float(BUS_VOLUME_DB[bus_name]))
+	_ensure_motion_ducking()
 	_ensure_limiter()
+
+
+## 动态混音让路：当 SFX_Impact 爆发命中/弹刀/碎壳时，SFX_Motion（脚步/起跳）自动轻微瞬态让路，
+## 而 SFX_Blade（挥刀破风）独立不压低，保证「挥刀声为主、打击咬合清晰、混音永不糊成一团」。
+func _ensure_motion_ducking() -> void:
+	var motion_idx := AudioServer.get_bus_index(BUS_MOTION)
+	var impact_idx := AudioServer.get_bus_index(BUS_IMPACT)
+	if motion_idx < 0 or impact_idx < 0:
+		return
+	for i in AudioServer.get_bus_effect_count(motion_idx):
+		if AudioServer.get_bus_effect(motion_idx, i) is AudioEffectCompressor:
+			return
+	var comp := AudioEffectCompressor.new()
+	comp.threshold = -16.0
+	comp.ratio = 3.2
+	comp.attack_us = 1500.0
+	comp.release_ms = 90.0
+	comp.sidechain = BUS_IMPACT
+	AudioServer.add_bus_effect(motion_idx, comp)
 
 
 ## 总线上的硬限幅：几个重音效同一帧叠在一起（命中 + 刀风 + 下砸）时不爆音

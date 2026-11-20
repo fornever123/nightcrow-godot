@@ -304,6 +304,7 @@ func _build_world_rd(noise: Texture2D) -> void:
 	_rd_fog(160.0, 560.0, 0.15, Color(0.5, 0.58, 0.68, 1.0), 0.55, Vector2(1.5, 1.0), 0.004, -96, noise)
 	if d2_on and _d2_has("behind_a"):    # D2：房子后面换成两层密的夜城天际线（亮窗零星）
 		_build_behind_d2(noise)
+		_build_vista_tower()
 		return
 	# 中城
 	var m3: Dictionary = rd_meta.get("L3_mid", {})
@@ -392,6 +393,52 @@ func _draw_d2_arch_dark_back() -> void:
 	])
 	_d2_arch_back.draw_polygon(pts, cols)
 	_d2_arch_back.draw_rect(Rect2(x0, FLOOR - 90.0, x1 - x0, 180.0), Color(0.028, 0.030, 0.038, 0.96))
+
+
+## 11-19 到 8 分：远景开口里的母钟楼（镇场大形）。从 far.png 裁出塔 + 塔后天光，边缘羽化，
+## 放在近城（behind_a，z −92）后面、远城（behind_b，z −96）前面：塔脚藏进近城屋顶，塔身和天光从开口里整个露出来。
+## 第一章还不知道光是坏的：它只是远处带天光的地标；不画正面钟盘、不加紫。D2_VTOWER=0 关。
+func _build_vista_tower() -> void:
+	if _envf_sl("D2_VISTA", 1.0) <= 0.0 or _envf_sl("D2_VTOWER", 1.0) <= 0.0:
+		return
+	var src := tex_at(RD_D2_DIR + "far.png").get_image()
+	if src.is_compressed():
+		src.decompress()
+	src.convert(Image.FORMAT_RGBA8)
+	var cw := 560
+	var ch := 620
+	var cx0 := int(D2_TOWER_PX) - cw / 2
+	var img := src.get_region(Rect2i(cx0, 0, cw, ch))
+	for yy in ch:    # 椭圆羽化：中心实、四周淡出，和后面同一张远景的云接上
+		for xx in cw:
+			var u := (float(xx) / float(cw) - 0.5) * 2.0
+			var v := (float(yy) / float(ch) - 0.42) * 2.0
+			var r := sqrt(u * u * 1.5 + v * v * 0.55)
+			var a := 1.0 - smoothstep(0.45, 1.0, r)
+			var c := img.get_pixel(xx, yy)
+			# 塔身压成深色剪影、天光留亮：以 0.3 为支点拉反差（暗的更暗，亮的不动）
+			var k := _envf_sl("D2_VT_K", 2.6)
+			c.r = clampf((c.r - 0.3) * k + 0.3, 0.0, 1.0) if c.r < 0.3 else c.r
+			c.g = clampf((c.g - 0.3) * k + 0.3, 0.0, 1.0) if c.g < 0.3 else c.g
+			c.b = clampf((c.b - 0.3) * k + 0.3, 0.0, 1.0) if c.b < 0.3 else c.b
+			c.a = a
+			img.set_pixel(xx, yy, c)
+	var t := ImageTexture.create_from_image(img)
+	var f := _envf_sl("D2_VT_F", 0.12)
+	var s := _envf_sl("D2_VT_S", 1.5)
+	var cam_w := _envf_sl("D2_VT_CAM", (VISTA_X0 + VISTA_X1) * 0.5)    # 镜头走到开口中间时塔在屏幕正中
+	var dxl := (cam_w - anchor) / bg_k
+	var w := float(cw) * s
+	var top_w := _envf_sl("D2_VT_TOP", -230.0)    # 塔图上沿的世界 y
+	var lum := _envf_sl("D2_VT_LUM", 1.0)
+	var tsp := add(t, f * dxl - w * 0.5, rd_y(top_w), s, f, int(_envf_sl("D2_VT_Z", -90.0)), false, Color(lum * 0.94, lum * 0.96, lum))
+	var km := ShaderMaterial.new()    # 只在开口那段露：塔在近城前面，不加这道会从别处楼缝漏出半截光晕
+	km.shader = VistaCutSh
+	km.set_shader_parameter("cut_x0", VISTA_X0 - 380.0)    # 开口左边原画本来就有一块天，硬切会在天上留一道竖边：放宽 + 长羽化
+	km.set_shader_parameter("cut_x1", VISTA_X1 + 160.0)
+	km.set_shader_parameter("feather_x", 320.0)
+	km.set_shader_parameter("keep_inside", 1.0)
+	tsp.material = km
 
 
 func _build_far_d2() -> void:
@@ -618,6 +665,13 @@ func _rd_place_tile(code: String, m: Dictionary, x: float, lamp_w: Array) -> flo
 	sp.region_enabled = true
 	sp.region_rect = Rect2(c0, 0.0, c1 - c0, t.get_height())
 	rd_tiles.append({"sp": sp, "code": code})
+	if d2_on and _envf_sl("D2_VISTA", 1.0) > 0.0:    # 11-19 到 8 分：远景开口（vista_cut.gdshader，玩法线确认方案 A）
+		var vm := ShaderMaterial.new()
+		vm.shader = VistaCutSh
+		vm.set_shader_parameter("cut_x0", VISTA_X0)
+		vm.set_shader_parameter("cut_x1", VISTA_X1)
+		vm.set_shader_parameter("cut_y", _envf_sl("D2_VISTA_Y", VISTA_Y))
+		sp.material = vm
 	if s3d_on:    # 11-19 3D 街体：原画按真实比例立到街对面，2D 这张、下延、窗灯柔光都不画
 		_s3d_card(t, sp, c0, c1, sr, x, top, ps, lamp_w)
 		return x + (c1 - c0) * ps
@@ -637,6 +691,8 @@ func _rd_place_tile(code: String, m: Dictionary, x: float, lamp_w: Array) -> flo
 		if img != null and _rd_img_lum(img, int(l[0]), int(l[1])) < 0.45:
 			continue
 		var lw := to_world(Vector2(anchor + x + (float(l[0]) - c0) * ps, top + float(l[1]) * ps))
+		if _in_vista(lw):
+			continue    # 开口里那截楼已挖掉，窗灯不能飘在夜空里
 		var by_lamp := false
 		for lp in lamp_w:
 			if (lp as Vector2).distance_to(lw) < 60.0:
@@ -743,6 +799,16 @@ func _s3d_card(t: Texture2D, sp: Sprite2D, c0: float, c1: float, sr: float, x: f
 		var v := lp as Vector2
 		if v.x >= x0w and v.x <= x1w:
 			street3d.add_lamp(v)
+const VistaCutSh := preload("res://scripts/night/redesign/vista_cut.gdshader")
+const VISTA_X0 := 3432.0    ## 玩法线 11-19：世界 x 3432～4347 三层以上无碰撞，两端的三层平台画面要留
+const VISTA_X1 := 4347.0
+const VISTA_Y := 222.0      ## 世界 y：二层栏杆顶，以上挖掉
+
+
+func _in_vista(w: Vector2) -> bool:
+	return d2_on and _envf_sl("D2_VISTA", 1.0) > 0.0 and w.x > VISTA_X0 and w.x < VISTA_X1 and w.y < _envf_sl("D2_VISTA_Y", VISTA_Y)
+
+
 var rd_tiles: Array = []          ## 每张同比例站立层：{sp, code}（影街墨影要叠在上面）
 ## 11-18 影街「影 2 影流向钟楼」（用户选定）：11-19 随 D2 一起设为默认（D2 的调色、去墨带都在 ying_look 里）；RAIN_LOOK=OLD 关掉，见 redesign/ying_look.gd
 var ying_on := OS.get_environment("RAIN_LOOK") != "OLD"
@@ -921,6 +987,7 @@ func _rd_fg_layer_d2(x_start: float, x_end: float) -> void:
 		relief_fg.append(sp)
 		lx += step + rng_fg.randf_range(-240.0, 240.0)
 		k += 1
+	_rd_fg_band_d2(x_start, x_end, sh)
 	# 糊板：站立层后面的远景栈整体糊掉（移轴：只有角色那一层清楚）
 	var bb := BackBufferCopy.new()
 	bb.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
@@ -938,6 +1005,37 @@ func _rd_fg_layer_d2(x_start: float, x_end: float) -> void:
 
 
 var rng_fg := RandomNumberGenerator.new()
+
+
+## 11-19 到 8 分：画面下沿一条连续的近景剪影（参照渎神 / 终焉之莉莉的下沿：黑剪影前景，不是空墙）。
+## 石栏杆、铁栏、断墙交替，中间留小缺口；比街面跑得快（FG_F）、离焦、压暗；顶端低过角色脚面，不挡人。
+## D2_BAND=0 关掉；D2_BAND_H 高度、D2_BAND_LUM 亮度、D2_BAND_SINK 往屏幕下沿外沉多少。
+func _rd_fg_band_d2(x_start: float, x_end: float, sh: Shader) -> void:
+	if _envf_sl("D2_BAND", 1.0) <= 0.0:
+		return
+	var seq := [0, 2, 0, 3, 2, 0, 3]
+	var hh := _envf_sl("D2_BAND_H", 210.0)
+	var lum := _envf_sl("D2_BAND_LUM", 0.13)
+	var sink := _envf_sl("D2_BAND_SINK", -110.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7719
+	var lx := x_start - 600.0
+	var k := 0
+	while lx < x_end + 1800.0:
+		var p := RD_D2_DIR + "fg_%d.png" % int(seq[k % seq.size()])
+		var t := tex_at(p)
+		var s := hh * rng.randf_range(0.86, 1.08) / float(t.get_height())
+		var w := t.get_width() * s
+		var h := t.get_height() * s
+		var sp := add(t, FG_F * lx, 1010.0 - h + sink, s, FG_F, 30, rng.randf() < 0.5, Color(lum, lum * 1.03, lum * 1.08))
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("blur", _envf_sl("D2_BAND_BLUR", 3.2) / s)
+		sp.material = m
+		front_nodes.append(sp)
+		relief_fg.append(sp)
+		lx += w / FG_F + rng.randf_range(20.0, 260.0)
+		k += 1
 
 
 static func _envf_sl(k: String, d: float) -> float:

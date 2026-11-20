@@ -10,6 +10,7 @@ extends Control
 
 const CUT_TEXT_SHADER := preload("res://assets/shaders/yg_title/yg_cut_text.gdshader")
 const CUT_HALF := preload("res://scripts/ui/yg_title/yg_cut_half.gd")
+const GothicFonts := preload("res://scripts/ui/gothic_fonts.gd")
 const GAME_VERSION := "DEMO BUILD · v0.9"
 
 const DIM := Color("8e919e")
@@ -76,31 +77,41 @@ func setup(s: RefCounted, view: Vector2) -> void:
 	_expect = view
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	u = min(view.y, view.x * 0.5625) / 100.0
-	_serif = _font(400)
-	_serif_light = _font(300)
-	# 拉丁字（LUX SCISSA / 罗马数字 / 键名）原来找系统的 Cinzel → Palatino，别人电脑上不一定有，也不能随游戏分发；
-	# 现在用同一份字体里的拉丁字形，字重 500 让细小的大写字母站得住
-	_gothic = _font(500)
-	_menu_font = _font(500)
-	# 和 pause_menu.gd / combat_hud.gd 一样先找系统的 Old English；发布前三处一起换成能打包的开源哥特字
-	var bl := SystemFont.new()
-	bl.font_names = PackedStringArray(["Old English Text MT", "UnifrakturMaguntia", "Noto Serif SC", "serif"])
-	_blackletter = bl
+	_serif = GothicFonts.serif(400)
+	_serif_light = GothicFonts.serif(300)
+	# 拉丁碑刻与按键徽章走开源商用石刻衬线 Cinzel-VF，中文自动回退思源重宋
+	_gothic = GothicFonts.cinzel(600, false, 500)
+	_menu_font = GothicFonts.serif(600)
+	# 副标题 Lux Scissa 统一使用打包的开源维多利亚尖角哥特黑体 PirataOne-Regular
+	_blackletter = GothicFonts.blackletter(700)
 	_build_halves()
 
 
-## [YG-MARK] 打包字体的某个字重；万一文件丢了退回系统宋体
+## [YG-MARK] 打包思源宋体的指定字重（兼容接口，零系统字体依赖）
 func _font(weight: int) -> Font:
-	var base: Font = load(FONT_FILE) if ResourceLoader.exists(FONT_FILE) else null
-	if base == null:
-		var sf := SystemFont.new()
-		sf.font_names = PackedStringArray(["Noto Serif SC", "Source Han Serif SC", "SimSun", "serif"])
-		sf.font_weight = weight
-		return sf
-	var fv := FontVariation.new()
-	fv.base_font = base
-	fv.variation_opentype = {"wght": weight}
-	return fv
+	return GothicFonts.serif(weight)
+
+
+func _exit_tree() -> void:
+	var app := get_parent()
+	if app != null:
+		var aud = app.get("audio")
+		if aud is Node:
+			for child in (aud as Node).get_children():
+				if child is AudioStreamPlayer:
+					var ap := child as AudioStreamPlayer
+					ap.stop()
+					ap.stream = null
+			var streams = aud.get("_streams")
+			if streams is Dictionary:
+				(streams as Dictionary).clear()
+	if ui_on:
+		var game_scene := "res://scenes/rain_trial.tscn"
+		var st := ResourceLoader.load_threaded_get_status(game_scene)
+		if st == ResourceLoader.THREAD_LOAD_IN_PROGRESS or st == ResourceLoader.THREAD_LOAD_LOADED:
+			var _discard = ResourceLoader.load_threaded_get(game_scene)
+	# 给混音线程留出一个混音切片周期释放已 stop 的 Ogg 播放实例，避免直接退出时报 resources still in use
+	OS.delay_msec(80)
 
 
 func _build_halves() -> void:
@@ -177,7 +188,7 @@ func _layout_halves() -> void:
 		var m := c.material as ShaderMaterial
 		m.set_shader_parameter("uRes", size)
 		m.set_shader_parameter("uLine", ctr)
-		m.set_shader_parameter("uN", Vector2(-sin(deg_to_rad(10.32)), cos(deg_to_rad(10.32))))
+		m.set_shader_parameter("uN", sim.N)   # [YG-MARK] 11-08 跟断口同一个角度
 		m.set_shader_parameter("uSide", 1.0 if side == 0 else -1.0)
 		var a := _elem_a(0.15 + item * 0.12) * _a
 		if mode != "menu":
@@ -187,11 +198,11 @@ func _layout_halves() -> void:
 		c.font_serif = _menu_font
 		c.font_gothic = _gothic
 		c.unit = u
-		c.label_size = MENU_FS
+		c.label_size = MENU_FS_SEL if is_sel else MENU_FS   # [YG-MARK] 11-08 选中项大一号
 		c.label_spacing = 0.62
 		c.ctr = ctr + off
 		var dim: bool = (MENU[item]["tag"] != "")
-		var lab := Color(0.929, 0.902, 0.859, a) if is_sel else Color(DIM.r, DIM.g, DIM.b, a)
+		var lab := Color(0.929, 0.902, 0.859, a) if is_sel else Color(0.69, 0.70, 0.745, a)   # [YG-MARK] 11-08 提亮
 		if dim and not is_sel:
 			lab = Color(0.282, 0.29, 0.337, a)
 		elif dim:
@@ -210,11 +221,13 @@ func _elem_a(delay: float) -> float:
 
 
 ## [YG-MARK] 11-05 改好看：菜单挂在副标题下面 7.5u（原来紧贴字标），字 2.25u → 2.5u、字重 500
-const MENU_FS := 2.5
+## [YG-MARK] 11-08 换 G03：按定稿图放大，选中 3.5u、其余 2.75u（原来都是 2.5u）
+const MENU_FS := 2.75
+const MENU_FS_SEL := 3.5
 
 
 func _menu_top() -> float:
-	return sim.C.y + sim.F * 1.02 + 7.5 * u
+	return sim.logo_cy + sim.F * 0.92 + 13.6 * u   # [YG-MARK] 11-08：字标不再以刀口为中心；选中项中心落在定稿图的高度（2/3 屏）
 
 
 func _item_h() -> float:
@@ -279,19 +292,12 @@ func _draw_sub() -> void:
 	var a := clampf((_t - 0.1) / 1.6, 0.0, 1.0) * _a
 	if a <= 0.01:
 		return
-	var y: float = sim.C.y + sim.F * 1.02
-	var grow := clampf((_t - 0.3) / 1.8, 0.0, 1.0)
+	var y: float = sim.logo_cy + sim.F * 0.92   # [YG-MARK] 11-08 换 G03：去掉两边的线和菱形，只留字
 	# [YG-MARK] 11-05 更高级：副标题回到定好的哥特小字 Lux Scissa（移植时跟着网页版成了拉开字距的宋体大写）
 	var txt := "Lux Scissa"
 	var fs := int(round(2.5 * u))
 	var w := _spaced_width(txt, _blackletter, fs, 0.04)
-	var lw := 11.5 * u * grow
-	var gap := 1.8 * u
 	var cx := size.x * 0.5
-	_line_grad(Vector2(cx - w * 0.5 - gap - lw, y), Vector2(cx - w * 0.5 - gap, y), Color(0.855, 0.831, 0.784, a * 0.65), true)
-	_line_grad(Vector2(cx + w * 0.5 + gap, y), Vector2(cx + w * 0.5 + gap + lw, y), Color(0.855, 0.831, 0.784, a * 0.65), false)
-	_diamond(Vector2(cx - w * 0.5 - gap * 0.45, y), 0.44 * u * 0.5, Color(0.86, 0.84, 0.79, 0.8 * a))
-	_diamond(Vector2(cx + w * 0.5 + gap * 0.45, y), 0.44 * u * 0.5, Color(0.86, 0.84, 0.79, 0.8 * a))
 	_text_spaced(Vector2(cx - w * 0.5, y + fs * 0.3), txt, _blackletter, fs, Color(0.86, 0.84, 0.8, a), 0.04)
 
 
@@ -309,10 +315,10 @@ func _draw_menu_decor() -> void:
 		var is_sel := (sel == i)
 		var cx := size.x * 0.5
 		if is_sel:
-			# 和暂停菜单同一套：两侧紫菱 + 字下面一道银线（不再斜穿过字，像删除线）
-			var fs := int(round(MENU_FS * u))
+			# [YG-MARK] 11-08 换 G03：字下面一道冷白的斩线，比字宽，两头收细（原来是紫菱 + 银线）
+			var fs := int(round(MENU_FS_SEL * u))
 			var lw := _spaced_width(MENU[i]["label"], _menu_font, fs, 0.62)
-			_sel_mark(Vector2(cx, y), lw * 0.5, fs, a)
+			_home_slash(Vector2(cx, y + fs * 0.86), lw * 0.5 + 5.5 * u, a)
 		var tag: String = MENU[i]["tag"]
 		if tag != "":
 			var tfs := int(round(0.92 * u))
@@ -339,7 +345,7 @@ func _draw_hint() -> void:
 	var widths: Array = []
 	var total := 0.0
 	var gapw := 2.2 * u
-	var lfs := int(round(1.3 * u))     # [YG-MARK] 11-05 更高级：提示放大一号、提亮
+	var lfs := int(round(1.5 * u))     # [YG-MARK] 11-05 更高级：提示放大一号、提亮；11-08 再大一点
 	for p in parts:
 		var kw := _chip_width(p[0])
 		var tw := _spaced_width(p[1], _serif_light, lfs, 0.26)
@@ -352,7 +358,7 @@ func _draw_hint() -> void:
 		var kw: float = widths[i][0]
 		_chip(Rect2(Vector2(x, y - 1.1 * u), Vector2(kw, 2.2 * u)), parts[i][0], a)
 		_text_spaced(Vector2(x + kw + 0.55 * u, y + lfs * 0.34), parts[i][1], _serif_light, lfs,
-				Color(0.56, 0.58, 0.65, a), 0.26)
+				Color(0.69, 0.71, 0.76, a), 0.26)
 		x += float(widths[i][2]) + gapw
 
 
@@ -595,11 +601,11 @@ func _draw_help() -> void:
 		for i in rows.size():
 			var ry := y0 + 2.6 * u + i * rh + rh * 0.5
 			var key: String = rows[i][0]
-			var kw := _spaced_width(key, _serif, kfs, 0.08)
+			var kw := _spaced_width(key, _gothic, kfs, 0.08)
 			var chip := Rect2(Vector2(x0, ry - 0.85 * u), Vector2(kw + 1.2 * u, 1.7 * u))
 			draw_rect(chip, Color(0.071, 0.086, 0.133, 0.7), true)
 			draw_rect(chip, Color(0.627, 0.667, 0.784, 0.24), false, 1.0)
-			_text_spaced(Vector2(chip.position.x + 0.6 * u, ry + kfs * 0.34), key, _serif, kfs, Color(0.82, 0.83, 0.88), 0.08)
+			_text_spaced(Vector2(chip.position.x + 0.6 * u, ry + kfs * 0.34), key, _gothic, kfs, Color(0.82, 0.83, 0.88), 0.08)
 			_text_spaced(Vector2(x0 + 13.5 * u, ry + kfs * 0.34), str(rows[i][1]), _serif_light, kfs,
 					Color(0.66, 0.68, 0.75), 0.2)
 	# 底下一行：怎么回去
@@ -755,6 +761,19 @@ func _row_sel(r: Rect2, ry: float, rh: float) -> void:
 	_diamond(Vector2(r.position.x + 0.8 * u, ry + rh * 0.5), 0.3 * u, Color(0.74, 0.66, 1.0, 0.95))
 
 
+## [YG-MARK] 11-08 换 G03：首页菜单的选中线
+func _home_slash(c: Vector2, half_w: float, a: float) -> void:
+	var steps := 24
+	for i in steps:
+		var t0 := float(i) / steps
+		var t1 := float(i + 1) / steps
+		var e := 1.0 - pow(absf((t0 + t1) - 1.0), 2.0)
+		var p0 := Vector2(c.x + lerpf(-half_w, half_w, t0), c.y)
+		var p1 := Vector2(c.x + lerpf(-half_w, half_w, t1), c.y)
+		draw_line(p0, p1, Color(0.82, 0.86, 0.96, 0.10 * e * a), 4.0)
+		draw_line(p0, p1, Color(0.97, 0.97, 0.99, e * a), 1.2)
+
+
 ## [YG-MARK] 11-05：选中标记，照暂停菜单：两侧紫菱 + 字下面一道银线（左端带紫色线头）
 func _sel_mark(c: Vector2, half_w: float, fs: int, a: float) -> void:
 	var dx := half_w + 2.0 * u
@@ -777,14 +796,14 @@ func _sel_mark(c: Vector2, half_w: float, fs: int, a: float) -> void:
 func _chip(r: Rect2, text: String, a: float) -> void:
 	draw_rect(r, Color(0.071, 0.086, 0.133, 0.55 * a), true)
 	draw_rect(r, Color(0.627, 0.667, 0.784, 0.24 * a), false, 1.0)
-	var fs := int(round(1.15 * u))
+	var fs := int(round(1.3 * u))
 	var w := _spaced_width(text, _gothic, fs, 0.1)
 	_text_spaced(Vector2(r.position.x + r.size.x * 0.5 - w * 0.5, r.position.y + r.size.y * 0.5 + fs * 0.35),
 			text, _gothic, fs, Color(0.722, 0.749, 0.831, a), 0.1)
 
 
 func _chip_width(text: String) -> float:
-	return _spaced_width(text, _gothic, int(round(1.15 * u)), 0.1) + 1.3 * u
+	return _spaced_width(text, _gothic, int(round(1.3 * u)), 0.1) + 1.3 * u
 
 
 func _btn(r: Rect2, a: float) -> void:

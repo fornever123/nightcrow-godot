@@ -140,7 +140,11 @@ func run() -> void:
 	await process_frame
 	p = stage.player
 	check(p != null and not stage.trial_completed, "试玩可开始且没有提前结算")
-	check(String(ProjectSettings.get_setting("application/run/main_scene")) == "res://scenes/rain_trial.tscn", "默认游戏入口是雨街试玩")
+	# 11-03：首页线把默认入口接去了 yg_title_duanguang.tscn；这里只要求雨街试玩场景还在、入口指向它或首页。
+	var entry := String(ProjectSettings.get_setting("application/run/main_scene"))
+	check(entry == "res://scenes/rain_trial.tscn" or entry.ends_with("yg_title_duanguang.tscn") or entry.ends_with("yg_title_zhanzhong.tscn"),  # [YG-MARK] 11-17 首页线入口换成《斩钟》首页
+		"默认入口是雨街试玩（或首页接管：%s）" % entry)
+	check(ResourceLoader.exists("res://scenes/rain_trial.tscn"), "雨街试玩场景还在")
 	check(stage.round_waves.size() == 3, "沿用三处封印和既有波次")
 	await step(frame(), 20)
 	await shot("01_start")

@@ -11,6 +11,21 @@
 
 ---
 
+## 0. 2026-11-15 新首页《斩钟》（现在的启动场景）
+
+新增（都带 `[YG-MARK]`）：
+- `scenes/yg_title_zhanzhong.tscn`
+- `scripts/ui/yg_zhanzhong/`（`zz_title.gd`、`zz_clock.gd`、`zz_lit.gdshader`、`zz_flat.gdshader`、`zz_add.gdshader`）
+- `assets/image/yg_zhanzhong/`、`assets/audio/yg_zhanzhong/`、`assets/fonts/yg_zhanzhong/`（由 `E:/00game/title-lab/godot_port/prep_assets.py` 生成，可重跑）
+
+改动：`project.godot` 的 `run/main_scene` 从 `res://scenes/yg_title_duanguang.tscn` 改成 `res://scenes/yg_title_zhanzhong.tscn`。
+
+撤回到“断光”：把 `run/main_scene` 改回 `yg_title_duanguang.tscn`，删掉上面三处新增。下面第 1～6 节是“断光”本身的清单，照旧有效。
+
+调试用环境变量（只在设了时生效）：`ZZ_CAPTURE=<目录>` 自动走一遍并截图后退出；`ZZ_SKIP_INTRO=1` 跳过开场；`ZZ_AUTOLAUNCH=0|1` 跳过开场并 1 秒后进对应章节。
+
+---
+
 ## 1. 新增的文件（删掉即回到原状）
 
 ### 首页本体
@@ -87,6 +102,41 @@
 | `桌面\断晓 · 启动游戏.lnk`（本机 `C:\Users\MECHREVO\Desktop\断晓 · 启动游戏.lnk`） | 双击 = `engine\Godot_v4.7.2-stable_win64.exe --path <仓库根>`，工作目录是仓库根，图标用 `assets/image/yg_title/yg_title_icon.ico`；快捷方式的「备注」里写了 `[YG-MARK]` 和删除方法 |
 
 删除：把这个 `.lnk` 直接删掉即可（不在 git 里，也不影响工程）。
+
+---
+
+## 2b. 11-08 首页换 G03（白大理石 + 黑水）
+
+第 4 节的一键删除照样能摘干净：新文件都在 `assets/shaders/yg_title`、`assets/image/yg_title` 里，只多删一个 `docs/视觉设计/首页/G03实机_20261108/` 和下面的烘焙脚本（文档资料，留着也不影响游戏）。
+
+新增：
+| 路径 | 作用 |
+|---|---|
+| `assets/shaders/yg_title/yg_g03_light.gdshader` | 光层：大理石底图 + 慢扫光 + 黑字标 |
+| `assets/shaders/yg_title/yg_g03_shadow.gdshader` | 影层：黑水底图 + 水面波动 + 涟漪 |
+| `assets/shaders/yg_title/yg_g03_final.gdshader` | 输出：不过 ACES 和调色，暗角减轻 |
+| `assets/image/yg_title/g03_light.webp`、`g03_shadow.webp`、`g03_logo.png` | 烘好的两层底图和 GPT 字标 |
+| `docs/视觉设计/首页/src/bake_g03_plate.py` | 把 `生图方案_20261108/素材_抽象/G03_光与影两断.png` 烘成上面三张 |
+
+**只想退回上一版的灰雾首页（不删首页）**，要改回这些地方（代码里都有 `[YG-MARK] 11-08`）：
+- `yg_title_stage.gd`：`SH_LIGHT / SH_SHADOW / SH_FINAL` 改回 `yg_light / yg_shadow / yg_final`；`uBloomK` 回 0.15；去掉给粒子的 `uMono / uRainK / uInkMask / uReveal / uLogo`。
+- `yg_title_sim.gd`：`ANG_DEG` 回 10.32，`C / R / F / logo_cy / box` 回原来的算法。
+- `yg_title_ui.gd`：`_menu_top`、`_draw_sub`（线和菱形）、`MENU_FS`（回 2.5，去掉 `MENU_FS_SEL`）、菜单未选中色、`_home_slash` 换回 `_sel_mark`、提示字号（`lfs` 回 1.3、`_chip` 回 1.15）、切字角度。
+- `yg_comp.gdshader`：`GLD`、撕裂带的 `GRY` 项、刀口的 `ef` 和两头亮度，原值都写在注释里。
+- `yg_part.gdshader`：新加的 4 个 uniform 和两处使用不用动，默认值等于没开。
+
+## 2c. 11-08 字成城动效原型（独立场景，游戏不会加载）
+
+没改任何旧文件，也不是启动场景，把下面这些直接删掉就干净：
+- `scenes/yg_gc_title.tscn`
+- `scripts/ui/yg_glyphcity/`
+- `assets/shaders/yg_glyphcity/`
+- `assets/image/yg_glyphcity/`
+- `docs/视觉设计/首页/src/bake_glyphcity.py`
+- `docs/视觉设计/首页/src/make_glyphcity_20261108.py`
+- `docs/视觉设计/首页/字成城_20261108/`
+
+落羽静帧的合成脚本（只是文档资料，游戏不用）：`docs/视觉设计/首页/src/make_luoyu_home_20261108.py`。
 
 ---
 

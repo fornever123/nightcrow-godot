@@ -47,8 +47,10 @@ func run() -> void:
 			source_frames+=clips[key].frames.size()
 	check(source_count==24 and source_frames==734,"24套完整原片734帧全部保留可预览")
 	check(p.foot_offset==84 and view.setup.worldScale==1,"源图缩放不缩小角色物理身高")
-	check(absf(p.speed/clips.run.fps-18.6)<0.1 and clips.turn_left_right.fps==18 and clips.turn_left_right.frames.size()==7,"跑步帧率与步幅绑定、转身提速且裁成7帧")
-	check(p.speed>=300.0,"第二轮手感：跑速提到 300 以上（步幅 18.6/帧，帧率跟着提）")
+	# 2026-11-02：跑步换成「即梦 v5+v6 合成 → FrameBaker 导入」的序列：22 帧（前 6 帧起跑过渡 + 16 帧循环，
+	# loopFrame=6），角色高 340px、画布 520x409。跑速保持战斗线定的 680，所以不校验「帧率与步幅绑定」。
+	check(clips.run.frames.size()==22 and clips.run.loop and int(clips.run.get("loopFrame", 0))==6 and clips.turn_left_right.fps==18 and clips.turn_left_right.frames.size()==7,"跑步是 22 帧（6 帧起跑过渡 + 16 帧循环）、转身提速且裁成7帧")
+	check(p.speed>=300.0,"第二轮手感：跑速提到 300 以上")
 	check(clips.air_attack_1.frames.size()==18 and clips.air_attack_2.frames.size()==12 and clips.air_attack_3.frames.size()==26,"空中56帧完整分为18/12/26三段")
 	check(p.air_combo.size()==3 and p.dash_left_move!=null and p.dash_move!=null,"新招式资源注入真实玩家")
 	check(p.dash_left_move.animation=="dash_left_video" and p.dash_move.animation=="dash_right_video" and clips.dash_left_video.frames.size()==21 and clips.dash_right_video.frames.size()==22,"左右冲刺各用视频里对应方向那一段（左1–21、右22–43帧）")

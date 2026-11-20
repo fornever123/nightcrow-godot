@@ -227,7 +227,13 @@ func _build_grade() -> void:
 	if sl.d2_on:    # 11-19 主次：以角色为中心的背景压暗（见 ying_grade.gdshader）
 		grade_mat = m
 		m.set_shader_parameter("focus_amt", _envf_yl("D2_FOCUS", 0.16))
-		m.set_shader_parameter("top_amt", _envf_yl("D2_TOP", 0.08))
+		m.set_shader_parameter("top_amt", _envf_yl("D2_TOP", 0.0))
+		# 11-19 对照参照游戏：暗部抬成有颜色的暗、远处变雾、冷暗暖亮（见 ying_grade.gdshader）
+		m.set_shader_parameter("shadow_lift", _envf_yl("D2_LIFT", 0.6))
+		m.set_shader_parameter("haze_amt", _envf_yl("D2_GHAZE", 0.3))
+		m.set_shader_parameter("split_amt", _envf_yl("D2_SPLIT", 1.0))
+		m.set_shader_parameter("sat", _envf_yl("D2_SAT", 1.2))
+		m.set_shader_parameter("haze_drift", _envf_yl("D2_DRIFT", 0.8))    # 11-19 到 8 分：雾成团缓慢飘，不再是一层不动的灰
 
 
 func update(dt: float, cam: Vector2) -> void:
@@ -238,6 +244,7 @@ func update(dt: float, cam: Vector2) -> void:
 		var rel: Vector2 = (sl._player_pos() + Vector2(0.0, -60.0) - sl.bd.camera.get_screen_center_position()) * zoom
 		var want := Vector2(0.5, 0.5) + rel / vs
 		focus_uv = focus_uv.lerp(want, clampf(dt * 4.0, 0.0, 1.0))
+		grade_mat.set_shader_parameter("cam_x", sl.bd.camera.get_screen_center_position().x)
 		grade_mat.set_shader_parameter("focus", focus_uv)
 		grade_mat.set_shader_parameter("aspect", vs.x / maxf(vs.y, 1.0))
 	_update_ribbons(dt, cam)

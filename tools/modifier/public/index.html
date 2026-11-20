@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>夜鸦修改器</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>夜鸦修改器</h1>
+    <div id="game-status" role="status">正在连接…</div>
+  </div>
+  <label class="search-box"><input id="search" type="search" placeholder="搜索参数、招式、敌人（Ctrl+K）" aria-label="搜索" autocomplete="off"></label>
+  <div class="top-actions">
+    <div class="history-buttons">
+      <button id="undo" title="撤销 Ctrl+Z" aria-label="撤销">↶</button>
+      <button id="redo" title="重做 Ctrl+Y" aria-label="重做">↷</button>
+    </div>
+    <button id="pending-count" title="查看改动清单" aria-expanded="false">0 项待应用</button>
+    <button id="apply-only" title="Ctrl+S">应用</button>
+    <button id="apply-training">进训练场</button>
+    <button id="apply-rain" class="primary">应用并进雨街</button>
+    <button id="stop-game">停止游戏</button>
+  </div>
+</header>
+<div id="notice" role="status" class="notice" hidden></div>
+<div id="conflict" class="conflict" hidden><span>文件被别处改过。你的改动还在草稿里。</span><button id="reload-state">重新读取</button></div>
+<div class="workspace">
+  <nav id="navigation" class="navigation" aria-label="模块"></nav>
+  <main id="content" tabindex="-1"><p class="loading">正在读取参数…</p></main>
+  <div id="hint" class="hint-bar" role="status"></div>
+  <aside id="changes-panel" class="changes-panel" aria-label="改动清单">
+    <div class="panel-heading"><h2>改动清单</h2><button id="close-changes" aria-label="关闭">×</button></div>
+    <div id="changes"></div>
+    <div id="reset-all" class="reset-all"></div>
+  </aside>
+</div>
+<script src="/model.js"></script>
+<script src="/scene.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

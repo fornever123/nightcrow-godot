@@ -1,0 +1,464 @@
+{
+  "version": "sfx_aaa_v5_2_20261114",
+  "sampleRate": 48000,
+  "channels": 2,
+  "note": "《断晓》商业 3A 级混合合成音效库 v5.2（最高音调冷钢弹刀长鸣 + 192kHz 快速拔刀凌冽寒芒挥斩 + 纯净无梳状滤波立体声母带）。由 tools/audio/make_sfx_aaa_v5.py 生成。",
+  "clips": {
+    "step": {
+      "files": [
+        "step_0.wav",
+        "step_1.wav",
+        "step_2.wav",
+        "step_3.wav",
+        "step_4.wav",
+        "step_5.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.035
+    },
+    "jump": {
+      "files": [
+        "jump_0.wav",
+        "jump_1.wav",
+        "jump_2.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.025
+    },
+    "jump_double": {
+      "files": [
+        "jump_double_0.wav",
+        "jump_double_1.wav",
+        "jump_double_2.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.025
+    },
+    "land_light": {
+      "files": [
+        "land_light_0.wav",
+        "land_light_1.wav",
+        "land_light_2.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.03
+    },
+    "land_heavy": {
+      "files": [
+        "land_heavy_0.wav",
+        "land_heavy_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "dash": {
+      "files": [
+        "dash_0.wav",
+        "dash_1.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.025
+    },
+    "swing_l1": {
+      "files": [
+        "swing_l1_0.wav",
+        "swing_l1_1.wav",
+        "swing_l1_2.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_l2": {
+      "files": [
+        "swing_l2_0.wav",
+        "swing_l2_1.wav",
+        "swing_l2_2.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_l3": {
+      "files": [
+        "swing_l3_0.wav",
+        "swing_l3_1.wav",
+        "swing_l3_2.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.018,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_up": {
+      "files": [
+        "swing_up_0.wav",
+        "swing_up_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_air_up": {
+      "files": [
+        "swing_air_up_0.wav",
+        "swing_air_up_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_air1": {
+      "files": [
+        "swing_air1_0.wav",
+        "swing_air1_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_air2": {
+      "files": [
+        "swing_air2_0.wav",
+        "swing_air2_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_air3": {
+      "files": [
+        "swing_air3_0.wav",
+        "swing_air3_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.018,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_charge": {
+      "files": [
+        "swing_charge_0.wav",
+        "swing_charge_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.015,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_dash": {
+      "files": [
+        "swing_dash_0.wav",
+        "swing_dash_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.018,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "swing_dash_left": {
+      "files": [
+        "swing_dash_left_0.wav",
+        "swing_dash_left_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.018,
+      "peakOffsetSeconds": 0.05,
+      "preAlignedSwing": true
+    },
+    "draw": {
+      "files": [
+        "draw_0.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.0,
+      "peakOffsetSeconds": 0.26
+    },
+    "sheathe": {
+      "files": [
+        "sheathe_0.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.0,
+      "peakOffsetSeconds": 0.56
+    },
+    "charge_start": {
+      "files": [
+        "charge_start_0.wav",
+        "charge_start_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.02
+    },
+    "charge_release": {
+      "files": [
+        "charge_release_0.wav",
+        "charge_release_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "ranged_throw": {
+      "files": [
+        "ranged_throw_0.wav",
+        "ranged_throw_1.wav"
+      ],
+      "bus": "blade",
+      "pitchJitter": 0.03
+    },
+    "ranged_hit": {
+      "files": [
+        "ranged_hit_0.wav",
+        "ranged_hit_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "hit_light": {
+      "files": [
+        "hit_light_0.wav",
+        "hit_light_1.wav",
+        "hit_light_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "hit_heavy": {
+      "files": [
+        "hit_heavy_0.wav",
+        "hit_heavy_1.wav",
+        "hit_heavy_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "hit_finisher": {
+      "files": [
+        "hit_finisher_0.wav",
+        "hit_finisher_1.wav",
+        "hit_finisher_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "hurt": {
+      "files": [
+        "hurt_0.wav",
+        "hurt_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "hurt_heavy": {
+      "files": [
+        "hurt_heavy_0.wav",
+        "hurt_heavy_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "parry": {
+      "files": [
+        "parry_0.wav",
+        "parry_1.wav",
+        "parry_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.015
+    },
+    "parry_heavy": {
+      "files": [
+        "parry_heavy_0.wav",
+        "parry_heavy_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.012
+    },
+    "block": {
+      "files": [
+        "block_0.wav",
+        "block_1.wav",
+        "block_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "deflect": {
+      "files": [
+        "deflect_0.wav",
+        "deflect_1.wav",
+        "deflect_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "stun": {
+      "files": [
+        "stun_0.wav",
+        "stun_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "guard_break": {
+      "files": [
+        "guard_break_0.wav",
+        "guard_break_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "impact_accent_light": {
+      "files": [
+        "impact_accent_light_0.wav",
+        "impact_accent_light_1.wav",
+        "impact_accent_light_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "slam": {
+      "files": [
+        "slam_0.wav",
+        "slam_1.wav",
+        "slam_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "rift_burst": {
+      "files": [
+        "rift_burst_0.wav",
+        "rift_burst_1.wav",
+        "rift_burst_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.02
+    },
+    "launch": {
+      "files": [
+        "launch_0.wav",
+        "launch_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.025
+    },
+    "wall": {
+      "files": [
+        "wall_0.wav",
+        "wall_1.wav",
+        "wall_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "chain": {
+      "files": [
+        "chain_0.wav",
+        "chain_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.0
+    },
+    "bomb": {
+      "files": [
+        "bomb_0.wav",
+        "bomb_1.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "shade_windup": {
+      "files": [
+        "shade_windup_0.wav",
+        "shade_windup_1.wav",
+        "shade_windup_2.wav"
+      ],
+      "bus": "warning",
+      "pitchJitter": 0.025
+    },
+    "shade_windup_heavy": {
+      "files": [
+        "shade_windup_heavy_0.wav",
+        "shade_windup_heavy_1.wav"
+      ],
+      "bus": "warning",
+      "pitchJitter": 0.02
+    },
+    "shade_swing": {
+      "files": [
+        "shade_swing_0.wav",
+        "shade_swing_1.wav",
+        "shade_swing_2.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.03
+    },
+    "shade_swing_heavy": {
+      "files": [
+        "shade_swing_heavy_0.wav",
+        "shade_swing_heavy_1.wav"
+      ],
+      "bus": "motion",
+      "pitchJitter": 0.025
+    },
+    "shade_shot": {
+      "files": [
+        "shade_shot_0.wav",
+        "shade_shot_1.wav"
+      ],
+      "bus": "warning",
+      "pitchJitter": 0.03
+    },
+    "shade_die": {
+      "files": [
+        "shade_die_0.wav",
+        "shade_die_1.wav",
+        "shade_die_2.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.03
+    },
+    "die": {
+      "files": [
+        "die_0.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.0
+    },
+    "seal": {
+      "files": [
+        "seal_0.wav"
+      ],
+      "bus": "ui",
+      "pitchJitter": 0.0
+    },
+    "clear": {
+      "files": [
+        "clear_0.wav"
+      ],
+      "bus": "ui",
+      "pitchJitter": 0.0
+    },
+    "ult_start": {
+      "files": [
+        "ult_start_0.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.0
+    },
+    "ult_slash": {
+      "files": [
+        "ult_slash_0.wav"
+      ],
+      "bus": "impact",
+      "pitchJitter": 0.0
+    }
+  }
+}

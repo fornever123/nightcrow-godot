@@ -118,7 +118,8 @@ func run() -> void:
 	p._release_charge()
 	await step(p.charge_move.startup_frames - 1, false)
 	check(stage.dummy.hp == dummy_hp, "new release windup does not damage before authored impact")
-	await step(12, false)
+	# 11-03：重击的伤害窗口挪到判定段末尾（挥到底那一下才结算），所以要多等一整段判定帧
+	await step(p.charge_move.active_frames, false)
 	check(stage.dummy.hp < dummy_hp and p.hitstop_frames > 0, "new release collision deals real damage and hitstop at impact")
 	stage.free()
 	finish()

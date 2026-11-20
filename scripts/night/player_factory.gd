@@ -41,6 +41,10 @@ static func build(config: Dictionary, moves: Dictionary, spawn: Vector2) -> Char
 			player.air_combo.append(moves[move_id])
 	player.dash_move = moves.get("dash_slash")
 	player.dash_left_move = moves.get("dash_slash_left")
+	# 11-03：空中冲刺斩、下落攻击都有各自的招式资源（"单独动作模组"）；没有就退回地面冲刺斩 / 空中第三刀
+	player.air_dash_move = moves.get("air_dash_slash")
+	player.air_dash_left_move = moves.get("air_dash_slash_left")
+	player.air_plunge_move = moves.get("air_plunge")
 	for i in 3:
 		if moves.has("guard_hit_%d" % (i + 1)):
 			player.guard_reactions.append(moves["guard_hit_%d" % (i + 1)])
@@ -58,8 +62,8 @@ static func build(config: Dictionary, moves: Dictionary, spawn: Vector2) -> Char
 
 ## 键位（11-01 用户）：键盘 / 键鼠【二选一】，默认键盘；手柄两种模式下都能用。
 ##   两套共用：A/D 移动 · W/空格 跳 · S 下平台 · R 大招 · F5 重开 · H 提示 · F1 / F3
-##   键盘（keyboard）：J 攻击 · K 远射 · L 弹刀 · Shift 冲刺斩（J+K 也能放大招）
-##   键鼠（mouse）：左键 攻击 · 右键 / Shift 冲刺斩 · E 弹刀 · Q 远射（这时 J / K / L 不起作用）
+##   键盘（keyboard）：J 攻击 · K 远射 · L 弹刀 · **双击 A / D 冲刺斩**（Shift 是别名；J+K 也能放大招）
+##   键鼠（mouse）：左键 攻击 · **双击 A / D 冲刺斩**（右键 / Shift 是别名）· E 弹刀 · Q 远射（这时 J / K / L 不起作用）
 ##   手柄（Xbox 布局）：左摇杆 / 十字键 · A 跳 · X 攻击 · Y 远射 · B 冲刺斩 · RB 弹刀 · RT 大招 · Start 暂停 · Back 重开
 ## 选哪套记在 user://controls.cfg；改用 set_scheme()，会立刻重绑并存盘。
 ## jump_pure 是“只是跳”的键（空格 / 手柄 A）：W 同时是跳和上方向，按住它不算上挑意图，见 player._pure_jump_down()。
@@ -82,8 +86,8 @@ const SCHEME_MOUSE_BUTTONS := {
 }
 ## 提示文字里每个键叫什么
 const SCHEME_LABELS := {
-	"keyboard": {"attack": "J", "ranged": "K", "parry": "L", "dash": "Shift"},
-	"mouse": {"attack": "左键", "ranged": "Q", "parry": "E", "dash": "右键"},
+	"keyboard": {"attack": "J", "ranged": "K", "parry": "L", "dash": "双击 A/D"},
+	"mouse": {"attack": "左键", "ranged": "Q", "parry": "E", "dash": "双击 A/D"},
 }
 const PAD_BUTTONS := {"move_left": [JOY_BUTTON_DPAD_LEFT], "move_right": [JOY_BUTTON_DPAD_RIGHT],
 	"aim_up": [JOY_BUTTON_DPAD_UP], "move_down": [JOY_BUTTON_DPAD_DOWN], "jump": [JOY_BUTTON_A],

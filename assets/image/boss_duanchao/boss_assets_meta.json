@@ -1,0 +1,66 @@
+{
+  "rooftop_stage": {
+    "sky_size": [
+      2184,
+      1024
+    ],
+    "horizon_row": 672,
+    "gears_left_size": [
+      611,
+      757
+    ],
+    "gears_right_size": [
+      604,
+      757
+    ],
+    "needle_size": [
+      376,
+      1012
+    ],
+    "deck_size": [
+      2688,
+      425
+    ],
+    "deck_walk_row": 10,
+    "spire_left_size": [
+      545,
+      992
+    ],
+    "spire_left_inner_x": 440,
+    "spire_right_size": [
+      534,
+      987
+    ],
+    "spire_right_inner_x": 90,
+    "fg": {
+      "rooftop_fg_tl.png": [
+        604,
+        496
+      ],
+      "rooftop_fg_tr.png": [
+        660,
+        478
+      ],
+      "rooftop_fg_bl.png": [
+        664,
+        397
+      ],
+      "rooftop_fg_br.png": [
+        760,
+        476
+      ]
+    }
+  },
+  "boss_24": {
+    "cols": 6,
+    "rows": 4,
+    "total_frames": 24,
+    "cell_px": 512,
+    "rim_cell_px": 256
+  },
+  "boss_vfx": {
+    "cols": 3,
+    "rows": 2,
+    "cell_px": 512
+  }
+}

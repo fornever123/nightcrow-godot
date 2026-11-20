@@ -1,0 +1,10 @@
+{
+  "tex_w": 2304,
+  "tex_h": 1024,
+  "hole_center_px": [
+    1168.0,
+    284.5
+  ],
+  "hole_radius_px": 204.0,
+  "bridge_y_px": 768.0
+}

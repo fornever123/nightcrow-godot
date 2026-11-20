@@ -1,0 +1,35 @@
+{
+  "r1_far_sky_tower": {
+    "w": 1672,
+    "h": 941
+  },
+  "r1_mid_city_abyss": {
+    "w": 1672,
+    "h": 941
+  },
+  "r1_play_viaduct": {
+    "w": 1672,
+    "h": 941,
+    "ground_px": 706.0,
+    "road_band": [
+      680,
+      728
+    ]
+  },
+  "r1_fg_frame": {
+    "w": 1672,
+    "h": 941
+  },
+  "r2_tex_cobble": {
+    "w": 1024,
+    "h": 1024
+  },
+  "r2_tex_facade": {
+    "w": 1024,
+    "h": 1024
+  },
+  "r2_tex_stone_trim": {
+    "w": 1024,
+    "h": 1024
+  }
+}

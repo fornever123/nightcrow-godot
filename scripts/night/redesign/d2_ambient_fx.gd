@@ -1,7 +1,7 @@
 extends Node2D
 ## 2026-11-19 背景重构档 · 环境动态与光影细节层（§3.1.3 + §3.3.3 + §3.6）：
 ##   1. 主角脚下接地软影（z = -3，随离地高度缩放变淡）
-##   2. 湿石街面灯位竖向拉长湿光（z = -4，随街灯火焰同步微闪，绝非水洼/镜面）
+##   2. 湿石街面灯位竖向拉长湿光（z = -4，wet_reflect.gdshader：被石缝打碎的碎暖光，绝非水洼/镜面）
 ##   3. 屋檐滴水 + 台面/栏杆雨滴溅花（z = -3）
 ##   4. 屋顶烟囱袅袅冷灰暗烟（z = -84）
 ##   5. （11-19 撤掉）灯下墙影：手画的脱脚、像鬼影；真 2D 阴影在画死光的墙上几乎看不出，只留脚下接地影
@@ -31,6 +31,7 @@ var _hero_view: Sprite2D
 var _lit_rain_node: Node2D
 var _white: Texture2D
 const LIT_RAIN_R := 230.0          ## 灯旁亮雨的半径（世界单位）
+const WET_LEN := 170.0             ## 灯下湿石碎光往近处拉多长（世界单位）
 
 
 func setup(street_layered) -> void:
@@ -72,7 +73,11 @@ func _ready() -> void:
 	var wi := Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	wi.fill(Color.WHITE)
 	_white = ImageTexture.create_from_image(wi)
-	_wet_node = _layer(-4, _draw_wet_streaks, true)
+	_wet_node = _layer(-4, _draw_wet_streaks, false)
+	var wm := ShaderMaterial.new()
+	wm.shader = preload("res://scripts/night/redesign/wet_reflect.gdshader")
+	wm.set_shader_parameter("strength", float(OS.get_environment("D2_WET")) if OS.get_environment("D2_WET") != "" else 1.4)
+	_wet_node.material = wm
 	_shadow_node = _layer(-3, _draw_hero_shadow, false)
 	_fx_node = _layer(-2, _draw_drips_and_splashes, false)
 
@@ -162,14 +167,9 @@ func _draw_wet_streaks() -> void:
 		var sp := float(l["sp"])
 		var gain := float(l["gain"])
 		var fl := (0.90 + 0.07 * sin(_t * sp) + 0.03 * sin(_t * sp * 2.4 + lx * 0.01)) * gain
-		# 湿石板上的竖向拉长暖光带（柔和叠加、无硬边镜面水洼感）
-		for k in 5:
-			var fk := float(k) / 4.0
-			var yy := FLOOR + 4.0 + fk * 46.0
-			var w := lerpf(135.0, 48.0, fk) * (0.94 + 0.06 * sin(_t * 3.1 + fk * 6.0 + lx))
-			var h := lerpf(14.0, 22.0, fk)
-			var a := (1.0 - fk * 0.72) * 0.13 * fl
-			_wet_node.draw_rect(Rect2(lx - w * 0.5, yy, w, h), Color(1.0, 0.85, 0.58, a))
+		# 11-19 到 8 分：湿石板上灯拉出的一道碎暖光（wet_reflect.gdshader：被石缝横向打碎、上实下虚，不是镜面水洼）
+		var rw := 78.0 * clampf(gain, 0.6, 1.2)
+		_wet_node.draw_texture_rect(_white, Rect2(lx - rw * 0.5, FLOOR + 2.0, rw, WET_LEN), false, Color(1, 1, 1, fl))
 
 
 func _draw_hero_shadow() -> void:

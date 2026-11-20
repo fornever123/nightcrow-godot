@@ -76,19 +76,19 @@ func run() -> void:
 	stage.encounter_index = 2
 	stage._ensure_terrain(2)
 	stage.back_wall.position.x = c1 - 2600.0
-	for spot in [[-2250.0, 580.0, "01_boathouse_street"], [-2100.0, 300.0, "02_boathouse_deck"], [-2000.0, 63.5, "03_boathouse_roof"],
-			[-1132.0, 349.5, "04_left_stairs"], [200.0, 20.0, "05_tower_gallery"], [0.0, 580.0, "06_center_street"], [1100.0, 181.4, "07_right_stairs"],
-			[2300.0, 470.9, "08_quay"], [2640.0, 249.6, "09_kiosk_roof"]]:
+	for spot in [[-2380.0, 580.0, "00_lane_edge"], [-2250.0, 580.0, "01_row_street"], [-2000.0, 300.0, "02_row_balcony"], [-966.0, 580.0, "03_arch_street"], [-966.0, 129.5, "03b_arch_gallery"], [-966.0, -110.9, "03c_arch_eave"],
+			[-200.0, 580.0, "05_stairs_street"], [421.0, 307.5, "06_terrace"], [421.0, 9.5, "07_arcade_top"],
+			[1571.0, 580.0, "08_gate_arch"], [1571.0, -278.9, "09_tower_top"], [2341.0, 470.9, "10_quay"]]:
 		await place(spot[0], spot[1])
 		stage.hud._banner = ""
 		await shot(spot[2])
-	await place(-700.0, 580.0)
-	shade(Shade.Kind.GRUNT, -520.0, 580.0, -1)
-	shade(Shade.Kind.BRUTE, -950.0, 580.0, 1)
-	shade(Shade.Kind.ARCHER, 300.0, 20.0, -1)
+	await place(-1100.0, 580.0)
+	shade(Shade.Kind.GRUNT, -920.0, 580.0, -1)
+	shade(Shade.Kind.BRUTE, -1350.0, 580.0, 1)
+	shade(Shade.Kind.ARCHER, -850.0, 129.5, -1)
 	await frames(20)
 	await frames(1, fr([&"attack_light"], [&"attack_light"]))
 	await frames(9)
-	await shot("10_combat")
+	await shot("11_combat")
 	print("RAIN_STEPS_CAPTURE_DONE ", _dir())
 	quit()

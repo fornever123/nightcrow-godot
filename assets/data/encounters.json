@@ -1,0 +1,30 @@
+{
+  "note": "敌人、波次、关卡规则的默认值。数值从 shade.gd / rain_street.gd / night_trial.gd 原样搬来。修改器不改这个文件，只写 tuning.json。",
+  "kinds": {
+    "grunt": {"name": "影卒", "hp": 90.0, "poise": 40.0, "half_w": 24.0, "half_h": 60.0, "speed": 230.0, "range": 132.0, "windup": 16, "strike": 6, "recover": 18, "damage": 8.0, "knock": 260.0, "cool_min": 25, "cool_max": 60, "stun": 60, "armor": false, "lunge": 300.0, "weight": 1.0, "guard": 0.2, "roll": 0.15, "guard_frames": 22, "down": 24, "ranged": false},
+    "brute": {"name": "甲影", "hp": 220.0, "poise": 110.0, "half_w": 36.0, "half_h": 76.0, "speed": 120.0, "range": 175.0, "windup": 26, "strike": 8, "recover": 30, "damage": 15.0, "knock": 420.0, "cool_min": 45, "cool_max": 90, "stun": 80, "armor": true, "lunge": 200.0, "weight": 0.6, "guard": 0.35, "roll": 0.0, "guard_frames": 34, "down": 20, "ranged": false},
+    "archer": {"name": "影弓", "hp": 70.0, "poise": 34.0, "half_w": 22.0, "half_h": 58.0, "speed": 210.0, "range": 760.0, "windup": 24, "strike": 6, "recover": 20, "damage": 9.0, "knock": 300.0, "cool_min": 50, "cool_max": 100, "stun": 50, "armor": false, "lunge": 0.0, "weight": 1.1, "guard": 0.0, "roll": 0.4, "guard_frames": 0, "down": 24, "ranged": true, "keep_min": 430.0, "keep_max": 700.0},
+    "bomber": {"name": "影爆", "hp": 80.0, "poise": 36.0, "half_w": 26.0, "half_h": 56.0, "speed": 170.0, "range": 640.0, "windup": 28, "strike": 6, "recover": 24, "damage": 14.0, "knock": 560.0, "cool_min": 70, "cool_max": 120, "stun": 50, "armor": false, "lunge": 0.0, "weight": 1.15, "guard": 0.0, "roll": 0.2, "guard_frames": 0, "down": 24, "ranged": true, "keep_min": 300.0, "keep_max": 600.0}
+  },
+  "waves": [
+    [
+      {"label": "雨中影卒", "spawns": ["grunt", "grunt", "grunt"], "max_attackers": 2},
+      {"label": "楼上的冷箭", "spawns": ["grunt", "archer", "archer", "grunt"], "reinforce": ["grunt", "grunt"], "reinforce_at": 2, "max_attackers": 2}
+    ],
+    [
+      {"label": "甲影过桥", "spawns": ["brute", "grunt", "archer"], "max_attackers": 2},
+      {"label": "桥上影爆", "spawns": ["bomber", "grunt", "archer", "bomber"], "reinforce": ["brute"], "reinforce_at": 2, "max_attackers": 2}
+    ],
+    [
+      {"label": "影潮上岸", "spawns": ["grunt", "grunt", "brute", "archer"], "max_attackers": 2},
+      {"label": "四面八方", "spawns": ["brute", "archer", "bomber", "grunt", "archer"], "reinforce": ["grunt", "bomber", "grunt"], "reinforce_at": 3, "max_attackers": 3}
+    ]
+  ],
+  "rules": {
+    "parryWindow": 12,
+    "waveHeal": 25.0,
+    "roundHpMul": 1.2,
+    "ultGainHit": 0.8,
+    "ultGainHurt": 1.2
+  }
+}
