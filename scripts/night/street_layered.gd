@@ -349,16 +349,49 @@ func _build_behind_d2(noise: Texture2D) -> void:
 		var mb := _rd_depth(_envf_sl("D2_BB_FOG", 0.4), 1.0)
 		for sp in add_tiles(tb, rd_x(0.0, 0.2), rd_y(_envf_sl("D2_BB_Y", -437.0)), Vector2(sb, sb) / bg_k, 0.2, -96, Color(_envf_sl("D2_BB_LUM", 1.0), _envf_sl("D2_BB_LUM", 1.0) * 1.01, _envf_sl("D2_BB_LUM", 1.0) * 1.04), tb.get_width() * sb / bg_k, false):
 			sp.material = mb
-	_rd_fog(160.0, 620.0, 0.3, Color(0.3, 0.33, 0.37, 1.0), 0.5, Vector2(2.2, 1.0), 0.008, -95, noise)
+	# 远城与近城之间的流动雨雾（拉开后面两排夜城的空气透视，绝不再是平贴剪影）
+	_rd_fog(120.0, 660.0, 0.3, Color(0.28, 0.30, 0.34, 1.0), 0.42, Vector2(2.0, 1.0), 0.010, -95, noise)
 	add_curtain(-95, 0.3, 7.0, 0.32, 380.0, 40.0, 0.09, 0.0, 0.8, Color(0.55, 0.6, 0.68))
 	var ta := tex_at(RD_D2_DIR + "behind_a.png")
 	var sa := _envf_sl("D2_BA_S", 1.35)
-	var ma := _rd_depth(_envf_sl("D2_BA_FOG", 0.08), 1.0)
+	var ma := _rd_depth(_envf_sl("D2_BA_FOG", 0.12), 1.0)
 	for sp in add_tiles(ta, rd_x(0.0, 0.5), rd_y(_envf_sl("D2_BA_Y", -540.0)), Vector2(sa, sa) / bg_k, 0.5, -92, Color(_envf_sl("D2_BA_LUM", 1.0), _envf_sl("D2_BA_LUM", 1.0), _envf_sl("D2_BA_LUM", 1.0) * 1.02), ta.get_width() * sa / bg_k, false):
 		sp.material = ma
+	# 近夜城与站立层之间的轻雾带（层与层之间有雾气流动）
+	_rd_fog(220.0, 620.0, 0.65, Color(0.18, 0.19, 0.22, 1.0), 0.34, Vector2(2.6, 1.0), 0.016, -91, noise)
 	add_curtain(-92, 0.6, 11.0, 0.3, 620.0, 70.0, 0.09, 0.0, 0.9, Color(0.55, 0.6, 0.7))
+	# 11-19 贴着街面的低雾（慢慢横移，盖住墙根和街沿的接缝，站立层底部有空气感；不是水，不反光）
+	_rd_fog(FLOOR - 90.0, FLOOR + 26.0, 1.0, Color(0.46, 0.47, 0.5, 1.0), _envf_sl("D2_MIST", 0.22), Vector2(3.2, 1.0), 0.02, -78, noise)
+	# §3.1.1 拱洞深处暗巷底衬（z = -82，仅垫在低处拱洞高度 FLOOR-220..FLOOR+60，彻底消灭拱洞底灰白平板！）
+	var arch_back := _layer(self, -82, _draw_d2_arch_dark_back)
+	_d2_arch_back = arch_back
 	flash_all = screen_quad(40)
 	front_nodes.append(flash_all)
+
+
+var _d2_arch_back: Node2D
+var _d2_ambient: Node2D
+
+
+func _draw_d2_arch_dark_back() -> void:
+	if bd == null or bd.camera == null or _d2_arch_back == null:
+		return
+	var cx: float = bd.camera.get_screen_center_position().x
+	var x0 := maxf(edge_x - 80.0, cx - 1400.0)
+	var x1 := cx + 1400.0
+	if x1 <= x0:
+		return
+	# 顶部柔和淡出、底部深炭暗巷，只遮住低处拱洞透出的远景亮雾，屋脊和上方夜城 100% 通透
+	var pts := PackedVector2Array([
+		Vector2(x0, FLOOR - 230.0), Vector2(x1, FLOOR - 230.0),
+		Vector2(x1, FLOOR - 90.0), Vector2(x0, FLOOR - 90.0),
+	])
+	var cols := PackedColorArray([
+		Color(0.035, 0.038, 0.046, 0.0), Color(0.035, 0.038, 0.046, 0.0),
+		Color(0.035, 0.038, 0.046, 0.88), Color(0.035, 0.038, 0.046, 0.88),
+	])
+	_d2_arch_back.draw_polygon(pts, cols)
+	_d2_arch_back.draw_rect(Rect2(x0, FLOOR - 90.0, x1 - x0, 180.0), Color(0.028, 0.030, 0.038, 0.96))
 
 
 func _build_far_d2() -> void:
@@ -540,15 +573,15 @@ func _build_rd_1a() -> void:
 	var x := (RD_N1_CROP - RD_N1_ARCH) * PX    # N1 裁切右缘（容器坐标，相对 anchor）
 	var n0 := items.size()
 	var x_start := x
+	if d2_on and _d2_ambient == null:
+		_d2_ambient = preload("res://scripts/night/redesign/d2_ambient_fx.gd").new()
+		_d2_ambient.call("setup", self)
+		add_child(_d2_ambient)
 	for code in ["B1", "B2", "B3"]:
 		if meta.has(code):
 			x = _rd_place_tile(code, meta[code], x, lamp_w)
 	if relief_mode in ["A", "AB"] or d2_on:
 		_rd_fg_layer(x_start, x)
-	if d2_on and _d2_has("street"):    # D2：原画街沿往下（往镜头）接一整条湿石板街面，下沿不再是死黑
-		var st := tex_at(RD_D2_DIR + "street.png")
-		var ss := _envf_sl("D2_STREET_H", 300.0) / float(st.get_height())
-		add_tiles(st, 0.0, FLOOR + _envf_sl("D2_STREET_Y", 118.0), Vector2(ss, ss), 1.0, -80, Color(0.62, 0.63, 0.66), st.get_width() * ss, false)
 	for i in range(n0, items.size()):
 		rd_1a_nodes.append(items[i].node)
 	rd_1a_on = true
@@ -557,6 +590,19 @@ func _build_rd_1a() -> void:
 	if meta.has("C1"):
 		rd_j1_on = true
 		_rd_place_tile("C1", meta["C1"], (float(bd.first_x) + 2440.0 - anchor) / bg_k, lamp_w)
+	# §3.1.2 + §3.4：有厚度的哥特石街沿横条（顶面湿石 + 立体石街沿 + 下方粗石挡墙与排水拱券），
+	# 放在 z = -79 贯穿整条街（不随 1-1A 隐藏、不在 J1 断掉，彻底消灭底部 1/5 死黑带！）
+	if d2_on and (_d2_has("street_thick") or _d2_has("street")):
+		var st_name := "street_thick" if _d2_has("street_thick") else "street"
+		var st := tex_at(RD_D2_DIR + st_name + ".png")
+		var sh_h := _envf_sl("D2_STREET_H", 380.0 if st_name == "street_thick" else 300.0)
+		var ss := sh_h / float(st.get_height())
+		var sy := FLOOR + _envf_sl("D2_STREET_Y", 4.0 if st_name == "street_thick" else 118.0)
+		add_tiles(st, 0.0, sy, Vector2(ss, ss), 1.0, -79, Color(0.76, 0.75, 0.74), st.get_width() * ss, false)
+		# 11-19 返工：street_backdrop 的雨点涟漪在这条厚街面上读成"一排白圈 / 积水"，压到很淡
+		var gnd: Variant = bd.get("_ground")
+		if gnd is Node2D and (gnd as Node2D).material is ShaderMaterial:
+			((gnd as Node2D).material as ShaderMaterial).set_shader_parameter("strength", _envf_sl("D2_RIPPLE", 0.25))
 
 
 ## 铺一张同比例站立层（裁切 + 每张微缩放 + 街下石墙下延 + 窗灯柔光），返回右缘容器 x（相对 anchor）
@@ -582,8 +628,13 @@ func _rd_place_tile(code: String, m: Dictionary, x: float, lamp_w: Array) -> flo
 		ext.region_enabled = true
 		ext.region_rect = Rect2(c0, sr + 24.0, c1 - c0, band)
 	var kept: Array = []
+	var img: Image = t.get_image() if d2_on else null    # 11-19 重构返工：上半截熄了灯的窗不再挂光晕（不然暗处飘光点）
+	if img != null and img.is_compressed():
+		img.decompress()
 	for l in m.get("lights", []):
 		if float(l[0]) < c0 + 6.0 or float(l[0]) > c1 - 6.0:
+			continue
+		if img != null and _rd_img_lum(img, int(l[0]), int(l[1])) < 0.45:
 			continue
 		var lw := to_world(Vector2(anchor + x + (float(l[0]) - c0) * ps, top + float(l[1]) * ps))
 		var by_lamp := false
@@ -605,7 +656,55 @@ func _rd_place_tile(code: String, m: Dictionary, x: float, lamp_w: Array) -> flo
 		add_glow(glow_t, x + (float(l[0]) - c0) * ps, top + float(l[1]) * ps, sz, sz, 1.0, -78, C_LAMP, 0.14)
 	if relief_on:
 		_rd_relief(code, sp, x, x + (c1 - c0) * ps, lamp_w, kept, c0, top, ps)
+	elif d2_on:
+		_rd_d2_true_lights(code, x, x + (c1 - c0) * ps, lamp_w, kept, c0, top, ps)
 	return x + (c1 - c0) * ps
+
+
+## 站立层原图上某点附近（5×5）的平均亮度：窗还亮着才挂光晕和点光
+static func _rd_img_lum(img: Image, px: int, py: int) -> float:
+	var s := 0.0
+	var n := 0
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			var x := clampi(px + dx * 2, 0, img.get_width() - 1)
+			var y := clampi(py + dy * 2, 0, img.get_height() - 1)
+			var c := img.get_pixel(x, y)
+			s += c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+			n += 1
+	return s / float(n)
+
+
+## §3.3 真灯光：给 D2 站立层每盏焦点街灯与底层主亮窗挂上真实 PointLight2D（照到角色、带闪烁、在湿街面拉出竖向湿光）
+func _rd_d2_true_lights(_code: String, x0: float, x1: float, lamp_w: Array, wins: Array, c0: float, top: float, ps: float) -> void:
+	var placed: Array = []
+	for lp in lamp_w:
+		var lc := to_local_bg(lp as Vector2)
+		if lc.x < anchor + x0 - 40.0 or lc.x > anchor + x1 + 40.0:
+			continue
+		var pl := _relief_light(lc, Color(1.0, 0.84, 0.56), 0.48, 2.6, 120.0)
+		relief_lamps.append({"light": pl, "e": 0.48, "sp": rng.randf_range(6.4, 9.2)})
+		placed.append(lc)
+		if _d2_ambient != null:
+			_d2_ambient.call("register_lamp", (lp as Vector2).x, (lp as Vector2).y, rng.randf_range(6.4, 9.2), 1.0)
+	# 底层亮橱窗与壁灯（仅取人走活动带附近、互不重叠的焦点窗，避免处处过亮）
+	for l in wins:
+		var lc := Vector2(anchor + x0 + (float(l[0]) - c0) * ps, top + float(l[1]) * ps)
+		var lw := to_world(lc)
+		if lw.y < 320.0 or lw.y > FLOOR + 10.0:
+			continue
+		var too_close := false
+		for p0 in placed:
+			if (p0 as Vector2).distance_to(lc) < 280.0:
+				too_close = true
+				break
+		if too_close:
+			continue
+		var pl2 := _relief_light(lc, Color(1.0, 0.80, 0.48), 0.38, 2.2, 100.0)
+		relief_lamps.append({"light": pl2, "e": 0.38, "sp": rng.randf_range(5.2, 8.1)})
+		placed.append(lc)
+		if _d2_ambient != null:
+			_d2_ambient.call("register_lamp", lw.x, lw.y, rng.randf_range(5.2, 8.1), 0.78)
 
 
 # ---------------------------------------------------------------- 11-18 立体感试验（RAIN_DEPTH=1 才开）
@@ -798,28 +897,29 @@ func _rd_fg_layer(x_start: float, x_end: float) -> void:
 func _rd_fg_layer_d2(x_start: float, x_end: float) -> void:
 	var sh := preload("res://scripts/night/redesign/fg_near.gdshader")
 	var k := 0
-	var lx := x_start + 420.0
-	var step := float(_envf_sl("D2_FG_STEP", 640.0))
-	while lx < x_end - 150.0:
+	# §3.4 前景改稀疏大剪影：每两三屏才快速掠过一次（默认间距 2400），不再底边连成一排糊栏杆
+	var lx := x_start + 1350.0
+	var step := float(_envf_sl("D2_FG_STEP", 2400.0))
+	while lx < x_end + 1800.0:
 		var e: Array = FG_SEQ_D2[k % FG_SEQ_D2.size()]
 		var p := RD_D2_DIR + "fg_%d.png" % int(e[0])
 		if not (ResourceLoader.exists(p) or FileAccess.file_exists(p)):
 			p = RD_D2_DIR + "fg_0.png"
 		var t := tex_at(p)
-		var s := float(e[2]) / float(t.get_height())
+		var s := float(e[2]) * _envf_sl("D2_FG_K", 0.6) / float(t.get_height())    # 11-19 返工：前景只压在画面下沿，顶端低过角色脚面，不再挡人
 		var w := t.get_width() * s
 		var h := t.get_height() * s
 		var y := -640.0
 		if String(e[1]) == "bottom":
 			y = 1010.0 - h    # 从屏幕下沿长出来，压住画面最下沿
-		var sp := add(t, FG_F * lx - w * 0.5, y, s, FG_F, 30, (k / 3) % 2 == 1, Color(_envf_sl("D2_FG_LUM", 0.6), _envf_sl("D2_FG_LUM", 0.6) * 1.02, _envf_sl("D2_FG_LUM", 0.6) * 1.06))
+		var sp := add(t, FG_F * lx - w * 0.5, y, s, FG_F, 30, (k / 2) % 2 == 1, Color(_envf_sl("D2_FG_LUM", 0.42), _envf_sl("D2_FG_LUM", 0.42) * 1.02, _envf_sl("D2_FG_LUM", 0.42) * 1.05))
 		var m := ShaderMaterial.new()
 		m.shader = sh
-		m.set_shader_parameter("blur", _envf_sl("D2_FG_BLUR", 3.2) / s)    # 糊的半径按屏幕上的大小算
+		m.set_shader_parameter("blur", _envf_sl("D2_FG_BLUR", 3.6) / s)
 		sp.material = m
 		front_nodes.append(sp)
 		relief_fg.append(sp)
-		lx += step + (rng_fg.randf_range(-160.0, 160.0))
+		lx += step + rng_fg.randf_range(-240.0, 240.0)
 		k += 1
 	# 糊板：站立层后面的远景栈整体糊掉（移轴：只有角色那一层清楚）
 	var bb := BackBufferCopy.new()
@@ -1024,8 +1124,10 @@ func _process(delta: float) -> void:
 		rd_far_shafts.queue_redraw()
 	if redesign:
 		_rd_post_grade(cam.x)
-	if relief_on:
+	if relief_on or d2_on:
 		_relief_update(delta)
+	if _d2_arch_back != null:
+		_d2_arch_back.queue_redraw()
 	if street3d != null:
 		var st: Node = bd.get_parent()
 		var ter: Node = st.get("terrain") if st != null and "terrain" in st else null

@@ -10,6 +10,14 @@ extends Node2D
 
 const ART := "res://assets/image/rain_street/ying2/"
 const GradeSh := preload("res://scripts/night/redesign/ying_grade.gdshader")
+var grade_mat: ShaderMaterial
+var focus_uv := Vector2(0.5, 0.72)
+
+
+static func _envf_yl(k: String, d: float) -> float:
+	var s := OS.get_environment(k)
+	return float(s) if s != "" else d
+
 const InkSh := preload("res://scripts/night/redesign/ying_ink.gdshader")
 const SmokeSh := preload("res://scripts/night/redesign/ying_smoke.gdshader")
 const StreamSh := preload("res://scripts/night/redesign/ying_streams.gdshader")
@@ -216,10 +224,22 @@ func _build_grade() -> void:
 		m.set_shader_parameter("grey_tint", Vector3(c[0], c[1], c[2]))
 	q.material = m
 	sl.screen_fx.append({"node": q, "mat": null})
+	if sl.d2_on:    # 11-19 主次：以角色为中心的背景压暗（见 ying_grade.gdshader）
+		grade_mat = m
+		m.set_shader_parameter("focus_amt", _envf_yl("D2_FOCUS", 0.16))
+		m.set_shader_parameter("top_amt", _envf_yl("D2_TOP", 0.08))
 
 
 func update(dt: float, cam: Vector2) -> void:
 	t += dt
+	if grade_mat != null and sl.bd != null and sl.bd.camera != null:
+		var vs: Vector2 = sl.get_viewport_rect().size
+		var zoom: Vector2 = sl.bd.camera.zoom
+		var rel: Vector2 = (sl._player_pos() + Vector2(0.0, -60.0) - sl.bd.camera.get_screen_center_position()) * zoom
+		var want := Vector2(0.5, 0.5) + rel / vs
+		focus_uv = focus_uv.lerp(want, clampf(dt * 4.0, 0.0, 1.0))
+		grade_mat.set_shader_parameter("focus", focus_uv)
+		grade_mat.set_shader_parameter("aspect", vs.x / maxf(vs.y, 1.0))
 	_update_ribbons(dt, cam)
 	for m in mats:
 		(m as ShaderMaterial).set_shader_parameter("t", t)
