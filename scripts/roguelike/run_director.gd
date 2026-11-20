@@ -122,6 +122,18 @@ func has_talent(tid: String) -> bool:
 	return active_talents.has(tid)
 
 
+func has_style_floor() -> bool:
+	if chosen_perks.has("tactic_style_floor"):
+		return true
+	return perk_rig != null and int(perk_rig.get("style_rank_floor")) >= 2
+
+
+func has_unlock_all_skills() -> bool:
+	if chosen_perks.has("tactic_unlock_all_skills"):
+		return true
+	return perk_rig != null and bool(perk_rig.get("skill_unlock_all"))
+
+
 # ---------------------------------------------------------------- 2. 战斗计时与破封开桌
 
 func begin_segment() -> void:
@@ -234,10 +246,27 @@ func _roll_shop_page(from_manual_refresh: bool) -> void:
 func _pick_random_shop_card_id() -> String:
 	var active_core := core_id if core_id != "" else "core_rift"
 	var roll := rng.randf()
-	if roll < 0.28:
+	# 按牌手等阶平滑提升效果牌出现率（Lv.1 20% -> Lv.5 32%），基础属性与核心维持主体节奏
+	var core_p := 0.24 + 0.01 * float(clampi(player_tier - 1, 0, 4))
+	var eff_p := 0.20 + 0.03 * float(clampi(player_tier - 1, 0, 4))
+	if roll < core_p:
 		return active_core
-	if player_tier >= 2 and roll < 0.44:
-		var effects := ["effect_quench", "effect_all_stats", "effect_surge"]
+	if roll < core_p + eff_p:
+		var effects: Array[String] = [
+			"effect_style_tonic",
+			"effect_blood_vial",
+			"effect_poise_salve",
+			"effect_air_step",
+			"effect_thorn_coat",
+			"effect_focus_lens",
+			"effect_ult_elixir",
+			"effect_execute_edge",
+			"effect_skill_scroll",
+		]
+		if player_tier >= 2:
+			effects.append_array(["effect_quench", "effect_all_stats", "effect_surge"])
+		if catalog != null and catalog.has_method(&"pick_weighted_card_id"):
+			return String(catalog.call(&"pick_weighted_card_id", effects, rng, player_tier))
 		return effects[rng.randi_range(0, effects.size() - 1)]
 	var stats := ["stat_atk", "stat_spd", "stat_crit", "stat_def"]
 	return stats[rng.randi_range(0, stats.size() - 1)]
@@ -250,6 +279,24 @@ func _compute_slot_gain(cid: String, kind: String, is_gold: bool) -> int:
 			return maxi(14, base_g + 5)
 		if cid == "effect_all_stats":
 			return maxi(6, roundi(float(base_g) * 0.65))
+		if cid == "effect_style_tonic":
+			return 20
+		if cid == "effect_skill_scroll":
+			return 1
+		if cid == "effect_blood_vial":
+			return 3
+		if cid == "effect_poise_salve":
+			return 1
+		if cid == "effect_air_step":
+			return 1
+		if cid == "effect_thorn_coat":
+			return 40
+		if cid == "effect_focus_lens":
+			return 12
+		if cid == "effect_ult_elixir":
+			return 25
+		if cid == "effect_execute_edge":
+			return 35
 		return 3
 	if cid == "stat_def":
 		base_g = roundi(float(base_g) * 1.5)
@@ -267,12 +314,33 @@ func _make_shop_slot(card_data: Dictionary, cost_val: int, is_gold: bool, is_fre
 		summary_txt = "四维各 +%d 级" % gain_val
 	elif cid == "effect_surge":
 		summary_txt = "立即 +%d⚡" % gain_val
+	elif cid == "effect_style_tonic":
+		summary_txt = "评分获取永久 +20%"
+	elif cid == "effect_skill_scroll":
+		summary_txt = "永久提前解锁下档技能"
+	elif cid == "effect_blood_vial":
+		summary_txt = "永久 +3% 吸血，回血 20%"
+	elif cid == "effect_poise_salve":
+		summary_txt = "常驻 +1 层免打断护体韧性"
+	elif cid == "effect_air_step":
+		summary_txt = "永久 +1 空中跳，空伤 +15%"
+	elif cid == "effect_thorn_coat":
+		summary_txt = "永久 +40% 受击荆棘反伤"
+	elif cid == "effect_focus_lens":
+		summary_txt = "时缓 +0.5秒，技伤 +12%"
+	elif cid == "effect_ult_elixir":
+		summary_txt = "绝影充能效率永久 +25%"
+	elif cid == "effect_execute_edge":
+		summary_txt = "对 30% 血以下敌人伤 +35%"
 	return {
 		"card_id": cid,
 		"card_kind": kind,
 		"title": String(card_data.get("title", cid)),
 		"summary": summary_txt,
 		"accent_color": card_data.get("accent_color", Color("b678ff")),
+		"rarity": String(card_data.get("rarity", "common")),
+		"rarity_label": String(card_data.get("rarity_label", "普通")),
+		"rarity_color": card_data.get("rarity_color", Color("9aa4b8")),
 		"gain": gain_val,
 		"cost": maxi(0, cost_val),
 		"is_gold": is_gold,
@@ -369,6 +437,14 @@ func _apply_slot_effect(slot: Dictionary) -> Dictionary:
 		if cid == "effect_surge":
 			energy += gain_val
 			return {"gained": gain_val, "synthesized": false}
+		if cid in [
+			"effect_style_tonic", "effect_skill_scroll", "effect_blood_vial",
+			"effect_poise_salve", "effect_air_step", "effect_thorn_coat",
+			"effect_focus_lens", "effect_ult_elixir", "effect_execute_edge",
+		]:
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_effect"):
+				perk_rig.call(&"apply_skill_effect", cid)
+			return {"gained": gain_val, "synthesized": false}
 		return {"gained": 0, "synthesized": false}
 
 	var before_lv := _get_level_of(cid)
@@ -448,9 +524,17 @@ func _roll_draft_pool(kind: String) -> Array[Dictionary]:
 		return out
 	var raw: Variant = null
 	if kind == "talent":
-		raw = catalog.roll_talent_choices(3, rng, active_talents)
+		raw = catalog.roll_talent_choices(3, rng, active_talents, player_tier)
 	else:
-		raw = catalog.roll_tactic_choices(3, rng)
+		var tactic_exclude: Array[String] = []
+		if has_style_floor():
+			tactic_exclude.append("tactic_style_floor")
+		if has_unlock_all_skills():
+			tactic_exclude.append("tactic_unlock_all_skills")
+		if chosen_perks.has("tactic_blood_oath"):
+			tactic_exclude.append("tactic_blood_oath")
+		# 司辰全书（tactic_unlock_all_skills）必须在获得永恒华章（tactic_style_floor）之后才能刷出
+		raw = catalog.roll_tactic_choices(3, rng, tactic_exclude, player_tier, has_style_floor())
 	if raw is Array:
 		for item in raw:
 			if item is Dictionary:
@@ -475,6 +559,8 @@ func pick_draft_choice(choice_idx: int) -> bool:
 		if cid != "" and not active_talents.has(cid):
 			active_talents.append(cid)
 			chosen_perks.append(cid)
+			if perk_rig != null and perk_rig.has_method(&"apply_style_talent"):
+				perk_rig.call(&"apply_style_talent", cid)
 		if cid == "talent_free_roll" and not shop_slots.is_empty():
 			# 若首槽未买则立享免单反馈
 			if not bool(shop_slots[0].get("bought", false)):
@@ -551,6 +637,36 @@ func _execute_tactic_by_id(tid: String) -> void:
 				perk_rig.add_core_levels(25)
 			energy += 2
 			status_toast = "灌顶丹：核心+25 · +2⚡"
+
+		"tactic_unlock_all_skills":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "司辰全书：全 D~S 技能已解锁 · 技伤 +25%"
+
+		"tactic_style_floor":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "永恒华章：战斗评分保底 B 档（已解锁司辰全书）"
+
+		"tactic_blood_oath":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "残夜血誓：+12% 吸血 · 出招霸体 · 半血增伤 +30%"
+
+		"tactic_shadow_overdrive":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "千影奔流：残影上限 +2 · 回复加快 40%"
+
+		"tactic_chrono_overclock":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "凝晷超频：时缓与技能冷却减半 · 时缓 +1.0秒"
+
+		"tactic_eclipse_crown":
+			if perk_rig != null and perk_rig.has_method(&"apply_skill_tactic"):
+				perk_rig.call(&"apply_skill_tactic", tid)
+			status_toast = "蚀月王冠：绝影回满 · 技能伤害 +40%"
 
 
 func _pick_stat_only_id() -> String:

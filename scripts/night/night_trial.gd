@@ -37,6 +37,8 @@ const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
 const UltFx := preload("res://scripts/night/ult_fx.gd")
 const CombatControls := preload("res://scripts/gameplay/combat_controls.gd")
+const ComboSkillRig := preload("res://scripts/gameplay/combo_skill_rig.gd")
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 const PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
 ## 大招能量：打中敌人按伤害 ×ULT_GAIN_HIT，自己挨打按掉血 ×ULT_GAIN_HURT（满 100）
 var ULT_GAIN_HIT: float = 0.8
@@ -92,6 +94,7 @@ var audio: Node
 var fx: Node2D
 var hud: Control
 var style: Style
+var combo_skills: Node2D
 var encounter: Node
 var backdrop: Node2D                ## 夜景（节点 4 接入；为空时画占位地面）
 var terrain: Node2D                 ## 多层地形（第三轮节点 17）
@@ -242,6 +245,9 @@ func _ready() -> void:
 	add_child(ult_fx)
 	style = Style.new()
 	_build_hud()
+	combo_skills = ComboSkillRig.new()
+	add_child(combo_skills)
+	combo_skills.setup(self, player)
 	ult_fx.hud = hud
 	_ult_anchor = Node2D.new()
 	_ult_anchor.name = "UltCameraAnchor"
@@ -257,10 +263,15 @@ func _ready() -> void:
 	_connect_player()
 	hud.banner(stage_title[0], stage_title[1], 3.2)
 	var sc := Factory.scheme()
-	_queue_hint(&"move", "A / D 移动   W / 空格 跳   %s 攻击   %s 重击/蓄力   %s 瞬步/追影" % [
-		CombatControls.key_label(sc, "attack"),
-		CombatControls.key_label(sc, "heavy"),
-		CombatControls.key_label(sc, "dash")], 6.0)
+	if GamepadManager.is_using_gamepad():
+		_queue_hint(&"move", "左摇杆 移动   A 跳   X 轻击   Y 重击/蓄力   B 瞬步追影   按住 LB 时缓+十字键搓招   RB 弹刀   LT 飞镖", 6.0)
+	else:
+		_queue_hint(&"move", "A / D 移动   W / 空格 跳   %s 攻击   %s 重击/蓄力   %s 瞬步   按住 Tab/Ctrl 时缓+方向键搓招" % [
+			CombatControls.key_label(sc, "attack"),
+			CombatControls.key_label(sc, "heavy"),
+			CombatControls.key_label(sc, "dash")], 6.0)
+	if GamepadManager.instance != null and not GamepadManager.instance.device_changed.is_connected(_on_gamepad_device_changed):
+		GamepadManager.instance.device_changed.connect(_on_gamepad_device_changed)
 	_stage_ready()
 	# 暂停菜单（UI 线）：雨街试玩在 _stage_ready 里自己挂；别的入口（雨街无限场景、编辑器 F6）也要 Esc 能暂停
 	if get_node_or_null("PauseMenu") == null:
@@ -901,6 +912,7 @@ func _on_shade_damaged(amount: float, _hp: float, point: Vector2, s: Node2D) -> 
 
 ## A2：白金凝壳归零瞬间 → 0.15s 慢放反馈 + 返还 1 格残影
 func _on_shade_shell_broken(s: Node2D) -> void:
+	GamepadManager.rumble(0.45, 0.72, 0.16)
 	if player != null and player.has_method(&"refund_shadow"):
 		player.refund_shadow(1)
 	if player != null and not player.is_ult():
@@ -1056,6 +1068,7 @@ func _on_strike_landed(point: Vector2, s: Node2D) -> void:
 
 ## 玩家掉血（近战刀 / 影矢 / 炸弹都走这里）
 func _on_player_hurt(dmg: float, point: Vector2, shake: float = 3.0, dir: Vector2 = Vector2.ZERO, heavy: bool = false) -> void:
+	GamepadManager.rumble(0.35, 0.65 if (heavy or dmg >= 12.0) else 0.35, 0.14)
 	_hp_seen = player.hp
 	player.add_ult_energy(dmg * ULT_GAIN_HURT)
 	var combo_before := style.combo
@@ -1071,6 +1084,7 @@ func _on_player_hurt(dmg: float, point: Vector2, shake: float = 3.0, dir: Vector
 
 
 func _on_parry(attacker: Node, point: Vector2) -> void:
+	GamepadManager.rumble(0.55, 0.45, 0.11)
 	var dir := Vector2(player.facing, 0)
 	if attacker is Node2D:
 		dir = (attacker as Node2D).global_position - player.global_position
@@ -1120,8 +1134,13 @@ func reset_time_scale() -> void:
 
 
 func _exit_tree() -> void:
+	GamepadManager.stop_all_rumble()
 	_slowmo_seq += 1
 	Engine.time_scale = 1.0
+
+
+func _on_gamepad_device_changed(_using_pad: bool) -> void:
+	apply_control_scheme()
 
 
 # ---------------------------------------------------------------- 提示
@@ -1151,9 +1170,14 @@ func apply_control_scheme() -> void:
 	CombatControls.apply_scheme(sc)
 	if hud == null:
 		return
+	if GamepadManager.is_using_gamepad():
+		hud.help_text = ("左摇杆 移动   A 跳   下+A 跳下木台   X 轻击   Y 重击/蓄力   B 穿身瞬步·追影   按住 LB 时缓 + 十字键搓招   RB 弹刀   LT 影镖   RT 大招\n"
+				+ "评分技录：随 D/C/B/A/S 评分逐步解锁 8 式搓招技（设置可关提示）   Back 重开   Start 暂停")
+		hud.queue_redraw()
+		return
 	var lb := CombatControls.labels(sc)
-	hud.help_text = ("A/D 移动   W/空格 跳   S 跳下木台   {a} 攻击   {h} 重击（{a}→{h} / {a}{a}→{h} / {a}{a}{a}→{h} 三式派生破势 · 按住蓄力破甲 · 空中横轰 · S+{h}下砸）   {d} 穿身瞬步·追影   {l} 弹刀   {r} 影镖钉空   R 大招\n"
-			+ "身法与锋芒：{d} 穿敌绕背 / 弹刀 / 掠影闪 / {r} 钉空浮空敌 → 点亮「紫电锋芒」直按 {a} 零铺垫劈出真·强普！   手柄：X 攻击 · Y 重击   H 隐藏   F3 木桩   F5 重开"
+	hud.help_text = ("A/D 移动   W/空格 跳   S 下台   {a} 攻击   {h} 重击/蓄力   {d} 瞬步·追影   按住 Tab/Ctrl 时缓 + 方向键搓招   {l} 弹刀   {r} 影镖   R 大招\n"
+			+ "评分技录：随 D/C/B/A/S 评分逐步解锁 8 式搓招技（设置可关提示）   H 隐藏   F3 木桩   F5 重开   Esc 暂停"
 			).format({
 				"a": String(lb.get("attack", "J")),
 				"h": String(lb.get("heavy", "K")),

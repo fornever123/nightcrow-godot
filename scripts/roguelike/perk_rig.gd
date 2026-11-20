@@ -18,6 +18,9 @@ const COL_VIOLET_LIGHT := Color("dfc2ff")
 const COL_SILVER := Color("eef6ff")
 const COL_GOLD := Color("f5dfa3")
 
+## 波次后所有属性/伤害类 Buff 数值效果统一乘以 0.1（仅缩放数值，保留全部核心/边界机制）
+const BUFF_VALUE_SCALE := 0.1
+
 signal core_changed(core_id: String, level: int)
 signal stat_changed(stat_id: String, level: int)
 signal milestone_unlocked(core_id: String, milestone: int)
@@ -39,6 +42,45 @@ var stat_levels: Dictionary = {
 	"stat_crit": 1,
 	"stat_def": 1,
 }
+
+## 评分稳定与搓招技能组专属 Buff 修饰符（支持跨场景同步至首领战）
+var style_decay_mul: float = 1.0
+var style_combo_bonus: float = 0.0
+var style_gain_mul: float = 1.0
+var style_hit_protect: bool = false
+var style_rank_floor: int = 0
+var skill_rank_discount: int = 0
+var skill_early_unlocks: int = 0
+var skill_unlock_all: bool = false
+var skill_slowmo_bonus: float = 0.0
+var skill_cd_mul: float = 1.0
+var skill_dmg_mul: float = 1.0
+var skill_cast_style_bonus: float = 0.0
+var skill_cast_ult_bonus: float = 0.0
+
+## 非基础数值/核心的战斗机制 Buff（吸血、抗打断霸体、韧性层数、碎壳、回流、空中跳、低血狂澜）
+var lifesteal_ratio: float = 0.0
+var attack_poise: bool = false
+var poise_max_charges: int = 0
+var _poise_regen_timer: float = 0.0
+var shell_shred_bonus: float = 0.0
+var shadow_flow_enabled: bool = false
+var _flow_haste_timer: float = 0.0
+var extra_air_jumps_bonus: int = 0
+var aerial_dmg_bonus: float = 0.0
+var low_hp_dmg_bonus: float = 0.0
+var total_lifesteal_healed: float = 0.0
+var thorn_ratio: float = 0.0
+var ult_gain_mul: float = 1.0
+var execute_bonus: float = 0.0
+var parry_heal_enabled: bool = false
+var dash_nova_enabled: bool = false
+var combo_surge_per_10: float = 0.0
+var immortal_clock_enabled: bool = false
+var shadow_cap_bonus: int = 0
+var shadow_regen_mul: float = 1.0
+var thorn_reflect_count: int = 0
+var dash_nova_count: int = 0
 
 ## 兼容旧查询字段
 var active_perks: Dictionary = {}
@@ -91,6 +133,10 @@ var _base_heavy_charge_frames: int = 25
 var _base_shadow_max: int = 2
 var _base_shadow_regen: float = 3.0
 var _base_unlimited_dash: bool = false
+var _base_extra_air_jumps: int = 1
+var _base_soft_knock: float = 350.0
+var _computed_base_atk_mul: float = 1.0
+var _computed_base_speed: float = 450.0
 var _move_baselines: Array[Dictionary] = []
 
 ## 合成判定招式（严格使用 MoveDefinition 匹配 take_hit 签名）
@@ -124,9 +170,9 @@ func _ready() -> void:
 	z_index = 5
 	process_physics_priority = -10
 	rng.randomize()
-	if FileAccess.file_exists(FONT_SERIF_PATH):
+	if ResourceLoader.exists(FONT_SERIF_PATH):
 		_font_serif = load(FONT_SERIF_PATH) as Font
-	if FileAccess.file_exists(FONT_GOTHIC_PATH):
+	if ResourceLoader.exists(FONT_GOTHIC_PATH):
 		_font_gothic = load(FONT_GOTHIC_PATH) as Font
 	if catalog == null:
 		catalog = PerkCatalog.new(get_tree())
@@ -157,6 +203,7 @@ func setup(p_stage: Node, p_player: CharacterBody2D) -> void:
 		var maybe_boss: Variant = stage.get("boss")
 		if maybe_boss is Node2D and is_instance_valid(maybe_boss):
 			bind_boss(maybe_boss as Node2D)
+	sync_style_modifiers()
 
 
 func bind_boss(p_boss: Node2D) -> void:
@@ -201,6 +248,10 @@ func _capture_player_baseline() -> void:
 	_base_shadow_max = int(player.max_shadow_charges)
 	_base_shadow_regen = float(player.shadow_regen_seconds)
 	_base_unlimited_dash = bool(player.unlimited_dash)
+	_base_extra_air_jumps = int(player.extra_air_jumps)
+	_base_soft_knock = float(player.soft_knock_threshold)
+	_computed_base_atk_mul = float(player.attack_damage_mul)
+	_computed_base_speed = float(player.speed)
 	_move_baselines.clear()
 
 	# 克隆角色持有的 MoveDefinition，避免跨局污染全局 .tres 资源
@@ -251,14 +302,14 @@ func _record_move_baseline(mv: MoveDefinition) -> void:
 
 
 func _build_synthetic_moves() -> void:
-	_mv_arc = _make_move(&"wanxiang_arc", 16.0, 320.0, false, 1)
-	_mv_storm = _make_move(&"wanxiang_storm", 24.0, 440.0, true, 2)
+	_mv_arc = _make_move(&"wanxiang_arc", 16.0 * BUFF_VALUE_SCALE, 320.0, false, 1)
+	_mv_storm = _make_move(&"wanxiang_storm", 24.0 * BUFF_VALUE_SCALE, 440.0, true, 2)
 	_mv_storm.launch_speed = 540.0
-	_mv_clone = _make_move(&"wanxiang_clone", 14.0, 260.0, false, 1)
-	_mv_feather = _make_move(&"wanxiang_feather", 9.0, 140.0, false, 0)
-	_mv_thunder = _make_move(&"wanxiang_thunder", 15.0, 220.0, false, 1)
-	_mv_bell = _make_move(&"wanxiang_bell", 16.0, 520.0, false, 2)
-	_mv_crit = _make_move(&"wanxiang_crit", 10.0, 80.0, false, 0)
+	_mv_clone = _make_move(&"wanxiang_clone", 14.0 * BUFF_VALUE_SCALE, 260.0, false, 1)
+	_mv_feather = _make_move(&"wanxiang_feather", 9.0 * BUFF_VALUE_SCALE, 140.0, false, 0)
+	_mv_thunder = _make_move(&"wanxiang_thunder", 15.0 * BUFF_VALUE_SCALE, 220.0, false, 1)
+	_mv_bell = _make_move(&"wanxiang_bell", 16.0 * BUFF_VALUE_SCALE, 520.0, false, 2)
+	_mv_crit = _make_move(&"wanxiang_crit", 10.0 * BUFF_VALUE_SCALE, 80.0, false, 0)
 
 
 func _make_move(id_name: StringName, dmg: float, kb: float, launch: bool, hitstop: int) -> MoveDefinition:
@@ -283,7 +334,22 @@ func is_active_build() -> bool:
 	for k in stat_levels.keys():
 		if int(stat_levels[k]) > 1:
 			return true
-	return false
+	return (
+		lifesteal_ratio > 0.0
+		or attack_poise
+		or poise_max_charges > 0
+		or shell_shred_bonus > 0.0
+		or shadow_flow_enabled
+		or extra_air_jumps_bonus > 0
+		or low_hp_dmg_bonus > 0.0
+		or thorn_ratio > 0.0
+		or execute_bonus > 0.0
+		or parry_heal_enabled
+		or dash_nova_enabled
+		or combo_surge_per_10 > 0.0
+		or immortal_clock_enabled
+		or shadow_cap_bonus > 0
+	)
 
 
 func tier_req(base_req: int) -> int:
@@ -379,6 +445,36 @@ func export_snapshot() -> Dictionary:
 		"core_level": core_level,
 		"threshold_scale": threshold_scale,
 		"stat_levels": stat_levels.duplicate(true),
+		"style_decay_mul": style_decay_mul,
+		"style_combo_bonus": style_combo_bonus,
+		"style_gain_mul": style_gain_mul,
+		"style_hit_protect": style_hit_protect,
+		"style_rank_floor": style_rank_floor,
+		"skill_rank_discount": skill_rank_discount,
+		"skill_early_unlocks": skill_early_unlocks,
+		"skill_unlock_all": skill_unlock_all,
+		"skill_slowmo_bonus": skill_slowmo_bonus,
+		"skill_cd_mul": skill_cd_mul,
+		"skill_dmg_mul": skill_dmg_mul,
+		"skill_cast_style_bonus": skill_cast_style_bonus,
+		"skill_cast_ult_bonus": skill_cast_ult_bonus,
+		"lifesteal_ratio": lifesteal_ratio,
+		"attack_poise": attack_poise,
+		"poise_max_charges": poise_max_charges,
+		"shell_shred_bonus": shell_shred_bonus,
+		"shadow_flow_enabled": shadow_flow_enabled,
+		"extra_air_jumps_bonus": extra_air_jumps_bonus,
+		"aerial_dmg_bonus": aerial_dmg_bonus,
+		"low_hp_dmg_bonus": low_hp_dmg_bonus,
+		"thorn_ratio": thorn_ratio,
+		"ult_gain_mul": ult_gain_mul,
+		"execute_bonus": execute_bonus,
+		"parry_heal_enabled": parry_heal_enabled,
+		"dash_nova_enabled": dash_nova_enabled,
+		"combo_surge_per_10": combo_surge_per_10,
+		"immortal_clock_enabled": immortal_clock_enabled,
+		"shadow_cap_bonus": shadow_cap_bonus,
+		"shadow_regen_mul": shadow_regen_mul,
 	}
 
 
@@ -386,6 +482,36 @@ func import_snapshot(snap: Dictionary) -> void:
 	if snap.is_empty():
 		return
 	threshold_scale = float(snap.get("threshold_scale", 1.0))
+	style_decay_mul = float(snap.get("style_decay_mul", 1.0))
+	style_combo_bonus = float(snap.get("style_combo_bonus", 0.0))
+	style_gain_mul = float(snap.get("style_gain_mul", 1.0))
+	style_hit_protect = bool(snap.get("style_hit_protect", false))
+	style_rank_floor = int(snap.get("style_rank_floor", 0))
+	skill_rank_discount = int(snap.get("skill_rank_discount", 0))
+	skill_early_unlocks = int(snap.get("skill_early_unlocks", 0))
+	skill_unlock_all = bool(snap.get("skill_unlock_all", false))
+	skill_slowmo_bonus = float(snap.get("skill_slowmo_bonus", 0.0))
+	skill_cd_mul = float(snap.get("skill_cd_mul", 1.0))
+	skill_dmg_mul = float(snap.get("skill_dmg_mul", 1.0))
+	skill_cast_style_bonus = float(snap.get("skill_cast_style_bonus", 0.0))
+	skill_cast_ult_bonus = float(snap.get("skill_cast_ult_bonus", 0.0))
+	lifesteal_ratio = float(snap.get("lifesteal_ratio", 0.0))
+	attack_poise = bool(snap.get("attack_poise", false))
+	poise_max_charges = int(snap.get("poise_max_charges", 0))
+	shell_shred_bonus = float(snap.get("shell_shred_bonus", 0.0))
+	shadow_flow_enabled = bool(snap.get("shadow_flow_enabled", false))
+	extra_air_jumps_bonus = int(snap.get("extra_air_jumps_bonus", 0))
+	aerial_dmg_bonus = float(snap.get("aerial_dmg_bonus", 0.0))
+	low_hp_dmg_bonus = float(snap.get("low_hp_dmg_bonus", 0.0))
+	thorn_ratio = float(snap.get("thorn_ratio", 0.0))
+	ult_gain_mul = float(snap.get("ult_gain_mul", 1.0))
+	execute_bonus = float(snap.get("execute_bonus", 0.0))
+	parry_heal_enabled = bool(snap.get("parry_heal_enabled", false))
+	dash_nova_enabled = bool(snap.get("dash_nova_enabled", false))
+	combo_surge_per_10 = float(snap.get("combo_surge_per_10", 0.0))
+	immortal_clock_enabled = bool(snap.get("immortal_clock_enabled", false))
+	shadow_cap_bonus = int(snap.get("shadow_cap_bonus", 0))
+	shadow_regen_mul = float(snap.get("shadow_regen_mul", 1.0))
 	var saved_stats: Variant = snap.get("stat_levels", {})
 	if saved_stats is Dictionary:
 		for k in stat_levels.keys():
@@ -399,11 +525,155 @@ func import_snapshot(snap: Dictionary) -> void:
 		core_level = clampi(clv, 1, 999)
 		active_perks[core_id] = core_level
 	_sync_player_stats()
+	sync_style_modifiers()
 	if aegis_max > 0.0:
 		aegis_hp = aegis_max
-	if core_id == "core_bell" and has_core_tier(100):
-		cheat_death_charges = 1
+	if (core_id == "core_bell" and has_core_tier(100)) or immortal_clock_enabled:
+		cheat_death_charges = maxi(cheat_death_charges, 1)
 	_refresh_hud()
+
+
+func sync_style_modifiers() -> void:
+	if stage == null:
+		return
+	var st: Variant = stage.get("style")
+	if st == null:
+		return
+	st.set("decay_mul", style_decay_mul)
+	st.set("combo_window_bonus", style_combo_bonus)
+	st.set("gain_mul", style_gain_mul)
+	st.set("hit_protect", style_hit_protect)
+	st.set("rank_floor", style_rank_floor)
+	if st.has_method(&"enforce_floor"):
+		st.call(&"enforce_floor")
+
+
+func apply_style_talent(tid: String) -> void:
+	match tid:
+		"talent_style_anchor":
+			style_decay_mul = clampf(style_decay_mul * 0.55, 0.15, 1.0)
+			style_combo_bonus += 1.2
+		"talent_hit_shield":
+			style_hit_protect = true
+		"talent_skill_unlock_1":
+			skill_rank_discount = mini(skill_rank_discount + 1, 4)
+			skill_slowmo_bonus += 0.8
+		"talent_skill_mastery":
+			skill_cd_mul = clampf(skill_cd_mul * 0.65, 0.25, 1.0)
+			skill_cast_style_bonus += 15.0
+			skill_cast_ult_bonus += 8.0
+		"talent_lifesteal":
+			lifesteal_ratio = minf(lifesteal_ratio + 0.08, 0.45)
+		"talent_poise":
+			attack_poise = true
+		"talent_shell_shred":
+			shell_shred_bonus += 0.50
+		"talent_shadow_flow":
+			shadow_flow_enabled = true
+		"talent_perfect_parry_heal":
+			parry_heal_enabled = true
+		"talent_dash_nova":
+			dash_nova_enabled = true
+		"talent_combo_surge":
+			combo_surge_per_10 += 0.06
+		"talent_immortal_clock":
+			immortal_clock_enabled = true
+			cheat_death_charges = maxi(cheat_death_charges, 1)
+	_sync_player_stats()
+	sync_style_modifiers()
+	_refresh_hud()
+
+
+func apply_skill_effect(cid: String) -> void:
+	match cid:
+		"effect_style_tonic":
+			style_gain_mul = minf(style_gain_mul + 0.20, 3.0)
+		"effect_skill_scroll":
+			skill_early_unlocks = mini(skill_early_unlocks + 1, 4)
+		"effect_blood_vial":
+			lifesteal_ratio = minf(lifesteal_ratio + 0.03, 0.45)
+			if player != null and is_instance_valid(player):
+				heal_player(float(player.max_hp) * 0.20)
+		"effect_poise_salve":
+			poise_max_charges = mini(poise_max_charges + 1, 5)
+			if player != null and is_instance_valid(player) and player.get("buff_poise_charges") != null:
+				player.set("buff_poise_charges", mini(poise_max_charges, int(player.get("buff_poise_charges")) + 1))
+		"effect_air_step":
+			extra_air_jumps_bonus = mini(extra_air_jumps_bonus + 1, 3)
+			aerial_dmg_bonus += 0.15
+		"effect_thorn_coat":
+			thorn_ratio = minf(thorn_ratio + 0.40, 2.40)
+		"effect_focus_lens":
+			skill_slowmo_bonus += 0.5
+			skill_dmg_mul += 0.12
+		"effect_ult_elixir":
+			ult_gain_mul = minf(ult_gain_mul + 0.25, 3.0)
+		"effect_execute_edge":
+			execute_bonus = minf(execute_bonus + 0.35, 1.40)
+	_sync_player_stats()
+	sync_style_modifiers()
+	_refresh_hud()
+
+
+func apply_skill_tactic(tid: String) -> void:
+	match tid:
+		"tactic_unlock_all_skills":
+			skill_unlock_all = true
+			skill_dmg_mul += 0.25
+		"tactic_style_floor":
+			style_rank_floor = maxi(style_rank_floor, 2)
+		"tactic_blood_oath":
+			lifesteal_ratio = minf(lifesteal_ratio + 0.12, 0.45)
+			attack_poise = true
+			low_hp_dmg_bonus += 0.30
+		"tactic_shadow_overdrive":
+			shadow_cap_bonus = mini(shadow_cap_bonus + 2, 6)
+			shadow_regen_mul = clampf(shadow_regen_mul * 0.60, 0.30, 1.0)
+		"tactic_chrono_overclock":
+			skill_cd_mul = clampf(skill_cd_mul * 0.50, 0.20, 1.0)
+			skill_slowmo_bonus += 1.0
+		"tactic_eclipse_crown":
+			skill_dmg_mul += 0.40
+			ult_gain_mul = minf(ult_gain_mul + 0.30, 3.0)
+			if player != null and is_instance_valid(player) and player.has_method(&"add_ult_energy"):
+				player.call(&"add_ult_energy", 100.0)
+	_sync_player_stats()
+	sync_style_modifiers()
+	_refresh_hud()
+
+
+func heal_player(amount: float) -> void:
+	if player == null or not is_instance_valid(player) or amount <= 0.0:
+		return
+	var before := float(player.hp)
+	if before <= 0.0:
+		return
+	var after := minf(float(player.max_hp), before + amount)
+	var actual := after - before
+	if actual > 0.01:
+		player.hp = after
+		_tracked_hp = after
+		total_lifesteal_healed += actual
+		if stage != null and stage.get("_hp_seen") != null:
+			stage.set("_hp_seen", after)
+		if actual >= 0.8:
+			_spawn_flash(player.global_position + Vector2(0.0, -34.0), 42.0, Color("8ff2c8"), 0.18)
+
+
+func on_combo_skill_hit(damage_dealt: float, _point: Vector2) -> void:
+	if lifesteal_ratio > 0.0 and damage_dealt > 0.0:
+		heal_player(damage_dealt * lifesteal_ratio)
+
+
+func _grant_shadow_and_ult(shadows: int, ult_amt: float, haste_sec: float = 0.0) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if shadows > 0 and player.get("shadow_charges") != null and player.get("max_shadow_charges") != null:
+		player.shadow_charges = mini(int(player.max_shadow_charges), int(player.shadow_charges) + shadows)
+	if ult_amt > 0.0 and player.has_method(&"add_ult_energy"):
+		player.call(&"add_ult_energy", ult_amt * ult_gain_mul)
+	if haste_sec > 0.0:
+		_flow_haste_timer = maxf(_flow_haste_timer, haste_sec)
 
 
 func _check_milestone_crossings(prev_lv: int, next_lv: int) -> void:
@@ -434,22 +704,22 @@ func _on_milestone_reached(milestone: int) -> void:
 func get_damage_reduction() -> float:
 	var d_def := maxi(0, int(stat_levels.get("stat_def", 1)) - 1)
 	var bell_bonus := 0.12 if (core_id == "core_bell" and has_core_tier(10)) else 0.0
-	return clampf(float(d_def) * 0.012 + bell_bonus, 0.0, 0.70)
+	return clampf((float(d_def) * 0.012 + bell_bonus) * BUFF_VALUE_SCALE, 0.0, 0.70)
 
 
 func get_crit_chance() -> float:
 	var d_crit := maxi(0, int(stat_levels.get("stat_crit", 1)) - 1)
 	var chrono_bonus := 0.15 if (core_id == "core_chrono" and has_core_tier(10)) else 0.0
-	return float(d_crit) * 0.022 + chrono_bonus
+	return (float(d_crit) * 0.022 + chrono_bonus) * BUFF_VALUE_SCALE
 
 
 func get_crit_bonus_mul() -> float:
 	var d_crit := maxi(0, int(stat_levels.get("stat_crit", 1)) - 1)
-	return 0.55 + float(d_crit) * 0.016
+	return (0.55 + float(d_crit) * 0.016) * BUFF_VALUE_SCALE
 
 
 func get_core_power_mul() -> float:
-	var lv_bonus := 1.0 + float(maxi(core_level - 10, 0)) * 0.020
+	var lv_bonus := 1.0 + float(maxi(core_level - 10, 0)) * 0.020 * BUFF_VALUE_SCALE
 	var atk_mul := float(player.attack_damage_mul) if player != null and is_instance_valid(player) else 1.0
 	return lv_bonus * atk_mul
 
@@ -466,16 +736,32 @@ func _sync_player_stats() -> void:
 	var d_spd := maxi(0, int(stat_levels.get("stat_spd", 1)) - 1)
 	var d_def := maxi(0, int(stat_levels.get("stat_def", 1)) - 1)
 
-	# 1. 攻击：伤害倍率 + 安全判定框拓宽 + 撞墙倍率
-	player.attack_damage_mul = 1.0 + float(d_atk) * 0.042
-	player.wall_damage_scale = _base_wall_scale * (1.0 + float(d_atk) * 0.020)
-	var hb_scale_x := minf(1.45, 1.0 + float(d_atk) * 0.012 + (0.14 if core_id == "core_rift" and has_core_tier(10) else 0.0))
-	var hb_scale_y := minf(1.24, 1.0 + float(d_atk) * 0.005)
+	# 1. 攻击：伤害倍率 + 安全判定框拓宽 + 撞墙倍率（数值增益 ×0.1）
+	_computed_base_atk_mul = 1.0 + float(d_atk) * 0.042 * BUFF_VALUE_SCALE
+	player.attack_damage_mul = _computed_base_atk_mul
+	player.wall_damage_scale = _base_wall_scale * (1.0 + float(d_atk) * 0.020 * BUFF_VALUE_SCALE)
+	var hb_scale_x := minf(1.45, 1.0 + (float(d_atk) * 0.012 + (0.14 if core_id == "core_rift" and has_core_tier(10) else 0.0)) * BUFF_VALUE_SCALE)
+	var hb_scale_y := minf(1.24, 1.0 + float(d_atk) * 0.005 * BUFF_VALUE_SCALE)
 
-	# 2. 速度：移速（相对原始移速最高 +45%）+ 招式前后摇安全加速（绝不缩减判定帧）+ 蓄力加速 + 残影格上限
-	player.speed = _base_speed * (1.0 + minf(0.45, float(d_spd) * 0.011))
-	player.charge_rate_scale = _base_charge_scale * (1.0 + float(d_spd) * 0.025)
-	player.heavy_full_charge_frames = maxi(10, roundi(float(_base_heavy_charge_frames) / (1.0 + float(d_spd) * 0.025)))
+	# 2. 速度：移速 + 招式前后摇安全加速 + 蓄力加速（数值 ×0.1），残影上限与百级无限闪机制保留
+	_computed_base_speed = _base_speed * (1.0 + minf(0.45, float(d_spd) * 0.011) * BUFF_VALUE_SCALE)
+	player.speed = _computed_base_speed * (1.20 if _flow_haste_timer > 0.0 else 1.0)
+	player.charge_rate_scale = _base_charge_scale * (1.0 + float(d_spd) * 0.025 * BUFF_VALUE_SCALE)
+	player.heavy_full_charge_frames = maxi(10, roundi(float(_base_heavy_charge_frames) / (1.0 + float(d_spd) * 0.025 * BUFF_VALUE_SCALE)))
+
+	# 2.5 非基础数值机制同步：霸体抗打断 / 韧性层数 / 额外空中跳
+	if player.get("buff_attack_poise") != null:
+		player.set("buff_attack_poise", attack_poise)
+	if player.get("buff_poise_charges") != null:
+		if poise_max_charges > 0 and int(player.get("buff_poise_charges")) == 0 and _poise_regen_timer <= 0.0:
+			player.set("buff_poise_charges", poise_max_charges)
+		else:
+			player.set("buff_poise_charges", mini(poise_max_charges, int(player.get("buff_poise_charges"))))
+	player.extra_air_jumps = _base_extra_air_jumps + extra_air_jumps_bonus
+	if attack_poise:
+		player.soft_knock_threshold = maxf(_base_soft_knock, 620.0)
+	else:
+		player.soft_knock_threshold = maxf(_base_soft_knock, 480.0 if (aegis_hp > 1.0 and core_id == "core_bell" and has_core_tier(10)) else _base_soft_knock)
 
 	var bonus_shadows := 0
 	var spd_lv := int(stat_levels.get("stat_spd", 1))
@@ -487,17 +773,18 @@ func _sync_player_stats() -> void:
 		bonus_shadows += 1
 	if core_id == "core_crow" and has_core_tier(10):
 		bonus_shadows += 1
+	bonus_shadows += shadow_cap_bonus
 	var prev_cap := int(player.max_shadow_charges)
 	shadow_cap = _base_shadow_max + bonus_shadows
 	player.max_shadow_charges = shadow_cap
 	if shadow_cap > prev_cap:
 		player.shadow_charges = mini(shadow_cap, int(player.shadow_charges) + (shadow_cap - prev_cap))
-	player.shadow_regen_seconds = maxf(0.85, _base_shadow_regen / (1.0 + float(d_spd) * 0.024))
+	player.shadow_regen_seconds = maxf(0.55, (_base_shadow_regen / (1.0 + float(d_spd) * 0.024 * BUFF_VALUE_SCALE)) * shadow_regen_mul)
 	player.unlimited_dash = _base_unlimited_dash or (core_id == "core_crow" and has_core_tier(100))
 
-	# 3. 防御：最大生命（等额抬升当前血量）+ 弹刀判定拓宽 + 驻时凝光盾上限
+	# 3. 防御：最大生命（等额抬升当前血量）+ 弹刀判定拓宽 + 驻时凝光盾上限（数值 ×0.1）
 	var old_max_hp := float(player.max_hp)
-	var target_max_hp := _base_max_hp + float(d_def) * 4.5
+	var target_max_hp := _base_max_hp + float(d_def) * 4.5 * BUFF_VALUE_SCALE
 	player.max_hp = target_max_hp
 	if target_max_hp > old_max_hp + 0.01:
 		player.hp = minf(target_max_hp, float(player.hp) + (target_max_hp - old_max_hp))
@@ -505,18 +792,18 @@ func _sync_player_stats() -> void:
 			stage.set("_hp_seen", player.hp)
 
 	var prev_aegis_max := aegis_max
-	var base_shield := float(d_def) * 2.2
+	var base_shield := float(d_def) * 2.2 * BUFF_VALUE_SCALE
 	if core_id == "core_bell" and has_core_tier(10):
-		base_shield += 42.0 + float(core_level) * 1.45
+		base_shield += (42.0 + float(core_level) * 1.45) * BUFF_VALUE_SCALE
 	aegis_max = base_shield
 	if aegis_max > prev_aegis_max:
 		aegis_hp = minf(aegis_max, aegis_hp + (aegis_max - prev_aegis_max))
 	else:
 		aegis_hp = minf(aegis_hp, aegis_max)
 
-	# 4. 写回克隆招式帧数与判定框
-	var atk_haste := minf(0.42, float(d_spd) * 0.010)
-	var parry_bonus := clampi(d_def / 8, 0, 6) + (2 if core_id == "core_bell" and has_core_tier(10) else 0)
+	# 4. 写回克隆招式帧数与判定框（攻速/弹刀加成数值 ×0.1）
+	var atk_haste := minf(0.42, float(d_spd) * 0.010) * BUFF_VALUE_SCALE
+	var parry_bonus := roundi((float(clampi(d_def / 8, 0, 6)) + (2.0 if core_id == "core_bell" and has_core_tier(10) else 0.0)) * BUFF_VALUE_SCALE)
 	for entry in _move_baselines:
 		var mv: MoveDefinition = entry["move"]
 		if mv == null:
@@ -569,19 +856,37 @@ func intercept_player_hurt(raw_dmg: float, point: Vector2, _dir: Vector2 = Vecto
 		else:
 			_spawn_flash(point, 68.0, COL_GOLD, 0.20)
 
+	# 2.5 荆棘夜袍：受击触发近身银紫荆棘反伤
+	if thorn_ratio > 0.0 and raw_dmg > 0.0:
+		var thorn_dmg := maxf(4.0, raw_dmg * thorn_ratio)
+		_mv_crit.damage = thorn_dmg
+		var center := player.global_position + Vector2(0.0, -34.0)
+		var hit_any := false
+		for s in _alive_shades():
+			if s.global_position.distance_to(center) <= 340.0:
+				hit_any = true
+				var fdir := 1 if s.global_position.x >= center.x else -1
+				_deal_perk_hit(s, _mv_crit, fdir, s.global_position + Vector2(0.0, -30.0), 1.0)
+				_spawn_line(center, s.global_position + Vector2(0.0, -30.0), COL_SILVER, 0.18, 3.0)
+		if hit_any:
+			thorn_reflect_count += 1
+			_spawn_flash(center, 96.0, Color("9ad0ff"), 0.20)
+
 	var target_hp := clampf(pre_hit_hp - remaining_dmg, 0.0, float(player.max_hp))
 	if post_raw_hp <= 1.5 and remaining_dmg > 1.5:
 		target_hp = minf(target_hp, post_raw_hp)
 	player.hp = target_hp
 
-	# 3. 司辰金钟 Lv.100【逆时金身】濒死驻时锁血（每幕 1 次）
-	if float(player.hp) <= 1.5 and cheat_death_charges > 0 and core_id == "core_bell" and has_core_tier(100):
+	# 3. 司辰金钟 Lv.100【逆时金身】或【倒拨五分】濒死驻时锁血（每幕 1 次）
+	var can_cheat := (core_id == "core_bell" and has_core_tier(100)) or immortal_clock_enabled
+	if float(player.hp) <= 1.5 and cheat_death_charges > 0 and can_cheat:
 		cheat_death_charges -= 1
 		cheat_death_triggered_count += 1
-		player.hp = maxf(float(player.hp), float(player.max_hp) * 0.38)
+		var heal_pct := 0.55 if immortal_clock_enabled else 0.38
+		player.hp = maxf(float(player.hp), float(player.max_hp) * heal_pct)
 		aegis_hp = aegis_max
 		player.invuln_frames = maxi(int(player.invuln_frames), 75)
-		_banner_text = "【逆时金身】驻时锁血 · 母钟护体！"
+		_banner_text = "【倒拨五分】时间回溯 · 死境逢生！" if immortal_clock_enabled else "【逆时金身】驻时锁血 · 母钟护体！"
 		_banner_timer = 2.2
 		_trigger_grand_bell_wave(player.global_position)
 		remaining_dmg = 0.0
@@ -670,6 +975,8 @@ func _on_player_short_dash(direction: int, origin: Vector2) -> void:
 	if not is_active_build() or player == null:
 		return
 	var dir_sign := direction if direction != 0 else (int(player.facing) if int(player.facing) != 0 else 1)
+	if dash_nova_enabled:
+		_trigger_dash_nova(origin)
 	if core_id == "core_crow" and has_core_tier(10):
 		_spawn_decoy(origin, dir_sign, false)
 		if has_core_tier(40):
@@ -683,6 +990,8 @@ func _on_player_shadow_pursuit(_target: Node2D, destination: Vector2) -> void:
 	if not is_active_build() or player == null:
 		return
 	var fdir := int(player.facing) if int(player.facing) != 0 else 1
+	if dash_nova_enabled:
+		_trigger_dash_nova(player.global_position)
 	if core_id == "core_crow" and has_core_tier(10):
 		_spawn_decoy(player.global_position, fdir, false)
 		if has_core_tier(40):
@@ -690,6 +999,19 @@ func _on_player_shadow_pursuit(_target: Node2D, destination: Vector2) -> void:
 		arm_keen_edge()
 	if core_id == "core_crow" and has_core_tier(100):
 		_trigger_slash_web(destination)
+
+
+func _trigger_dash_nova(origin: Vector2) -> void:
+	dash_nova_count += 1
+	var center := origin + Vector2(0.0, -34.0)
+	bell_rings.append({"pos": center, "max_r": 240.0, "ttl": 0.24, "max_ttl": 0.24, "grand": false})
+	_clear_enemy_projectiles_near(center, 250.0)
+	_mv_clone.damage = 14.0
+	for s in _alive_shades():
+		if s.global_position.distance_to(center) <= 240.0:
+			var fdir := 1 if s.global_position.x >= center.x else -1
+			_deal_perk_hit(s, _mv_clone, fdir, center, 1.0)
+			_damage_any_shell(s, 14.0, center)
 
 
 func _on_player_perfect_dodge(_enemy: Node2D, point: Vector2) -> void:
@@ -702,6 +1024,12 @@ func _on_player_perfect_dodge(_enemy: Node2D, point: Vector2) -> void:
 func _on_player_parry_success(attacker: Node, point: Vector2) -> void:
 	if not is_active_build() or player == null:
 		return
+	if shadow_flow_enabled:
+		_grant_shadow_and_ult(1, 12.0, 2.5)
+	if parry_heal_enabled:
+		heal_player(float(player.max_hp) * 0.10)
+		if stage != null and stage.get("style") != null and stage.style.has_method(&"add_raw_points"):
+			stage.style.call(&"add_raw_points", 25.0)
 	if core_id == "core_bell":
 		if has_core_tier(10):
 			aegis_hp = minf(aegis_max, aegis_hp + aegis_max * 0.35)
@@ -752,14 +1080,37 @@ func _on_boss_shell_damaged(_amount: float, _remain: float, _is_backstab: bool, 
 func _on_boss_shell_shattered(_point: Vector2) -> void:
 	if core_id == "core_chrono" and has_core_tier(40):
 		arm_keen_edge()
+	if shell_shred_bonus > 0.0:
+		_grant_shadow_and_ult(1, 12.0)
 
 
 func _process_hit_effects(victim: Node2D, move: MoveDefinition, point: Vector2) -> void:
 	var d_crit := maxi(0, int(stat_levels.get("stat_crit", 1)) - 1)
 	if d_crit > 0 and player.has_method(&"add_ult_energy"):
-		player.add_ult_energy(float(d_crit) * 0.35)
+		player.add_ult_energy(float(d_crit) * 0.35 * BUFF_VALUE_SCALE * ult_gain_mul)
+	elif ult_gain_mul > 1.001 and player.has_method(&"add_ult_energy"):
+		player.add_ult_energy(1.8 * (ult_gain_mul - 1.0))
 
-	# 司辰金钟 Lv.100 挥刀回盾
+	# 吸血（血月汲魂 / 嗜血残酒 / 残夜血誓）
+	var base_dmg := float(move.damage) if move != null else 12.0
+	if lifesteal_ratio > 0.0:
+		var est_dmg := base_dmg * float(player.attack_damage_mul)
+		heal_player(est_dmg * lifesteal_ratio)
+
+	# 断命残锋：对 30% 血以下敌人追加斩杀伤害
+	if execute_bonus > 0.0 and victim != null and is_instance_valid(victim):
+		var vhp: Variant = victim.get("hp")
+		var vmax: Variant = victim.get("max_hp")
+		if vhp != null and vmax != null and float(vmax) > 0.0 and (float(vhp) / float(vmax)) <= 0.30:
+			_mv_crit.damage = maxf(3.0, base_dmg * execute_bonus)
+			_deal_perk_hit(victim, _mv_crit, int(player.facing), point, 1.0)
+			_spawn_flash(point, 52.0, COL_GOLD, 0.16)
+
+	# 碎壳蚀锋：普通命中对凝光壳追加 +50% 额外碎壳伤害
+	if shell_shred_bonus > 0.0 and victim != null and is_instance_valid(victim):
+		_damage_any_shell(victim, base_dmg * shell_shred_bonus, point)
+
+	# 司辰金钟 Lv.100 挥刀回盾（aegis_max 已按 ×0.1 缩放）
 	if core_id == "core_bell" and has_core_tier(100) and aegis_max > 0.0:
 		aegis_hp = minf(aegis_max, aegis_hp + aegis_max * 0.06)
 
@@ -773,16 +1124,15 @@ func _process_hit_effects(victim: Node2D, move: MoveDefinition, point: Vector2) 
 	elif crit_rate > 0.0 and rng.randf() < crit_rate:
 		is_crit = true
 
-	var base_dmg := float(move.damage) if move != null else 12.0
 	if is_crit:
 		crit_trigger_count += 1
 		var bonus_mul := get_crit_bonus_mul() * (1.65 if is_over_crit else 1.0)
-		var bonus_dmg := maxf(4.0, base_dmg * bonus_mul)
+		var bonus_dmg := maxf(0.5, base_dmg * bonus_mul)
 		_mv_crit.damage = bonus_dmg
 		_deal_perk_hit(victim, _mv_crit, int(player.facing), point, 1.0)
 		if is_over_crit:
 			over_crit_count += 1
-			_damage_any_shell(victim, 22.0, point)
+			_damage_any_shell(victim, 22.0 * BUFF_VALUE_SCALE, point)
 		_spawn_flash(point, 58.0 if is_over_crit else 40.0, COL_SILVER if is_over_crit else COL_VIOLET_LIGHT, 0.16)
 		if stage != null and stage.get("fx") != null:
 			var fx_node: Node = stage.get("fx")
@@ -823,11 +1173,15 @@ func _on_shade_spawned(s: Node2D) -> void:
 func _on_enemy_shell_broken(_s: Node2D) -> void:
 	if core_id == "core_chrono" and has_core_tier(40):
 		arm_keen_edge()
+	if shell_shred_bonus > 0.0:
+		_grant_shadow_and_ult(1, 12.0)
 
 
 func _on_enemy_lethal_blow(_point: Vector2, _dir: Vector2, overkill_launch: bool) -> void:
 	if overkill_launch and core_id == "core_chrono" and has_core_tier(40):
 		arm_keen_edge()
+	if shadow_flow_enabled:
+		_grant_shadow_and_ult(1, 12.0, 2.5)
 
 
 # ---------------------------------------------------------------- 四大本命核心牌具体招式实现
@@ -857,7 +1211,7 @@ func spawn_real_rift(world_pos: Vector2, axis_dir: Vector2 = Vector2(0.7, -0.7))
 			oldest.call(&"dismiss")
 	var rift: Node2D = SpatialRiftScript.new()
 	stage.add_child(rift)
-	var dmg := 20.0 * get_core_power_mul()
+	var dmg := 20.0 * BUFF_VALUE_SCALE * get_core_power_mul()
 	rift.call(&"setup", world_pos, axis_dir, 125.0, player, dmg, &"core_rift")
 	return rift
 
@@ -888,7 +1242,7 @@ func detonate_all_rifts(pull_center: Vector2 = Vector2.INF) -> int:
 				if is_finite(pull_center.x):
 					s.global_position = s.global_position.lerp(pull_center, 0.35)
 				_deal_perk_hit(s, _mv_storm, fdir, rpos, 0.85 * p_mul)
-				_damage_any_shell(s, 28.0, rpos)
+				_damage_any_shell(s, 28.0 * BUFF_VALUE_SCALE, rpos)
 		if r.has_method(&"dismiss"):
 			r.call(&"dismiss")
 	return count
@@ -949,7 +1303,7 @@ func _trigger_slash_web(center: Vector2) -> void:
 			_spawn_line(sp + Vector2(-120.0, -58.0), sp + Vector2(120.0, 58.0), COL_SILVER, 0.22, 4.0)
 			_spawn_line(sp + Vector2(-120.0, 58.0), sp + Vector2(120.0, -58.0), COL_VIOLET, 0.22, 4.0)
 			_deal_perk_hit(s, _mv_clone, int(player.facing) if player != null else 1, sp, 0.95 * p_mul)
-			_damage_any_shell(s, 18.0, sp)
+			_damage_any_shell(s, 18.0 * BUFF_VALUE_SCALE, sp)
 	if not hit_any:
 		_spawn_line(center + Vector2(-220.0, -64.0), center + Vector2(220.0, 64.0), COL_VIOLET_LIGHT, 0.20, 3.5)
 		_spawn_line(center + Vector2(-220.0, 64.0), center + Vector2(220.0, -64.0), COL_SILVER, 0.20, 3.5)
@@ -965,7 +1319,7 @@ func _strike_thunder(primary: Node2D, chain_enabled: bool) -> void:
 	var pt := primary.global_position + Vector2(0.0, -36.0)
 	_spawn_lightning_bolt(pt + Vector2(0.0, -280.0), pt)
 	_deal_perk_hit(primary, _mv_thunder, int(player.facing) if player != null else 1, pt, p_mul)
-	_damage_any_shell(primary, 26.0, pt)
+	_damage_any_shell(primary, 26.0 * BUFF_VALUE_SCALE, pt)
 
 	if chain_enabled:
 		var jumps := 0
@@ -977,7 +1331,7 @@ func _strike_thunder(primary: Node2D, chain_enabled: bool) -> void:
 				var spt := s.global_position + Vector2(0.0, -36.0)
 				_spawn_lightning_bolt(pt, spt)
 				_deal_perk_hit(s, _mv_thunder, int(player.facing) if player != null else 1, spt, 0.72 * p_mul)
-				_damage_any_shell(s, 18.0, spt)
+				_damage_any_shell(s, 18.0 * BUFF_VALUE_SCALE, spt)
 
 
 func trigger_time_stop_domain(center: Vector2) -> void:
@@ -1019,7 +1373,7 @@ func _release_time_stop(detonate: bool) -> void:
 			var pt := s.global_position + Vector2(0.0, -36.0)
 			_spawn_lightning_bolt(pt + Vector2(0.0, -320.0), pt)
 			_deal_perk_hit(s, _mv_thunder, int(player.facing) if player != null else 1, pt, float(stacks) * 1.15 * p_mul)
-			_damage_any_shell(s, 24.0 * float(stacks), pt)
+			_damage_any_shell(s, 24.0 * BUFF_VALUE_SCALE * float(stacks), pt)
 	_time_stop_marks.clear()
 
 
@@ -1036,12 +1390,12 @@ func _trigger_bell_shockwave(center: Vector2, radius: float, scale_k: float) -> 
 		"grand": false,
 	})
 	_clear_enemy_projectiles_near(center, radius + 40.0)
-	_mv_bell.damage = 15.0 + shield_bonus
+	_mv_bell.damage = 15.0 * BUFF_VALUE_SCALE + shield_bonus
 	for s in _alive_shades():
 		if s.global_position.distance_to(center) <= radius:
 			var fdir := 1 if s.global_position.x >= center.x else -1
 			_deal_perk_hit(s, _mv_bell, fdir, center, p_mul)
-			_damage_any_shell(s, 26.0 + shield_bonus * 0.5, center)
+			_damage_any_shell(s, 26.0 * BUFF_VALUE_SCALE + shield_bonus * 0.5, center)
 	perk_triggered.emit("core_bell_wave", center)
 
 
@@ -1060,11 +1414,11 @@ func _trigger_grand_bell_wave(center: Vector2) -> void:
 		"grand": true,
 	})
 	_clear_enemy_projectiles_near(center, span_r)
-	_mv_bell.damage = 22.0 + shield_bonus
+	_mv_bell.damage = 22.0 * BUFF_VALUE_SCALE + shield_bonus
 	for s in _alive_shades():
 		var fdir := 1 if s.global_position.x >= center.x else -1
 		_deal_perk_hit(s, _mv_bell, fdir, s.global_position, p_mul)
-		_damage_any_shell(s, 40.0 + shield_bonus * 0.5, s.global_position)
+		_damage_any_shell(s, 40.0 * BUFF_VALUE_SCALE + shield_bonus * 0.5, s.global_position)
 	perk_triggered.emit("core_bell_grand", center)
 
 
@@ -1099,6 +1453,31 @@ func _physics_process(delta: float) -> void:
 			aegis_hp = minf(aegis_max, aegis_hp + aegis_max * 0.22 * delta)
 		if aegis_hp > 1.0 and core_id == "core_bell" and has_core_tier(10):
 			player.soft_knock_threshold = maxf(float(player.soft_knock_threshold), 480.0)
+
+	# 护体韧性自动回复（每 6 秒恢复 1 层）、疾行回流移速、低血狂澜与空伤实时同步
+	if is_active_build() and player != null and is_instance_valid(player):
+		if poise_max_charges > 0 and player.get("buff_poise_charges") != null:
+			var cur_p := int(player.get("buff_poise_charges"))
+			if cur_p < poise_max_charges:
+				_poise_regen_timer += delta
+				if _poise_regen_timer >= 6.0:
+					_poise_regen_timer = 0.0
+					player.set("buff_poise_charges", mini(poise_max_charges, cur_p + 1))
+			else:
+				_poise_regen_timer = 0.0
+		if _flow_haste_timer > 0.0:
+			_flow_haste_timer = maxf(0.0, _flow_haste_timer - delta)
+			player.speed = _computed_base_speed * (1.20 if _flow_haste_timer > 0.0 else 1.0)
+		var dyn_mul := _computed_base_atk_mul
+		if low_hp_dmg_bonus > 0.0 and float(player.hp) <= float(player.max_hp) * 0.5:
+			dyn_mul *= (1.0 + low_hp_dmg_bonus)
+		if aerial_dmg_bonus > 0.0 and not player.is_on_floor():
+			dyn_mul *= (1.0 + aerial_dmg_bonus)
+		if combo_surge_per_10 > 0.0 and stage != null and stage.get("style") != null:
+			var stacks := mini(6, int(stage.style.combo) / 10)
+			if stacks > 0:
+				dyn_mul *= (1.0 + float(stacks) * combo_surge_per_10)
+		player.attack_damage_mul = dyn_mul
 
 	# 刹那 5:59 局部时停维持与结算
 	if time_stop_timer > 0.0:
@@ -1135,7 +1514,7 @@ func _tick_arc_slashes(delta: float) -> void:
 			if absf(s.global_position.x - pos.x) <= 95.0 * sk and absf(s.global_position.y - pos.y) <= 125.0 * sk:
 				hits[sid] = true
 				_deal_perk_hit(s, _mv_arc, int(item["dir"]), pos, p_mul * sk)
-				_damage_any_shell(s, 18.0 * sk, pos)
+				_damage_any_shell(s, 18.0 * BUFF_VALUE_SCALE * sk, pos)
 		if float(item["ttl"]) <= 0.0:
 			arc_slashes.remove_at(i)
 		i -= 1
@@ -1160,7 +1539,7 @@ func _tick_sky_blades(delta: float) -> void:
 				if absf(s.global_position.x - bx) <= 145.0:
 					var fdir := 1 if (player == null or s.global_position.x >= player.global_position.x) else -1
 					_deal_perk_hit(s, _mv_storm, fdir, impact, p_mul)
-					_damage_any_shell(s, 32.0, impact)
+					_damage_any_shell(s, 32.0 * BUFF_VALUE_SCALE, impact)
 		b["ttl"] = float(b["ttl"]) - delta
 		if float(b["ttl"]) <= 0.0:
 			sky_blades.remove_at(i)
@@ -1183,7 +1562,7 @@ func _tick_decoys(delta: float) -> void:
 				for s in _alive_shades():
 					if s.global_position.distance_to(dpos) <= 210.0:
 						_deal_perk_hit(s, _mv_clone, fdir, dpos, p_mul)
-						_damage_any_shell(s, 18.0, dpos)
+						_damage_any_shell(s, 18.0 * BUFF_VALUE_SCALE, dpos)
 		else:
 			d["fade"] = float(d["fade"]) - delta
 			if float(d["fade"]) <= 0.0:
@@ -1211,7 +1590,7 @@ func _tick_feather_bolts(delta: float) -> void:
 			if s.global_position.distance_to(pos) <= 74.0:
 				var fdir := 1 if vel.x >= 0.0 else -1
 				_deal_perk_hit(s, _mv_feather, fdir, pos, 0.72 * p_mul)
-				_damage_any_shell(s, 8.0, pos)
+				_damage_any_shell(s, 8.0 * BUFF_VALUE_SCALE, pos)
 				_spawn_flash(pos, 32.0, COL_VIOLET_LIGHT, 0.12)
 				hit = true
 				break

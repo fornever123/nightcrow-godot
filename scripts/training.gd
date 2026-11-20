@@ -11,10 +11,14 @@ const ImpactFX := preload("res://scripts/presentation/impact_fx.gd")
 const Feel := preload("res://scripts/core/feel_scale.gd")
 const Timeline := preload("res://scripts/core/animation_timeline.gd")
 const Factory := preload("res://scripts/night/player_factory.gd")
+const ComboSkillRig := preload("res://scripts/gameplay/combo_skill_rig.gd")
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
+const PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
 var config: Dictionary
 var moves: Dictionary
 var player: CharacterBody2D
 var dummy: CharacterBody2D
+var combo_skills: Node2D
 var camera: Camera2D
 var hud: Label
 var help_label: Label
@@ -139,6 +143,17 @@ func _ready() -> void:
 	player.wall_slam.connect(_wall_hit.bind(player))
 	dummy.died.connect(_knockdown)
 	_build_hud()
+	combo_skills = ComboSkillRig.new()
+	combo_skills.unlock_all_override = true
+	add_child(combo_skills)
+	combo_skills.setup(self, player)
+	if get_node_or_null("PauseMenu") == null:
+		var menu: CanvasLayer = PauseMenuScript.new()
+		menu.name = "PauseMenu"
+		menu.set("stage", self)
+		add_child(menu)
+	if GamepadManager.instance != null and not GamepadManager.instance.device_changed.is_connected(_on_device_changed):
+		GamepadManager.instance.device_changed.connect(_on_device_changed)
 	queue_redraw()
 	print("NIGHTCROW_READY: E角色168px / C战斗 / 木桩场景 / 统一JSON")
 
@@ -154,20 +169,35 @@ func _floor(rect: Rect2) -> void:
 	body.add_child(shape)
 	add_child(body)
 
-## 操作说明按当前键位方案（键盘 / 键鼠）写
+func _on_device_changed(_using_pad: bool) -> void:
+	apply_control_scheme()
+
+
+## 操作说明按当前键位方案（键盘 / 键鼠 / 手柄实时自适应）写
 func apply_control_scheme() -> void:
 	if help_label == null:
 		return
+	if GamepadManager.is_using_gamepad():
+		help_label.text = ("左摇杆 移动   A 二段跳   下+A 下平台   X 轻击/长按蓄力   B 冲刺斩   按住 LB 时缓 + 十字键全搓招演练\n"
+				+ "Y 远射   RB 弹刀/格挡   L3 来袭开关   R3 判定框   Back 重置   Start 暂停菜单")
+		return
 	var a := Factory.key_label("attack")
-	help_label.text = ("A / D 跑动与转身   空格 / W 二段跳   S 下平台   {a} 地面 / 空中三连   按住 {a} 蓄力（空中也行）   W + {a} 挑飞
-"
-			+ "{d} 冲刺斩（空中也行）   {k} 远射   {l} 弹刀 · 按住格挡   R 大招   F2 测试来袭开关   F5 重置   F1 判定框   F3 返回试玩"
+	help_label.text = ("A / D 移动   空格 / W 二段跳   S 下平台   {a} 三连/长按蓄力   {d} 冲刺斩   按住 Tab/Ctrl 时缓 + 方向键全搓招演练\n"
+			+ "{k} 远射   {l} 弹刀/格挡   R 大招   F2 来袭开关   F5 重置   F1 判定框   Esc 暂停菜单"
 			).format({"a": a, "k": Factory.key_label("ranged"), "l": Factory.key_label("parry"), "d": Factory.key_label("dash")})
 
 
-## 和雨街试玩共用一套键位（键盘 / 键鼠二选一 + 手柄，见 player_factory.gd），训练场只多一个 F2
+## 和雨街试玩共用一套键位（键盘 / 键鼠二选一 + 手柄，见 player_factory.gd），训练场只多一个 F2 / L3
 func _register_input() -> void:
 	Factory.register_input({"training_attack_toggle": [KEY_F2]})
+	var l3 := InputEventJoypadButton.new()
+	l3.device = -1
+	l3.button_index = JOY_BUTTON_LEFT_STICK
+	InputMap.action_add_event(&"training_attack_toggle", l3)
+	var r3 := InputEventJoypadButton.new()
+	r3.device = -1
+	r3.button_index = JOY_BUTTON_RIGHT_STICK
+	InputMap.action_add_event(&"debug_toggle", r3)
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -196,12 +226,14 @@ func _build_hud() -> void:
 	apply_control_scheme()
 	var reset := Button.new()
 	reset.text = "重置训练  F5"
+	reset.focus_mode = Control.FOCUS_NONE
 	reset.position = Vector2(990,26)
 	reset.size = Vector2(122,38)
 	reset.pressed.connect(_reset)
 	panel.add_child(reset)
 	var edit := Button.new()
 	edit.text = "打开修改器"
+	edit.focus_mode = Control.FOCUS_NONE
 	edit.position = Vector2(1130,26)
 	edit.size = Vector2(122,38)
 	edit.pressed.connect(_editor)
@@ -306,6 +338,12 @@ func _reset() -> void:
 	fx.clear()
 	audio.stop_all()
 	camera.reset_shake()
+
+
+func _restart_trial() -> void:
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	_reset()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("reset"):

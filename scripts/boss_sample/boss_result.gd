@@ -4,6 +4,7 @@ signal restart_requested()
 signal new_run_requested()
 
 const BossFonts := preload("res://scripts/boss_sample/boss_fonts.gd")
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 const GRADE_COLOR := {"S": Color("ffe0a2"), "A": Color("dfe8ff"), "B": Color("c7d3e5"), "C": Color("9caec5"), "D": Color("7c8aa0")}
 
 var summary: Dictionary = {}
@@ -13,6 +14,7 @@ var _gothic_font: Font
 
 
 func _ready() -> void:
+	GamepadManager.ensure_ui_actions()
 	layer = 30
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_cn_font = BossFonts.load_font(BossFonts.SERIF_SC)
@@ -63,18 +65,24 @@ func _ready() -> void:
 
 	var retry := Button.new()
 	retry.name = "Retry"
-	retry.text = "再战塔顶  ·  F5"
+	retry.focus_mode = Control.FOCUS_ALL
+	retry.text = "再战塔顶  ·  A / F5" if GamepadManager.is_using_gamepad() else "再战塔顶  ·  F5"
 	retry.custom_minimum_size = Vector2(240, 48)
 	retry.pressed.connect(func(): restart_requested.emit())
 	btn_row.add_child(retry)
 
 	var street := Button.new()
 	street.name = "NewStreetRun"
+	street.focus_mode = Control.FOCUS_ALL
 	street.text = "返回影街新一轮"
 	street.custom_minimum_size = Vector2(240, 48)
 	street.pressed.connect(func(): new_run_requested.emit())
 	btn_row.add_child(street)
 
+	retry.focus_neighbor_right = street.get_path()
+	retry.focus_neighbor_left = street.get_path()
+	street.focus_neighbor_left = retry.get_path()
+	street.focus_neighbor_right = retry.get_path()
 	retry.grab_focus.call_deferred()
 
 
@@ -90,6 +98,7 @@ func _label(rows: VBoxContainer, text: String, fsize: int, color: Color, font_ov
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("reset") and not event.is_echo():
+	var pad_reset := event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and not event.is_echo() and (event as InputEventJoypadButton).button_index == JOY_BUTTON_BACK
+	if (event.is_action_pressed("reset") or pad_reset) and not event.is_echo():
 		get_viewport().set_input_as_handled()
 		restart_requested.emit()

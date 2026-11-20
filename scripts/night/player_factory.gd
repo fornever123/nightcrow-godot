@@ -3,6 +3,7 @@ extends RefCounted
 ## 只是抽成一个函数，让试玩场景和训练场用同一套参数（改修改器两边同时生效）。
 
 const Config := preload("res://scripts/core/configuration.gd")
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 const Art := preload("res://scripts/presentation/art_cache.gd")
 const PlayerScene := preload("res://scenes/actors/player.tscn")
 
@@ -72,8 +73,10 @@ const SCHEME_MOUSE := "mouse"
 const SCHEMES := [SCHEME_KEYBOARD, SCHEME_MOUSE]
 const SCHEME_NAMES := {"keyboard": "键盘", "mouse": "键鼠"}
 const CONTROLS_CFG := "user://controls.cfg"
-const KEYS := {"move_left": [KEY_A, KEY_LEFT], "move_right": [KEY_D, KEY_RIGHT], "jump": [KEY_W, KEY_SPACE],
-	"jump_pure": [KEY_SPACE], "aim_up": [KEY_W, KEY_UP], "move_down": [KEY_S, KEY_DOWN],
+const KEYS := {"move_left": [KEY_A], "move_right": [KEY_D], "jump": [KEY_W, KEY_SPACE],
+	"jump_pure": [KEY_SPACE], "aim_up": [KEY_W], "move_down": [KEY_S],
+	"skill_stance": [KEY_TAB, KEY_CTRL], "skill_up": [KEY_UP], "skill_down": [KEY_DOWN],
+	"skill_left": [KEY_LEFT], "skill_right": [KEY_RIGHT],
 	"ult": [KEY_R], "reset": [KEY_F5], "debug_toggle": [KEY_F1],
 	"toggle_help": [KEY_H], "open_training": [KEY_F3]}
 const SCHEME_KEYS := {
@@ -89,14 +92,17 @@ const SCHEME_LABELS := {
 	"keyboard": {"attack": "J", "ranged": "K", "parry": "L", "dash": "双击 A/D"},
 	"mouse": {"attack": "左键", "ranged": "Q", "parry": "E", "dash": "双击 A/D"},
 }
-const PAD_BUTTONS := {"move_left": [JOY_BUTTON_DPAD_LEFT], "move_right": [JOY_BUTTON_DPAD_RIGHT],
-	"aim_up": [JOY_BUTTON_DPAD_UP], "move_down": [JOY_BUTTON_DPAD_DOWN], "jump": [JOY_BUTTON_A],
-	"jump_pure": [JOY_BUTTON_A], "attack_light": [JOY_BUTTON_X], "attack_ranged": [JOY_BUTTON_Y],
+## 手柄移动仅绑定左摇杆（PAD_AXES）；十字键专用于时缓搓招技能，不与移动关联；LB 专用于触发时缓搓招
+const PAD_BUTTONS := {"skill_stance": [JOY_BUTTON_LEFT_SHOULDER],
+	"skill_up": [JOY_BUTTON_DPAD_UP], "skill_down": [JOY_BUTTON_DPAD_DOWN],
+	"skill_left": [JOY_BUTTON_DPAD_LEFT], "skill_right": [JOY_BUTTON_DPAD_RIGHT],
+	"jump": [JOY_BUTTON_A], "jump_pure": [JOY_BUTTON_A],
+	"attack_light": [JOY_BUTTON_X], "attack_ranged": [JOY_BUTTON_Y],
 	"dash_modifier": [JOY_BUTTON_B], "parry": [JOY_BUTTON_RIGHT_SHOULDER], "reset": [JOY_BUTTON_BACK]}
 ## [轴, 方向]；摇杆上下的死区比左右大，免得跑步时手一偏就变成上挑 / 下平台
 const PAD_AXES := {"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
 	"aim_up": [JOY_AXIS_LEFT_Y, -1.0], "move_down": [JOY_AXIS_LEFT_Y, 1.0], "ult": [JOY_AXIS_TRIGGER_RIGHT, 1.0]}
-const DEADZONES := {"move_left": 0.25, "move_right": 0.25, "aim_up": 0.5, "move_down": 0.5, "ult": 0.5}
+const DEADZONES := {"move_left": 0.25, "move_right": 0.25, "aim_up": 0.5, "move_down": 0.5, "ult": 0.35}
 
 static var _scheme := ""
 static var _extra := {}
@@ -185,3 +191,5 @@ static func register_input(extra: Dictionary = {}) -> void:
 	start.device = -1
 	start.button_index = JOY_BUTTON_START
 	InputMap.action_add_event(&"ui_cancel", start)
+	GamepadManager.ensure_ui_actions()
+	GamepadManager.ensure_skill_actions()

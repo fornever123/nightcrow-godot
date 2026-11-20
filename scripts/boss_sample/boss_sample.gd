@@ -132,10 +132,10 @@ func _stage_ready() -> void:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = KEY_SHIFT
 		InputMap.action_add_event(Dodge.ACTION, ev)
-		var lb := InputEventJoypadButton.new()
-		lb.device = -1
-		lb.button_index = JOY_BUTTON_LEFT_SHOULDER
-		InputMap.action_add_event(Dodge.ACTION, lb)
+		var b_btn := InputEventJoypadButton.new()
+		b_btn.device = -1
+		b_btn.button_index = JOY_BUTTON_B
+		InputMap.action_add_event(Dodge.ACTION, b_btn)
 
 	dodge = Dodge.new()
 	dodge.name = "Dodge"
@@ -279,6 +279,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func apply_control_scheme() -> void:
 	super()
+	# 确保 sample_dodge 仅使用 Shift / 手柄 B（LB 专用于按住时缓搓招）
+	if InputMap.has_action(Dodge.ACTION):
+		var stale_lb: Array[InputEvent] = []
+		var has_b := false
+		for ev in InputMap.action_get_events(Dodge.ACTION):
+			if ev is InputEventJoypadButton:
+				var jb := ev as InputEventJoypadButton
+				if jb.button_index == JOY_BUTTON_LEFT_SHOULDER:
+					stale_lb.append(ev)
+				elif jb.button_index == JOY_BUTTON_B:
+					has_b = true
+		for ev in stale_lb:
+			InputMap.action_erase_event(Dodge.ACTION, ev)
+		if not has_b:
+			var b_btn := InputEventJoypadButton.new()
+			b_btn.device = -1
+			b_btn.button_index = JOY_BUTTON_B
+			InputMap.action_add_event(Dodge.ACTION, b_btn)
 	if hud != null:
 		hud.help_text = ""
 		hud.queue_redraw()
