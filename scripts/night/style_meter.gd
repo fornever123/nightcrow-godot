@@ -33,6 +33,30 @@ var best_rank: int = 0
 var recent: Array[StringName] = []
 var stats: Dictionary = {}
 
+## 波次肉鸽 Buff 修饰符（默认全为 1.0 / 0 / false，完全兼容原版行为）
+var decay_mul: float = 1.0
+var combo_window_bonus: float = 0.0
+var gain_mul: float = 1.0
+var hit_protect: bool = false
+var rank_floor: int = 0
+
+
+func effective_combo_window() -> float:
+	return maxf(0.5, COMBO_WINDOW + combo_window_bonus)
+
+
+func floor_points() -> float:
+	var idx := clampi(rank_floor, 0, THRESHOLDS.size() - 1)
+	return THRESHOLDS[idx]
+
+
+func enforce_floor() -> void:
+	if rank_floor > 0:
+		var fp := floor_points()
+		if points < fp:
+			points = fp
+		best_rank = maxi(best_rank, rank_index())
+
 
 func _init() -> void:
 	reset_stats()
@@ -76,17 +100,27 @@ func add_event(kind: StringName, amount: float = 1.0) -> float:
 	if EVENT_COUNTS_AS_HIT.has(kind):
 		_bump_combo()
 	elif combo > 0:
-		combo_timer = maxf(combo_timer, COMBO_WINDOW)
+		combo_timer = maxf(combo_timer, effective_combo_window())
 	_gain(gain)
 	return gain
+
+
+func add_raw_points(raw: float) -> void:
+	if raw <= 0.0:
+		return
+	points = minf(MAX_POINTS, points + raw * gain_mul)
+	best_rank = maxi(best_rank, rank_index())
 
 
 func take_damage(amount: float) -> void:
 	stats.damage_taken += amount
 	stats.times_hit += 1
+	if hit_protect:
+		points = maxf(floor_points(), points * 0.80)
+		return
 	combo = 0
 	combo_timer = 0.0
-	points = maxf(0.0, points * 0.5 - 20.0)
+	points = maxf(floor_points(), points * 0.5 - 20.0)
 
 
 ## juggling = 场上有敌人正在浮空或眩晕
@@ -97,10 +131,10 @@ func tick(delta: float, juggling: bool) -> void:
 			combo_timer = 0.0
 			combo = 0
 	var idx := rank_index()
-	var decay := 2.0 + 3.0 * float(idx)
+	var decay := (2.0 + 3.0 * float(idx)) * clampf(decay_mul, 0.05, 2.0)
 	if combo_timer > 0.0:
 		decay *= 0.3
-	points = maxf(0.0, points - decay * delta)
+	points = maxf(floor_points(), points - decay * delta)
 
 
 func rank_index() -> int:
@@ -108,7 +142,7 @@ func rank_index() -> int:
 	for i in THRESHOLDS.size():
 		if points >= THRESHOLDS[i]:
 			idx = i
-	return idx
+	return maxi(idx, clampi(rank_floor, 0, THRESHOLDS.size() - 1))
 
 
 func rank_letter() -> String:
@@ -128,16 +162,16 @@ func rank_progress() -> float:
 
 
 func combo_fraction() -> float:
-	return clampf(combo_timer / COMBO_WINDOW, 0.0, 1.0)
+	return clampf(combo_timer / effective_combo_window(), 0.0, 1.0)
 
 
 func _bump_combo() -> void:
 	combo += 1
-	combo_timer = COMBO_WINDOW
+	combo_timer = effective_combo_window()
 	max_combo = maxi(max_combo, combo)
 
 
 func _gain(g: float) -> void:
 	# 连击越长，主题事件越值钱一点点（最多 +50%）
-	points = minf(MAX_POINTS, points + g * (1.0 + minf(float(combo), 25.0) * 0.02))
+	points = minf(MAX_POINTS, points + g * gain_mul * (1.0 + minf(float(combo), 25.0) * 0.02))
 	best_rank = maxi(best_rank, rank_index())

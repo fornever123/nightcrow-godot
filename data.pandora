@@ -285,6 +285,195 @@
 				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
 			},
 			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "254",
+				"_index": 3,
+				"_name": "EffectStyleTonic",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c8b0ff"},
+					"base_gain": {"type": "float", "value": 20.0},
+					"card_id": {"type": "string", "value": "effect_style_tonic"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "评分获取永久 +20%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "定心墨露"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "255",
+				"_index": 4,
+				"_name": "EffectSkillScroll",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "f5dfa3"},
+					"base_gain": {"type": "float", "value": 1.0},
+					"card_id": {"type": "string", "value": "effect_skill_scroll"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "永久提前解锁下档技能"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "禁招残页"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "256",
+				"_index": 5,
+				"_name": "EffectBloodVial",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "e094c8"},
+					"base_gain": {"type": "float", "value": 3.0},
+					"card_id": {"type": "string", "value": "effect_blood_vial"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "永久 +3% 吸血，回血 20%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "嗜血残酒"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "257",
+				"_index": 6,
+				"_name": "EffectPoiseSalve",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b8dcff"},
+					"base_gain": {"type": "float", "value": 1.0},
+					"card_id": {"type": "string", "value": "effect_poise_salve"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "常驻 +1 层免打断护体韧性"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "磐石韧膏"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "258",
+				"_index": 7,
+				"_name": "EffectAirStep",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c8e6ff"},
+					"base_gain": {"type": "float", "value": 1.0},
+					"card_id": {"type": "string", "value": "effect_air_step"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "永久 +1 空中跳，空伤 +15%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "踏夜凌空"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "259",
+				"_index": 8,
+				"_name": "EffectThornCoat",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "9ad0ff"},
+					"base_gain": {"type": "float", "value": 40.0},
+					"card_id": {"type": "string", "value": "effect_thorn_coat"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "永久 +40% 受击荆棘反伤"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "荆棘夜袍"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "260",
+				"_index": 9,
+				"_name": "EffectFocusLens",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c8b0ff"},
+					"base_gain": {"type": "float", "value": 12.0},
+					"card_id": {"type": "string", "value": "effect_focus_lens"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "时缓 +0.5秒，技伤 +12%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "司辰折镜"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "261",
+				"_index": 10,
+				"_name": "EffectUltElixir",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b678ff"},
+					"base_gain": {"type": "float", "value": 25.0},
+					"card_id": {"type": "string", "value": "effect_ult_elixir"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 2.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "绝影充能效率永久 +25%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "绝影墨酿"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "30",
+				"_icon_color": "ffffff00",
+				"_id": "262",
+				"_index": 11,
+				"_name": "EffectExecuteEdge",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "f5dfa3"},
+					"base_gain": {"type": "float", "value": 35.0},
+					"card_id": {"type": "string", "value": "effect_execute_edge"},
+					"card_kind": {"type": "string", "value": "effect"},
+					"cost": {"type": "float", "value": 3.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "对 30% 血以下敌人伤 +35%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "断命残锋"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
 				"_category_id": "40",
 				"_icon_color": "ffffff00",
 				"_id": "301",
@@ -407,6 +596,258 @@
 					"tier_100": {"type": "string", "value": ""},
 					"tier_40": {"type": "string", "value": ""},
 					"title": {"type": "string", "value": "聚能怀表"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "307",
+				"_index": 6,
+				"_name": "TalentStyleAnchor",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b8dcff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_style_anchor"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "评分衰减 -45%，连击 +1.2秒"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "不落钟摆"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "308",
+				"_index": 7,
+				"_name": "TalentHitShield",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "eef6ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_hit_shield"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "受击不断连击，仅扣 20% 评分"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "止损残响"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "309",
+				"_index": 8,
+				"_name": "TalentSkillUnlock1",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "d5a8ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_skill_unlock_1"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "技能门槛 -1 档，时缓 +0.8秒"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "先知刻度"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "310",
+				"_index": 9,
+				"_name": "TalentSkillMastery",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c99bff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_skill_mastery"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "技能冷却 -35%，施放回评与绝影"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "瞬息演武"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "311",
+				"_index": 10,
+				"_name": "TalentLifesteal",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "e094c8"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_lifesteal"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "攻击与搓招附带 8% 生命汲取"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "血月汲魂"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "312",
+				"_index": 11,
+				"_name": "TalentPoise",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "eef6ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_poise"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "出招全程霸体抗打断，轻击不退"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "铁骨凝躯"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "313",
+				"_index": 12,
+				"_name": "TalentShellShred",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b8dcff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_shell_shred"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "碎壳伤害 +50%，破壳回残影绝影"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "碎壳蚀锋"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "314",
+				"_index": 13,
+				"_name": "TalentShadowFlow",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c8b0ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_shadow_flow"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "击杀/弹刀回残影绝影并疾行"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "鸦影回流"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "315",
+				"_index": 14,
+				"_name": "TalentPerfectParryHeal",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "eef6ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_perfect_parry_heal"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "精准弹刀回 10% 血并 +25 评分"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "以守代攻"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "316",
+				"_index": 15,
+				"_name": "TalentDashNova",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "c99bff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_dash_nova"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "瞬步与追影在起点引爆紫影震波"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "影步爆裂"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "317",
+				"_index": 16,
+				"_name": "TalentComboSurge",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "d5a8ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_combo_surge"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "每 10 连击全伤 +6%（最高 +36%）"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "连绵不绝"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "40",
+				"_icon_color": "ffffff00",
+				"_id": "318",
+				"_index": 17,
+				"_name": "TalentImmortalClock",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "f5dfa3"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "talent_immortal_clock"},
+					"card_kind": {"type": "string", "value": "talent"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "每幕 1 次濒死倒流回 55% 血并震飞敌群"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "倒拨五分"}
 				},
 				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
 			},
@@ -535,6 +976,132 @@
 					"title": {"type": "string", "value": "灌顶丹"}
 				},
 				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "407",
+				"_index": 6,
+				"_name": "TacticUnlockAllSkills",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "f5dfa3"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_unlock_all_skills"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "解锁全 D~S 技能，技伤 +25%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "司辰全书"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "408",
+				"_index": 7,
+				"_name": "TacticStyleFloor",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b678ff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_style_floor"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "战斗评分保底不低于 B 档"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "永恒华章"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "409",
+				"_index": 8,
+				"_name": "TacticBloodOath",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "e094c8"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_blood_oath"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "+12%吸血+出招霸体，半血增伤30%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "残夜血誓"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "410",
+				"_index": 9,
+				"_name": "TacticShadowOverdrive",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "b8dcff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_shadow_overdrive"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "残影上限 +2，残影回复加快 40%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "千影奔流"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "411",
+				"_index": 10,
+				"_name": "TacticChronoOverclock",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "d4bcff"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_chrono_overclock"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "时缓冷却减半，时缓时长 +1.0秒"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "凝晷超频"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
+			},
+			{
+				"_category_id": "60",
+				"_icon_color": "ffffff00",
+				"_id": "412",
+				"_index": 11,
+				"_name": "TacticEclipseCrown",
+				"_property_overrides": {
+					"accent_hex": {"type": "string", "value": "f5dfa3"},
+					"base_gain": {"type": "float", "value": 0.0},
+					"card_id": {"type": "string", "value": "tactic_eclipse_crown"},
+					"card_kind": {"type": "string", "value": "tactic"},
+					"cost": {"type": "float", "value": 0.0},
+					"subtitle": {"type": "string", "value": ""},
+					"summary": {"type": "string", "value": "绝影立刻回满，技能伤害 +40%"},
+					"tier_10": {"type": "string", "value": ""},
+					"tier_100": {"type": "string", "value": ""},
+					"tier_40": {"type": "string", "value": ""},
+					"title": {"type": "string", "value": "蚀月王冠"}
+				},
+				"_script_path": "res://scripts/roguelike/pandora_perk_entity.gd"
 			}
 		],
 		"_properties": [
@@ -597,7 +1164,7 @@
 	},
 	"_id_generator": {
 		"_ids_by_context": {
-			"default": 420
+			"default": 520
 		}
 	},
 	"_version": 1

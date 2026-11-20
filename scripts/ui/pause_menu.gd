@@ -7,6 +7,7 @@ extends CanvasLayer
 ## 设置会存盘：主音量、全屏和首页共用 user://settings.cfg；操作方式由 player_factory 存进 user://controls.cfg；底部提示、伤害数字只在本次运行有效。
 
 const Factory := preload("res://scripts/night/player_factory.gd")
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 const GothicFonts := preload("res://scripts/ui/gothic_fonts.gd")
 const INK := Color(0.024, 0.031, 0.051)
 const SILVER := Color("e6e9ef")
@@ -34,7 +35,7 @@ const MAIN_ITEMS: Array[String] = ["继续", "重新开始", "操作说明", "�
 const TITLE_SCENE := "res://scenes/yg_title_zhanzhong.tscn"   ## 首页线的标题画面《斩钟》（11-05 请我们加“回到标题”，11-15 从断光改到斩钟）
 const SETTINGS_CFG := "user://settings.cfg"   ## 和首页共用：[audio] master 0..1、[display] fullscreen
 ## 键位以 scripts/night/player_factory.gd 为准；攻击 / 远射 / 弹刀 / 冲刺斩随操作方式（键盘 / 键鼠）变，见 _help_rows()
-const HELP_PAD := "手柄：A 跳 · X 攻击 · Y 远射 · B 冲刺斩 · RB 弹刀 · RT 大招 · Start 暂停 · Back 重开"
+const HELP_PAD := "手柄：左摇杆 移动 · A 跳 · X 轻击 · Y 重击 · B 冲刺 · LB 时缓+十字键搓招 · RB 弹刀 · LT 远射 · RT 大招 · Start 暂停"
 
 var stage: Node                    ## rain_trial.gd，读封印进度 / 用时，重新开始也交给它
 
@@ -58,9 +59,11 @@ var _serif_bold: Font
 var _digits: Font
 var _volume := 1.0
 var _rng := RandomNumberGenerator.new()
+var _stick := GamepadManager.StickRepeater.new()
 
 
 func _ready() -> void:
+	GamepadManager.ensure_ui_actions()
 	layer = 28                     # HUD 10 之上，试玩结算页 30 之下
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
@@ -136,6 +139,8 @@ func open() -> void:
 		return
 	opened = true
 	_closing = false
+	_stick.reset()
+	GamepadManager.stop_all_rumble()
 	page = Page.MAIN
 	index = 0
 	_open_ms = Time.get_ticks_msec()
@@ -155,6 +160,7 @@ func close() -> void:
 		return
 	opened = false
 	_closing = true
+	_stick.reset()
 	_close_ms = Time.get_ticks_msec()
 	_set_hud(true)
 	get_tree().paused = false
@@ -187,6 +193,12 @@ func _process(_delta: float) -> void:
 	var now_us := Time.get_ticks_usec()
 	var dt := minf((now_us - _last_us) / 1000000.0, 0.05)
 	_last_us = now_us
+	if opened and not _closing:
+		var rep := _stick.poll_repeat()
+		if rep.y != 0:
+			_move(rep.y)
+		elif rep.x != 0:
+			_adjust(rep.x)
 	_step_rain(dt)
 	_rain.queue_redraw()
 	_canvas.queue_redraw()
@@ -224,28 +236,44 @@ func _draw_rain() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not opened:
-		if event.is_action_pressed("ui_cancel") and not event.is_echo() and can_open():
+		var pad_start := event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and not event.is_echo() and (event as InputEventJoypadButton).button_index == JOY_BUTTON_START
+		if (event.is_action_pressed("ui_cancel") or pad_start) and not event.is_echo() and can_open():
 			get_viewport().set_input_as_handled()
 			open()
 		return
 	if not (event is InputEventKey or event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		return
 	get_viewport().set_input_as_handled()
+	if event is InputEventJoypadMotion:
+		var jm := event as InputEventJoypadMotion
+		if absf(jm.axis_value) >= 0.28:
+			GamepadManager.set_using_gamepad(true)
+		var step := _stick.feed_motion(jm)
+		if step.y != 0:
+			_move(step.y)
+		elif step.x != 0:
+			_adjust(step.x)
+		return
 	if not event.is_pressed():
 		return
+	if event is InputEventJoypadButton:
+		GamepadManager.set_using_gamepad(true)
+	elif event is InputEventKey:
+		GamepadManager.set_using_gamepad(false)
 	# 手柄 B 不在 ui_cancel 里（战斗里 B 是冲刺斩），菜单打开时单独当返回
-	var pad_back: bool = event is InputEventJoypadButton and event.button_index == JOY_BUTTON_B
+	var pad_back: bool = event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B
+	var pad_ok: bool = event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_A
 	if (event.is_action_pressed("ui_cancel") or pad_back) and not event.is_echo():
 		_back()
-	elif event.is_action_pressed("ui_up", true) or event.is_action_pressed("aim_up", true):
+	elif event.is_action_pressed("ui_up", true) or (InputMap.has_action("aim_up") and event.is_action_pressed("aim_up", true)):
 		_move(-1)
-	elif event.is_action_pressed("ui_down", true) or event.is_action_pressed("move_down", true):
+	elif event.is_action_pressed("ui_down", true) or (InputMap.has_action("move_down") and event.is_action_pressed("move_down", true)):
 		_move(1)
-	elif event.is_action_pressed("ui_left", true) or event.is_action_pressed("move_left", true):
+	elif event.is_action_pressed("ui_left", true) or (InputMap.has_action("move_left") and event.is_action_pressed("move_left", true)):
 		_adjust(-1)
-	elif event.is_action_pressed("ui_right", true) or event.is_action_pressed("move_right", true):
+	elif event.is_action_pressed("ui_right", true) or (InputMap.has_action("move_right") and event.is_action_pressed("move_right", true)):
 		_adjust(1)
-	elif (event.is_action_pressed("ui_accept") or event.is_action_pressed("attack_light")) and not event.is_echo():
+	elif (pad_ok or event.is_action_pressed("ui_accept") or (InputMap.has_action("attack_light") and event.is_action_pressed("attack_light"))) and not event.is_echo():
 		_activate()
 
 
@@ -437,20 +465,40 @@ func _settings() -> Array:
 		["底部操作提示", "开" if hud != null and hud.help_visible else "关"],
 		["伤害数字", "开" if fx != null and fx.damage_numbers_enabled else "关"],
 		["操作方式", Factory.scheme_name()],
+		["搓招按键提示", "开" if GamepadManager.is_skill_hints_enabled() else "关"],
 	]
 
 
 ## 操作说明：攻击 / 远射 / 弹刀 / 冲刺斩按当前方案只显示一种（战斗线 11-01：键盘和键鼠二选一，默认键盘）
 ## 11-03：冲刺斩改成双击 A / D（战斗线通知），Shift / 右键仍能出，页上只写主键位
 func _help_rows() -> Array:
+	if GamepadManager.is_using_gamepad():
+		var is_rework := true
+		if stage != null and stage.get("player") != null:
+			is_rework = bool(stage.player.get("combat_rework_enabled"))
+		if is_rework:
+			return [
+				["左摇杆", "移动（十字键专用于搓招）"], ["A", "跳跃（可二段）"], ["下 + A", "从木台跳下"],
+				["X", "轻击 · 空中连段"], ["Y / 按住 Y", "重击派生 · 蓄力破甲"], ["上 + X", "跳起上挑"],
+				["B", "穿身瞬步 · 追影"], ["按住 LB", "维持凝晷时缓（松开退出）"], ["十字键", "时缓态输入技能组合"],
+				["LT", "影镖远射"], ["RB", "格挡 / 看准时机弹刀"], ["RT", "大招「绝影」"],
+				["A（出招中）", "跳跃取消后摇"], ["Back", "重新开始本关"], ["Start", "暂停 / 继续"], ["B（菜单）", "返回上一级"],
+			]
+		return [
+			["左摇杆", "移动（十字键专用于搓招）"], ["A", "跳跃（可二段）"], ["下 + A", "从木台跳下"],
+			["X", "地面 / 空中三连"], ["按住 X", "蓄力，松开释放"], ["上 + X", "跳起上挑"],
+			["B", "冲刺斩"], ["按住 LB + 十字键", "维持时缓 + 方向搓招"], ["Y", "远射"],
+			["RB", "格挡 / 弹刀"], ["RT", "大招「绝影」"], ["L3 / R3", "来袭开关 / 判定框"],
+			["Back", "重置训练"], ["Start", "暂停 / 继续"],
+		]
 	var atk := Factory.key_label("attack")
 	var dash := Factory.key_label("dash")
 	return [
 		["A / D", "移动"], ["W / 空格", "跳（可二段）"], ["S", "从木台跳下"],
 		[atk, "攻击 · 空中三连可循环"], ["按住 " + atk, "蓄力，松开释放"], ["W + " + atk, "跳起上挑"],
-		["S + " + atk, "空中下砸"], ["前 + " + atk, "空中横扫（撞墙）"], [dash, "冲刺斩"],
-		[Factory.key_label("ranged"), "远射"], [Factory.key_label("parry"), "格挡 / 看准时机弹刀"], ["R", "大招「绝影」"],
-		["空格", "取消出招"], ["H", "隐藏底部操作提示"], ["F5", "重开"], ["Esc", "暂停"],
+		["S + " + atk, "空中下砸"], [dash, "冲刺斩"], ["按住 Tab / Ctrl", "维持凝晷时缓（松开退出）"],
+		["方向键 ↑↓←→", "时缓态输入技能组合"], [Factory.key_label("ranged"), "远射"], [Factory.key_label("parry"), "格挡 / 看准时机弹刀"],
+		["R", "大招「绝影」"], ["H", "隐藏底部操作提示"], ["F5", "重开"], ["Esc", "暂停"],
 	]
 
 
@@ -480,6 +528,8 @@ func _adjust(step: int) -> void:
 			Factory.set_scheme(next, DisplayServer.get_name() != "headless")
 			if stage != null and stage.has_method("apply_control_scheme"):
 				stage.apply_control_scheme()
+		5:
+			GamepadManager.set_skill_hints_enabled(not GamepadManager.is_skill_hints_enabled(), DisplayServer.get_name() != "headless")
 	_sel_ms = Time.get_ticks_msec()
 
 
@@ -588,15 +638,16 @@ func _draw_menu() -> void:
 			_item(cx, 610.0, "返回", 0, _ease(since, 260.0, 200.0))
 			_text(Vector2(cx, 648), "当前操作方式：%s（设置里切换）　·　Esc / 手柄 B 返回" % Factory.scheme_name(), _serif, 13, Color(FAINT, _ease(since, 300.0, 200.0)), 3.0)
 		Page.SETTINGS:
-			_heading(cx, "设置", "SETTINGS", _serif_bold, 34, 150, since)
+			_heading(cx, "设置", "SETTINGS", _serif_bold, 34, 146, since)
 			var list := _settings()
-			var y := 300.0
+			var y := 284.0
 			for i in list.size():
-				var k := _ease(since, 120.0 + 45.0 * i, 220.0)
+				var k := _ease(since, 120.0 + 40.0 * i, 220.0)
 				_setting_row(cx, y + (1.0 - k) * 8.0, list[i][0], list[i][1], i, k)
-				y += 52.0
-			_item(cx, y + 12.0, "返回", list.size(), _ease(since, 120.0 + 45.0 * list.size(), 220.0))
-			_text(Vector2(cx, 640), "← → 调整　·　Esc 返回　·　音量、全屏、操作方式会记住", _serif, 13, Color(FAINT, _ease(since, 380.0, 240.0)), 3.0)
+				y += 45.0
+			_item(cx, y + 14.0, "返回", list.size(), _ease(since, 120.0 + 40.0 * list.size(), 220.0))
+			var set_foot := "← → / 左摇杆 调整　·　A 切换　·　B / Start 返回　·　音量、全屏、操作方式与搓招提示会记住" if GamepadManager.is_using_gamepad() else "← → 调整　·　Esc / 手柄 B 返回　·　音量、全屏、操作方式与搓招提示会记住"
+			_text(Vector2(cx, 646), set_foot, _serif, 13, Color(FAINT, _ease(since, 380.0, 240.0)), 3.0)
 
 
 func _item(cx: float, y: float, label: String, i: int, alpha: float) -> void:

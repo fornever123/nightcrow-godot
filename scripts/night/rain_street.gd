@@ -105,7 +105,10 @@ func _stage_ready() -> void:
 	_arrows = Arrows.new()
 	_arrows.stage = self
 	layer.add_child(_arrows)
-	_queue_hint(&"floors", "楼有三层：W/空格 跳上阳台和屋檐，S 跳下去", 6.0)
+	if GamepadManager.is_using_gamepad():
+		_queue_hint(&"floors", "楼有三层：按 A 跳上阳台和屋檐，下 + A 跳下去", 6.0)
+	else:
+		_queue_hint(&"floors", "楼有三层：W/空格 跳上阳台和屋檐，S 跳下去", 6.0)
 	print("RAIN_STREET_READY")
 
 

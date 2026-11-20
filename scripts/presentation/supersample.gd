@@ -6,6 +6,7 @@ extends Node
 ## 主角黑描边按渲染像素算（char_light 用 dFdx），2 倍下会细一半，所以打开时把关卡 light_mat 的 ol_width 乘 2。
 ## headless 下什么都不做。环境变量 NIGHTCROW_SSAA=0/1 可临时覆盖存档里的开关（截图对比用）。
 
+const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 const CFG := "user://graphics.cfg"
 const FACTOR := 2
 const DISPLAY_BIT := 1 << 19          ## 只有缩小显示的那张图在这一层；打开时主窗口只画这一层
@@ -20,9 +21,13 @@ var _scene_ol: float = 0.0
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	if get_node_or_null("GamepadManager") == null:
+		var gm := GamepadManager.new()
+		gm.name = "GamepadManager"
+		add_child(gm)
 	if DisplayServer.get_name() == "headless":
 		return
-	process_mode = Node.PROCESS_MODE_ALWAYS
 	var on := false
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG) == OK:

@@ -98,7 +98,7 @@ func _stage_ready() -> void:
 	pause_menu.name = "PauseMenu"
 	pause_menu.stage = self
 	add_child(pause_menu)
-	hud.help_text += "   Esc 暂停"
+	apply_control_scheme()
 
 	if not roguelike_auto_pick:
 		_open_initial_setup.call_deferred()
@@ -316,15 +316,21 @@ func _inject_boss_button(result: CanvasLayer) -> void:
 	fight_boss.add_theme_color_override("font_hover_color", Color("fff8e6"))
 	fight_boss.pressed.connect(_enter_boss_fight)
 	rows.add_child(fight_boss)
-	rows.move_child(fight_boss, leave.get_index())
+	var to_title := rows.get_node_or_null("ToTitle") as Button
+	var insert_before := to_title.get_index() if to_title != null else leave.get_index()
+	rows.move_child(fight_boss, insert_before)
 
-	retry.focus_neighbor_top = leave.get_path()
-	retry.focus_neighbor_bottom = fight_boss.get_path()
-	fight_boss.focus_neighbor_top = retry.get_path()
-	fight_boss.focus_neighbor_bottom = leave.get_path()
-	leave.focus_neighbor_top = fight_boss.get_path()
-	leave.focus_neighbor_bottom = retry.get_path()
-	_safe_grab_focus.call_deferred(retry)
+	var chain: Array[Button] = [fight_boss, retry]
+	if to_title != null:
+		rows.move_child(fight_boss, retry.get_index())
+		chain = [fight_boss, retry, to_title, leave]
+	else:
+		rows.move_child(fight_boss, retry.get_index())
+		chain = [fight_boss, retry, leave]
+	for i in chain.size():
+		chain[i].focus_neighbor_top = chain[(i + chain.size() - 1) % chain.size()].get_path()
+		chain[i].focus_neighbor_bottom = chain[(i + 1) % chain.size()].get_path()
+	_safe_grab_focus.call_deferred(fight_boss)
 
 
 func _safe_grab_focus(ctrl: Control) -> void:

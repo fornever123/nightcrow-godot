@@ -421,6 +421,9 @@ var _dash_stopped: bool = false
 var _double_tap_seq: int = -1
 var _reaction_guard_held: bool = false
 var hp: float = 100.0
+## 肉鸽外挂抗打断状态（由 PerkRig 同步：出招全程霸体 / 护体韧性层数）
+var buff_attack_poise: bool = false
+var buff_poise_charges: int = 0
 var hitstop_frames: int = 0
 var hitstop_this_tick: bool = false
 var parry_hitstop_frames: int = 3
@@ -572,7 +575,8 @@ func _ensure_short_dash_action() -> void:
 	key.physical_keycode = KEY_C
 	InputMap.action_add_event(&"short_dash", key)
 	var pad := InputEventJoypadButton.new()
-	pad.button_index = JOY_BUTTON_LEFT_SHOULDER
+	pad.device = -1
+	pad.button_index = JOY_BUTTON_B
 	InputMap.action_add_event(&"short_dash", pad)
 
 
@@ -2594,6 +2598,20 @@ func take_hit(mv: Resource, from_facing: int, _point: Vector2, _charge: float = 
 			else:
 				_enter_down()
 		return false
+	if buff_poise_charges > 0:
+		# 护体韧性（磐石韧膏）：消耗 1 层韧性免疫硬直与击飞
+		buff_poise_charges -= 1
+		hp -= mv.damage * damage_mul
+		_set_visual_scale(Vector2(1.08, 0.94))
+		_squash_timer = 2
+		if hp <= 0.0:
+			charge_frames = -1
+			_charge_accum = 0.0
+			if can_die:
+				_die()
+			else:
+				_enter_down()
+		return false
 	_interrupt_action_flow()
 	hitstop_frames = maxi(hitstop_frames, mv.victim_hitstop_frames)
 	# damage_mul 让"怪物原型倍率 / PVP 全局伤害缩放 / 突然死亡"三者能在
@@ -2621,6 +2639,8 @@ func has_super_armor() -> bool:
 	if state == State.DEAD:
 		return false
 	if charge_frames >= 0:
+		return true
+	if buff_attack_poise and state == State.ATTACK:
 		return true
 	return state == State.ATTACK and (
 		(charge_move != null and current_move == charge_move)

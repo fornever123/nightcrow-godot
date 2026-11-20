@@ -40,6 +40,8 @@ func get_all_data(context_id: String) -> Dictionary:
 	var file: FileAccess
 	if _should_use_compression():
 		file = FileAccess.open_compressed(file_path, FileAccess.READ)
+		if file == null:
+			file = FileAccess.open(file_path, FileAccess.READ)
 	else:
 		file = FileAccess.open(file_path, FileAccess.READ)
 	var json: JSON = JSON.new()
@@ -72,6 +74,8 @@ func load_from_file(file_path: String) -> Dictionary:
 	var file: FileAccess
 	if _should_use_compression():
 		file = FileAccess.open_compressed(file_path, FileAccess.READ)
+		if file == null:
+			file = FileAccess.open(file_path, FileAccess.READ)
 	else:
 		file = FileAccess.open(file_path, FileAccess.READ)
 	if FileAccess.file_exists(file_path) and file != null:
