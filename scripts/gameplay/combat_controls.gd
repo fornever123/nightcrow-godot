@@ -4,7 +4,7 @@ extends RefCounted
 ## 在不改动 player_factory.gd 的前提下，由 night_trial.gd 在初始化与切换键位方案时调用：
 ##   · 纯键盘（keyboard）：J 轻击 · K 重击/蓄力 · Shift（及双击 A/D）瞬步冲刺 · L 弹刀 · U/I 飞镖 · R 大招
 ##   · 键鼠（mouse）     ：左键 轻击 · 右键 重击/蓄力 · Shift（及侧键/双击 A/D）瞬步冲刺 · E 弹刀 · Q 飞镖 · R 大招
-##   · 手柄（Xbox 布局） ：X 轻击 · Y 重击/蓄力 · B 瞬步冲刺 · RB 弹刀 · LT 飞镖 · RT 大招
+##   · 手柄（Xbox 布局） ：X 轻击 · Y 重击/蓄力 · RB 瞬步冲刺 · LB 弹刀 · B 按住时缓搓招 · LT 飞镖 · RT 大招
 
 const GamepadManager := preload("res://scripts/core/gamepad_manager.gd")
 
@@ -44,16 +44,16 @@ static func apply_scheme(scheme: String) -> void:
 	if use_mouse:
 		_bind_action(&"attack_light", [], [MOUSE_BUTTON_LEFT], [JOY_BUTTON_X], [])
 		_bind_action(&"attack_heavy", [], [MOUSE_BUTTON_RIGHT], [JOY_BUTTON_Y], [])
-		_bind_action(&"dash_modifier", [KEY_SHIFT], [MOUSE_BUTTON_XBUTTON1], [JOY_BUTTON_B], [])
-		_bind_action(&"short_dash", [KEY_SHIFT], [MOUSE_BUTTON_XBUTTON1], [JOY_BUTTON_B], [])
-		_bind_action(&"parry", [KEY_E], [], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"dash_modifier", [KEY_SHIFT], [MOUSE_BUTTON_XBUTTON1], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"short_dash", [KEY_SHIFT], [MOUSE_BUTTON_XBUTTON1], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"parry", [KEY_E], [], [JOY_BUTTON_LEFT_SHOULDER], [])
 		_bind_action(&"attack_ranged", [KEY_Q], [], [], [[JOY_AXIS_TRIGGER_LEFT, 1.0]], 0.35)
 	else:
 		_bind_action(&"attack_light", [KEY_J], [], [JOY_BUTTON_X], [])
 		_bind_action(&"attack_heavy", [KEY_K], [], [JOY_BUTTON_Y], [])
-		_bind_action(&"dash_modifier", [KEY_SHIFT], [], [JOY_BUTTON_B], [])
-		_bind_action(&"short_dash", [KEY_SHIFT, KEY_C], [], [JOY_BUTTON_B], [])
-		_bind_action(&"parry", [KEY_L], [], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"dash_modifier", [KEY_SHIFT], [], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"short_dash", [KEY_SHIFT, KEY_C], [], [JOY_BUTTON_RIGHT_SHOULDER], [])
+		_bind_action(&"parry", [KEY_L], [], [JOY_BUTTON_LEFT_SHOULDER], [])
 		_bind_action(&"attack_ranged", [KEY_U, KEY_I], [], [], [[JOY_AXIS_TRIGGER_LEFT, 1.0]], 0.35)
 	_bind_action(&"ult", [KEY_R], [], [], [[JOY_AXIS_TRIGGER_RIGHT, 1.0]], 0.35)
 	GamepadManager.ensure_ui_actions()

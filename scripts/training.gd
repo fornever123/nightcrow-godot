@@ -178,12 +178,12 @@ func apply_control_scheme() -> void:
 	if help_label == null:
 		return
 	if GamepadManager.is_using_gamepad():
-		help_label.text = ("左摇杆 移动   A 二段跳   下+A 下平台   X 轻击/长按蓄力   B 冲刺斩   按住 LB 时缓 + 十字键全搓招演练\n"
-				+ "Y 远射   RB 弹刀/格挡   L3 来袭开关   R3 判定框   Back 重置   Start 暂停菜单")
+		help_label.text = ("左摇杆 移动   A 二段跳   下+A 下平台   X 轻击/长按蓄力   RB 冲刺斩   按住 B 时缓 + 十字键全搓招演练\n"
+				+ "Y 远射   LB 弹刀/格挡   L3 来袭开关   R3 判定框   Back 重置   Start 暂停菜单")
 		return
 	var a := Factory.key_label("attack")
 	help_label.text = ("A / D 移动   空格 / W 二段跳   S 下平台   {a} 三连/长按蓄力   {d} 冲刺斩   按住 Tab/Ctrl 时缓 + 方向键全搓招演练\n"
-			+ "{k} 远射   {l} 弹刀/格挡   R 大招   F2 来袭开关   F5 重置   F1 判定框   Esc 暂停菜单"
+			+ "{k} 远射   {l} 弹刀/格挡   R 大招   F2 来袭开关   F3 影街   F4 司辰母钟Boss   F5 重置   F1 判定框   Esc 暂停菜单"
 			).format({"a": a, "k": Factory.key_label("ranged"), "l": Factory.key_label("parry"), "d": Factory.key_label("dash")})
 
 
@@ -352,7 +352,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		debug_boxes = not debug_boxes
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		# 试玩版：F3 回到雨夜河岸街试玩关卡
+		Engine.time_scale = 1.0
 		get_tree().change_scene_to_file.call_deferred("res://scenes/rain_trial.tscn")
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
+		Engine.time_scale = 1.0
+		get_tree().change_scene_to_file.call_deferred("res://scenes/boss_clocktower_test.tscn")
 	if event.is_action_pressed("training_attack_toggle"):
 		training_attacks = not training_attacks
 		training_attack_clock = 0.0

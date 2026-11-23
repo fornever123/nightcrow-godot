@@ -284,7 +284,7 @@ static func ensure_skill_actions() -> void:
 		&"skill_right": [KEY_RIGHT],
 	}
 	var pad_map := {
-		&"skill_stance": JOY_BUTTON_LEFT_SHOULDER,
+		&"skill_stance": JOY_BUTTON_B,
 		&"skill_up": JOY_BUTTON_DPAD_UP,
 		&"skill_down": JOY_BUTTON_DPAD_DOWN,
 		&"skill_left": JOY_BUTTON_DPAD_LEFT,

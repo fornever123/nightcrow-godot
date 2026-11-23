@@ -78,7 +78,7 @@ const KEYS := {"move_left": [KEY_A], "move_right": [KEY_D], "jump": [KEY_W, KEY_
 	"skill_stance": [KEY_TAB, KEY_CTRL], "skill_up": [KEY_UP], "skill_down": [KEY_DOWN],
 	"skill_left": [KEY_LEFT], "skill_right": [KEY_RIGHT],
 	"ult": [KEY_R], "reset": [KEY_F5], "debug_toggle": [KEY_F1],
-	"toggle_help": [KEY_H], "open_training": [KEY_F3]}
+	"toggle_help": [KEY_H], "open_training": [KEY_F3], "open_clocktower_boss": [KEY_F4]}
 const SCHEME_KEYS := {
 	"keyboard": {"attack_light": [KEY_J], "attack_ranged": [KEY_K], "parry": [KEY_L], "dash_modifier": [KEY_SHIFT]},
 	"mouse": {"attack_light": [], "attack_ranged": [KEY_Q], "parry": [KEY_E], "dash_modifier": [KEY_SHIFT]},
@@ -92,13 +92,13 @@ const SCHEME_LABELS := {
 	"keyboard": {"attack": "J", "ranged": "K", "parry": "L", "dash": "双击 A/D"},
 	"mouse": {"attack": "左键", "ranged": "Q", "parry": "E", "dash": "双击 A/D"},
 }
-## 手柄移动仅绑定左摇杆（PAD_AXES）；十字键专用于时缓搓招技能，不与移动关联；LB 专用于触发时缓搓招
-const PAD_BUTTONS := {"skill_stance": [JOY_BUTTON_LEFT_SHOULDER],
+## 手柄移动仅绑定左摇杆（PAD_AXES）；十字键专用于时缓搓招技能，不与移动关联；B 专用于按住维持时缓搓招，RB 负责瞬步/冲刺斩，LB 负责弹刀/格挡
+const PAD_BUTTONS := {"skill_stance": [JOY_BUTTON_B],
 	"skill_up": [JOY_BUTTON_DPAD_UP], "skill_down": [JOY_BUTTON_DPAD_DOWN],
 	"skill_left": [JOY_BUTTON_DPAD_LEFT], "skill_right": [JOY_BUTTON_DPAD_RIGHT],
 	"jump": [JOY_BUTTON_A], "jump_pure": [JOY_BUTTON_A],
 	"attack_light": [JOY_BUTTON_X], "attack_ranged": [JOY_BUTTON_Y],
-	"dash_modifier": [JOY_BUTTON_B], "parry": [JOY_BUTTON_RIGHT_SHOULDER], "reset": [JOY_BUTTON_BACK]}
+	"dash_modifier": [JOY_BUTTON_RIGHT_SHOULDER], "parry": [JOY_BUTTON_LEFT_SHOULDER], "reset": [JOY_BUTTON_BACK]}
 ## [轴, 方向]；摇杆上下的死区比左右大，免得跑步时手一偏就变成上挑 / 下平台
 const PAD_AXES := {"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
 	"aim_up": [JOY_AXIS_LEFT_Y, -1.0], "move_down": [JOY_AXIS_LEFT_Y, 1.0], "ult": [JOY_AXIS_TRIGGER_RIGHT, 1.0]}

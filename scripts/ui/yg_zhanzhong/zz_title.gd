@@ -71,6 +71,8 @@ const CHAPTERS := [
 		"scene": "", "art": "bz_art_ch4", "word": "bz_name_ch4"},
 	{"tag": "演　武", "num": "试", "name": "试剑回廊", "sub": "司辰残廊 · 自由练刀", "unlocked": true,
 		"scene": "res://scenes/training.tscn", "art": "bz_art_train", "word": "bz_name_train"},
+	{"tag": "首领测试", "num": "VI", "name": "司辰母钟", "sub": "血色玫瑰桥 · 三阶段时间操控首领", "unlocked": true,
+		"scene": "res://scenes/boss_clocktower_test.tscn", "art": "bz_art_ch1", "word": "text:司辰母钟"},
 ]
 
 # [YG-MARK] 6 项完整 Steam 商业设置（全部在白光定格里以专属器物动态呈现，并与暂停菜单共享 settings.cfg）
@@ -86,9 +88,9 @@ const KB_ACTIONS := [
 	["移动", ["key/a", "key/d"], ["key/a", "key/d"], ["xboxseries/l_stick"]],
 	["跳跃", ["key/w", "key/space"], ["key/w", "key/space"], ["xboxseries/a"]],
 	["攻击", ["key/j"], ["mouse/left"], ["xboxseries/x"]],
-	["弹刀", ["key/l"], ["key/e"], ["xboxseries/rb"]],
+	["弹刀", ["key/l"], ["key/e"], ["xboxseries/lb"]],
 	["远射", ["key/k"], ["key/q"], ["xboxseries/y"]],
-	["冲刺", ["key/shift"], ["mouse/right", "key/shift"], ["xboxseries/b"]],
+	["冲刺", ["key/shift"], ["mouse/right", "key/shift"], ["xboxseries/rb"]],
 	["大招", ["key/r"], ["key/r"], ["xboxseries/rt"]],
 ]
 
@@ -101,7 +103,7 @@ const TW := -62.0
 var VIEW := {
 	"home": {"hx": 950.0, "hy": 540.0, "z": 1.0, "seam": TW},
 	"roster": {"hx": 740.0, "hy": 540.0, "z": 1.15, "seam": -54.0},
-	"select": {"hx": 2230.0, "hy": 560.0, "z": 1.25, "seam": TW, "ang": [180.0, 180.0, 180.0, 180.0, 180.0]},
+	"select": {"hx": 2230.0, "hy": 560.0, "z": 1.25, "seam": TW, "ang": [180.0, 180.0, 180.0, 180.0, 180.0, 180.0]},
 	"settings": {"hx": 1090.0, "hy": 470.0, "z": 1.3, "seam": -90.0},   # [YG-MARK] 白光定格：钟推近、压暗当背景
 }
 const LAUNCH_VIEW := {"hx": 950.0, "hy": 548.0, "z": 1.18}

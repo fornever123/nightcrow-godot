@@ -2,7 +2,7 @@ extends Node2D
 ## 断晓 · 评分渐进解锁「按住时缓 + 十字键/方向键搓招」技能系统（ComboSkillRig）
 ##
 ## 核心机制：
-##   1. 按住 LB（手柄）或 Tab / Ctrl（键盘）维持定时时缓（0.08x，默认最长 2.6 秒真实时间）；
+##   1. 按住 B（手柄右手）或 Tab / Ctrl（键盘）维持定时时缓（0.08x，默认最长 4.6 秒真实时间）；
 ##      松开触发键立即退出时缓恢复流速；若已输入半段指令后松开或输错方向，触发沉浸式「指令碎裂」失败特效与音效。
 ##   2. 时缓期间使用手柄十字键（不与移动关联）或键盘方向键（↑↓←→）输入指令搓出技能：
 ##      - 每次按下方向键，在人物身侧实时绽放对应方向粒子束、哥特方向符纹与递增音高钢锁音效（墙钟 60fps 流畅演播）；
@@ -25,7 +25,7 @@ signal skill_cast(skill_id: String, rank_idx: int)
 signal skill_failed(reason: String)
 
 const SLOWMO_SCALE := 0.08
-const BASE_STANCE_DURATION := 2.6
+const BASE_STANCE_DURATION := 4.6
 const CAST_COOLDOWN := 1.8
 const CANCEL_COOLDOWN := 0.35
 const S_SKILL_COOLDOWN := 8.0
@@ -66,6 +66,10 @@ const SKILLS: Array[Dictionary] = [
 var stage: Node = null
 var player: CharacterBody2D = null
 var unlock_all_override: bool = false
+var stage_rank_bonus: int = 0
+var stage_cd_mul: float = 1.0
+var stage_dmg_mul: float = 1.0
+var stage_shell_mul: float = 1.0
 
 ## 状态（全墙钟计时，绝不受 Engine.time_scale 干扰）
 var stance_active: bool = false
@@ -260,7 +264,7 @@ func effective_unlock_rank() -> int:
 	var cur := current_style_rank()
 	var discount := int(rig.get("skill_rank_discount")) if rig != null else 0
 	var early := int(rig.get("skill_early_unlocks")) if rig != null else 0
-	return clampi(cur + discount + early, 0, 4)
+	return clampi(cur + discount + early + stage_rank_bonus, 0, 4)
 
 
 func is_skill_unlocked(skill: Dictionary) -> bool:
@@ -282,14 +286,15 @@ func _get_slowmo_bonus() -> float:
 
 func _get_cd_mul() -> float:
 	var rig := _get_perk_rig()
-	return clampf(float(rig.get("skill_cd_mul")), 0.20, 1.5) if rig != null else 1.0
+	var base := float(rig.get("skill_cd_mul")) if rig != null else 1.0
+	return clampf(base * stage_cd_mul, 0.20, 1.8)
 
 
 func _get_skill_dmg_mul() -> float:
 	var rig := _get_perk_rig()
 	var bonus := float(rig.get("skill_dmg_mul")) if rig != null else 1.0
 	var p_atk := float(player.attack_damage_mul) if player != null and is_instance_valid(player) else 1.0
-	return bonus * p_atk
+	return bonus * p_atk * stage_dmg_mul
 
 
 # ---------------------------------------------------------------- 按住维持时缓生命周期（安全防卡死）
@@ -395,11 +400,9 @@ func _input(event: InputEvent) -> void:
 	if not stance_active:
 		return
 
-	# 时缓期间：按 B 或 Esc 也可紧急取消
+	# 时缓期间：按 Esc 可紧急取消（手柄松开 B 即自然退出）
 	var is_cancel_btn := false
-	if event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B:
-		is_cancel_btn = true
-	elif event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
+	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
 		is_cancel_btn = true
 	if is_cancel_btn:
 		if not input_seq.is_empty():
@@ -1104,6 +1107,7 @@ func _damage_shell(target: Node2D, amount: float, point: Vector2) -> void:
 	var rig := _get_perk_rig()
 	if rig != null and rig.get("shell_shred_bonus") != null:
 		amount *= (1.0 + float(rig.get("shell_shred_bonus")))
+	amount *= stage_shell_mul
 	var fdir := int(player.facing) if player != null and int(player.facing) != 0 else 1
 	if target.has_method(&"damage_shell"):
 		target.call(&"damage_shell", amount, point, fdir, false)
@@ -1408,7 +1412,7 @@ func _draw_ui() -> void:
 	_ui_canvas.draw_rect(Rect2(bar_bg.position, Vector2(bar_w * rem_ratio, 6.0)), COL_FAIL if _wrong_flash > 0.0 else COL_VIOLET_LIGHT)
 	_ui_canvas.draw_arc(Vector2(cx, top_y - 18.0), 14.0, -PI * 0.5, -PI * 0.5 + TAU * rem_ratio, 24, COL_SILVER, 2.0)
 
-	var hold_lbl := "按住 LB 维持 · 松开退出" if GamepadManager.is_using_gamepad() else "按住 Tab/Ctrl 维持 · 松开退出"
+	var hold_lbl := "按住 B 维持 · 松开退出" if GamepadManager.is_using_gamepad() else "按住 Tab/Ctrl 维持 · 松开退出"
 	var dir_lbl := "十字键搓招" if GamepadManager.is_using_gamepad() else "方向键搓招"
 	var head_txt := "5:59 凝晷时缓 · %s · %s" % [dir_lbl, hold_lbl]
 	_ui_canvas.draw_string(_font_serif, Vector2(cx - 250.0, top_y - 12.0), head_txt, HORIZONTAL_ALIGNMENT_CENTER, 500.0, 14, Color(COL_SILVER, 0.94))
@@ -1482,7 +1486,7 @@ func _draw_ui() -> void:
 func _draw_ready_badge(vp: Vector2) -> void:
 	var pad := GamepadManager.is_using_gamepad()
 	var eff_rank := effective_unlock_rank()
-	var key_str := "按住 LB" if pad else "按住 Tab/Ctrl"
+	var key_str := "按住 B" if pad else "按住 Tab/Ctrl"
 	var msg := ""
 	var col := COL_VIOLET_LIGHT
 	if stance_cooldown > 0.0:

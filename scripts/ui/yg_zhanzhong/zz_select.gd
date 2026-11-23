@@ -578,6 +578,34 @@ func _set_name(d: Dictionary, word: String) -> void:
 	if word == "":
 		d["chars"] = []
 		return
+	if word.begins_with("text:"):
+		var txt := word.substr(5)
+		var chars_t: Array = []
+		var font_sz := 168
+		var cur_x := 0.0
+		var max_h := 220.0
+		for ci in txt.length():
+			var glyph := txt.substr(ci, 1)
+			var cn := Node2D.new()
+			cn.position = Vector2(cur_x, 0.0)
+			root.add_child(cn)
+			var lay := {}
+			var gw := 172.0
+			for key in ["echo", "sh", "face"]:
+				var lb := _lbl(glyph, font_sz, WHITE, f_heavy, false)
+				cn.add_child(lb)
+				lay[key] = lb
+				gw = maxf(gw, lb.get_minimum_size().x + 6.0)
+				max_h = maxf(max_h, lb.get_minimum_size().y)
+			(lay["sh"] as Control).modulate = INK
+			(lay["sh"] as Control).position = Vector2(12, 14)
+			(lay["face"] as Control).modulate = WHITE
+			chars_t.append({"n": cn, "x0": cur_x, "w": gw, "echo": lay["echo"], "face": lay["face"], "sh": lay["sh"]})
+			cur_x += gw
+		d["chars"] = chars_t
+		d["w"] = cur_x
+		d["h"] = max_h
+		return
 	var t: Texture2D = T._tex(word)
 	var tw := float(t.get_width())
 	var th := float(t.get_height())
@@ -1402,11 +1430,11 @@ func _layout_info() -> void:
 		cn.scale = Vector2(s, s)
 		cn.modulate.a = clampf(_seg(tk, 0.0, 0.04), 0.0, 1.0) * fade * (1.0 - o_name)
 		var ee := _expo(_seg(tk, 0.04, 0.24))
-		var echo: TextureRect = c["echo"]
+		var echo: Control = c["echo"]
 		echo.modulate = Color(T.accent, 0.52 if is_white_city else 0.78)
 		echo.position = Vector2(14, 10) + Vector2(56, -42) * (1.0 - ee)
-		(c["face"] as TextureRect).modulate = WHITE if unlocked else Color("#e6e8f0")
-		var sh_tr: TextureRect = c["sh"]
+		(c["face"] as Control).modulate = WHITE if unlocked else Color("#e6e8f0")
+		var sh_tr: Control = c["sh"]
 		sh_tr.modulate = INK
 		sh_tr.position = Vector2(10, 12)
 
@@ -1468,7 +1496,7 @@ func _layout_info() -> void:
 			cn.position = Vector2(float(c["x0"]), -70.0 * e)
 			cn.scale = Vector2.ONE
 			cn.modulate.a = 1.0 - e
-			(c["echo"] as TextureRect).modulate = Color(T.accent, 0.0)
+			(c["echo"] as Control).modulate = Color(T.accent, 0.0)
 
 	# 刷新新一代电影级《登天纵轴》择章 HUD（旧版白块/黑框贴纸已隐藏）
 	if stage_hud != null:

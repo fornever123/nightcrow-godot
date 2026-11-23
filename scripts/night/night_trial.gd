@@ -1171,13 +1171,13 @@ func apply_control_scheme() -> void:
 	if hud == null:
 		return
 	if GamepadManager.is_using_gamepad():
-		hud.help_text = ("左摇杆 移动   A 跳   下+A 跳下木台   X 轻击   Y 重击/蓄力   B 穿身瞬步·追影   按住 LB 时缓 + 十字键搓招   RB 弹刀   LT 影镖   RT 大招\n"
+		hud.help_text = ("左摇杆 移动   A 跳   下+A 跳下木台   X 轻击   Y 重击/蓄力   RB 穿身瞬步·追影   按住 B 时缓 + 十字键搓招   LB 弹刀   LT 影镖   RT 大招\n"
 				+ "评分技录：随 D/C/B/A/S 评分逐步解锁 8 式搓招技（设置可关提示）   Back 重开   Start 暂停")
 		hud.queue_redraw()
 		return
 	var lb := CombatControls.labels(sc)
 	hud.help_text = ("A/D 移动   W/空格 跳   S 下台   {a} 攻击   {h} 重击/蓄力   {d} 瞬步·追影   按住 Tab/Ctrl 时缓 + 方向键搓招   {l} 弹刀   {r} 影镖   R 大招\n"
-			+ "评分技录：随 D/C/B/A/S 评分逐步解锁 8 式搓招技（设置可关提示）   H 隐藏   F3 木桩   F5 重开   Esc 暂停"
+			+ "评分技录：随 D/C/B/A/S 评分逐步解锁 8 式搓招技（设置可关提示）   H 隐藏   F3 木桩   F4 司辰母钟Boss   F5 重开   Esc 暂停"
 			).format({
 				"a": String(lb.get("attack", "J")),
 				"h": String(lb.get("heavy", "K")),
@@ -1198,6 +1198,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("open_training"):
 		Engine.time_scale = 1.0
 		get_tree().change_scene_to_file.call_deferred("res://scenes/training.tscn")
+	elif event.is_action_pressed("open_clocktower_boss"):
+		Engine.time_scale = 1.0
+		get_tree().change_scene_to_file.call_deferred("res://scenes/boss_clocktower_test.tscn")
 
 
 func _process(delta: float) -> void:

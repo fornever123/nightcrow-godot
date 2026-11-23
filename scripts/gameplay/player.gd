@@ -576,7 +576,7 @@ func _ensure_short_dash_action() -> void:
 	InputMap.action_add_event(&"short_dash", key)
 	var pad := InputEventJoypadButton.new()
 	pad.device = -1
-	pad.button_index = JOY_BUTTON_B
+	pad.button_index = JOY_BUTTON_RIGHT_SHOULDER
 	InputMap.action_add_event(&"short_dash", pad)
 
 
